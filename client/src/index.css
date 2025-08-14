@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* EcoStep Design System - Nature-inspired carbon tracking app */
+
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 120 20% 98%;
+    --foreground: 150 25% 15%;
+
+    /* Card system */
+    --card: 0 0% 100%;
+    --card-foreground: 150 25% 15%;
+
+    /* Popover system */
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 25% 15%;
+
+    /* Primary - Vibrant eco green */
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 142 70% 45%;
+
+    /* Secondary - Earth tone */
+    --secondary: 45 25% 88%;
+    --secondary-foreground: 150 25% 15%;
+
+    /* Muted tones */
+    --muted: 120 15% 94%;
+    --muted-foreground: 150 10% 45%;
+
+    /* Accent - Fresh lime */
+    --accent: 88 75% 68%;
+    --accent-foreground: 150 25% 15%;
+
+    /* Success green */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning - Earth orange */
+    --warning: 35 84% 62%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and input */
+    --border: 120 20% 88%;
+    --input: 120 20% 88%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
+
+    /* Shadows */
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.15);
+    --shadow-card: 0 4px 20px hsl(var(--foreground) / 0.08);
+    --shadow-elevated: 0 8px 40px hsl(var(--foreground) / 0.12);
+
+    /* Animation timings */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .dark {
+    /* Base colors for dark mode */
+    --background: 150 20% 8%;
+    --foreground: 120 15% 88%;
+
+    /* Card system */
+    --card: 150 15% 12%;
+    --card-foreground: 120 15% 88%;
+
+    /* Popover system */
+    --popover: 150 15% 12%;
+    --popover-foreground: 120 15% 88%;
+
+    /* Primary - Brighter for dark mode */
+    --primary: 142 70% 45%;
+    --primary-foreground: 150 20% 8%;
+    --primary-glow: 142 75% 55%;
+
+    /* Secondary */
+    --secondary: 150 10% 18%;
+    --secondary-foreground: 120 15% 88%;
+
+    /* Muted */
+    --muted: 150 10% 15%;
+    --muted-foreground: 120 8% 55%;
+
+    /* Accent */
+    --accent: 88 65% 58%;
+    --accent-foreground: 150 20% 8%;
+
+    /* Success, warning, destructive */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 84% 62%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and input */
+    --border: 150 10% 20%;
+    --input: 150 10% 20%;
+    --ring: 142 70% 45%;
+
+    /* Custom gradients for dark mode */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
+
+    /* Shadows for dark mode */
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.25);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 40px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
