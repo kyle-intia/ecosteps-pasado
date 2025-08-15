@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Moon, Sun, User, LogOut } from "lucide-react";
+import { Settings, Moon, Sun, User, LogOut, UserCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 interface SettingsDropdownProps {
   onLogout: () => void;
@@ -80,6 +81,20 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            <UserCircle className="mr-2 h-4 w-4" />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem asChild>
+          <Link to="/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+
         <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
           <DialogTrigger asChild>
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>

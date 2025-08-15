@@ -9,6 +9,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import TrackCarbon from "./pages/TrackCarbon";
 import Community from "./pages/Community";
+import Leaderboards from "./pages/Leaderboards";
+import Profile from "./pages/Profile";
 import PreAssessment from "./pages/PreAssessment";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +29,9 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/track" element={<TrackCarbon />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/leaderboards" element={<Leaderboards />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/pre-assessment" element={<PreAssessment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
