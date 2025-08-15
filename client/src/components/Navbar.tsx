@@ -29,8 +29,8 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
-              <Leaf className="h-6 w-6 text-primary-foreground" />
+            <div className="p-2 rounded-full group-hover:bg-accent transition-colors">
+              <img src="/favicon.ico" alt="EcoStep Logo" className="h-10 w-10" />
             </div>
             <span className="text-xl font-bold text-foreground">EcoStep</span>
           </Link>
