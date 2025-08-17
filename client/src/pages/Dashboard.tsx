@@ -41,6 +41,9 @@ export default function Dashboard() {
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
+    localStorage.removeItem("needsPreAssessment");
+    localStorage.removeItem("initialFootprint");
+    localStorage.removeItem("assessmentAnswers");
     navigate("/");
   };
 

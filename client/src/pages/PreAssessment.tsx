@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +17,12 @@ const questions = [
     questions: [
       {
         id: "commute_method",
-        question: "What's your primary mode of transportation for daily commute?",
-        type: "radio",
+        question: "What are your modes of transportation for daily commute? (You can select multiple options)",
+        type: "checkbox",
         options: [
           { value: "car_alone", label: "Personal car (alone)", factor: 2.3 },
-          { value: "carpool", label: "Carpool/rideshare", factor: 1.2 },
-          { value: "public_transport", label: "Public transportation", factor: 0.6 },
+          { value: "motorcycle", label: "Motorcycle", factor: 1.2 },
+          { value: "public_transport", label: "Public transportation (e.g. jeepney, tricycle, beep)", factor: 0.6 },
           { value: "bike_walk", label: "Bike/Walking", factor: 0.1 },
           { value: "remote", label: "Work from home", factor: 0.0 },
         ],
@@ -50,33 +51,41 @@ const questions = [
     icon: Zap,
     questions: [
       {
+        id: "house_size",
+        question: "With how many people do you normally share your house with?",
+        type: "slider",
+        min: 1,
+        max: 20,
+        unit: "people",
+      },
+      {
         id: "home_type",
         question: "What type of home do you live in?",
         type: "radio",
         options: [
-          { value: "apartment", label: "Apartment", factor: 0.8 },
-          { value: "townhouse", label: "Townhouse", factor: 1.0 },
-          { value: "house_small", label: "Small house", factor: 1.2 },
           { value: "house_large", label: "Large house", factor: 1.8 },
+          { value: "house_small", label: "Small house", factor: 1.2 },
+          { value: "apartment", label: "Apartment", factor: 0.8 },
         ],
       },
       {
         id: "electricity_bill",
-        question: "What's your monthly electricity bill? (USD)",
-        type: "slider",
-        min: 0,
-        max: 500,
-        unit: "$",
+        question: "What's your monthly electricity bill? (PHP)",
+        type: "radio",
+        options: [
+          { value: "more_expensive_bill", label: "Above ₱25,000 / month", factor: 1.8 },
+          { value: "expensive_bill", label: "₱12,001 – ₱25,000 / month", factor: 1.2 },
+          { value: "less_expensive_bill", label: "₱7,501 – ₱12,000 / month", factor: 0.8 },
+          { value: "cheap_bill", label: "Below ₱7,500 / month", factor: 0.8 },
+        ],
       },
       {
         id: "renewable_energy",
         question: "Do you use renewable energy sources?",
         type: "radio",
         options: [
-          { value: "none", label: "No renewable energy", factor: 1.0 },
-          { value: "partial", label: "Partially renewable", factor: 0.6 },
-          { value: "mostly", label: "Mostly renewable", factor: 0.3 },
-          { value: "fully", label: "100% renewable", factor: 0.1 },
+          { value: "fully", label: "Yes", factor: 0.1 },
+          { value: "none", label: "No", factor: 1.0 },
         ],
       },
     ],
@@ -88,35 +97,15 @@ const questions = [
     questions: [
       {
         id: "diet_type",
-        question: "Which best describes your diet?",
+        question: "Which best describes your food diet?",
         type: "radio",
         options: [
           { value: "high_meat", label: "High meat consumption", factor: 2.5 },
           { value: "medium_meat", label: "Moderate meat consumption", factor: 1.8 },
           { value: "low_meat", label: "Low meat consumption", factor: 1.2 },
-          { value: "vegetarian", label: "Vegetarian", factor: 0.8 },
-          { value: "vegan", label: "Vegan", factor: 0.5 },
+          { value: "pesceterian", label: "Pescetarian", factor: 0.8 },
+          { value: "vegetarian", label: "Vegetarian/Vegan", factor: 0.5 },
         ],
-      },
-      {
-        id: "local_food",
-        question: "How often do you buy local/organic food?",
-        type: "radio",
-        options: [
-          { value: "never", label: "Never", factor: 1.0 },
-          { value: "rarely", label: "Rarely", factor: 0.9 },
-          { value: "sometimes", label: "Sometimes", factor: 0.7 },
-          { value: "often", label: "Often", factor: 0.5 },
-          { value: "always", label: "Always", factor: 0.3 },
-        ],
-      },
-      {
-        id: "food_waste",
-        question: "How much food do you typically waste? (%)",
-        type: "slider",
-        min: 0,
-        max: 50,
-        unit: "%",
       },
     ],
   },
@@ -147,6 +136,14 @@ export default function PreAssessment() {
 
   const canProceed = () => {
     const questionId = getCurrentQuestion().id;
+    const question = getCurrentQuestion();
+    
+    // For checkbox questions, require at least one selection
+    if (question.type === "checkbox") {
+      const currentAnswers = answers[questionId];
+      return currentAnswers && Array.isArray(currentAnswers) && currentAnswers.length > 0;
+    }
+    
     return answers[questionId] !== undefined && answers[questionId] !== null;
   };
 
@@ -177,32 +174,38 @@ export default function PreAssessment() {
     // Simple calculation based on answers
     let totalEmissions = 0;
 
-    // Transportation
-    const commuteMethod = answers.commute_method || "car_alone";
-    const commuteDistance = answers.commute_distance || 20;
-    const flights = answers.flights_year || 2;
-    
-    const methodFactor = questions[0].questions[0].options?.find(opt => opt.value === commuteMethod)?.factor || 2.3;
-    totalEmissions += (methodFactor * commuteDistance * 22) / 1000; // Monthly emissions
-    totalEmissions += flights * 0.5; // Flight emissions
+         // Transportation
+     const commuteMethods = answers.commute_method || ["car_alone"];
+     const commuteDistance = answers.commute_distance || 20;
+     const flights = answers.flights_year || 2;
+     
+     // Calculate emissions for each selected commute method
+     let totalMethodEmissions = 0;
+     commuteMethods.forEach((method: string) => {
+       const methodFactor = questions[0].questions[0].options?.find(opt => opt.value === method)?.factor || 2.3;
+       totalMethodEmissions += methodFactor;
+     });
+     
+     // Average the factors and apply to distance
+     const averageMethodFactor = totalMethodEmissions / commuteMethods.length;
+     totalEmissions += (averageMethodFactor * commuteDistance * 22) / 1000; // Monthly emissions
+     totalEmissions += flights * 0.5; // Flight emissions
 
     // Energy
     const homeType = answers.home_type || "apartment";
+    const houseSize = answers.house_size || 2;
     const electricityBill = answers.electricity_bill || 100;
     const renewable = answers.renewable_energy || "none";
 
-    const homeFactor = questions[1].questions[0].options?.find(opt => opt.value === homeType)?.factor || 1.0;
-    const renewableFactor = questions[1].questions[2].options?.find(opt => opt.value === renewable)?.factor || 1.0;
-    totalEmissions += (electricityBill * 0.005 * homeFactor * renewableFactor);
+    const homeFactor = questions[1].questions[1].options?.find(opt => opt.value === homeType)?.factor || 1.0;
+    const renewableFactor = questions[1].questions[3].options?.find(opt => opt.value === renewable)?.factor || 1.0;
+    totalEmissions += (electricityBill * 0.005 * homeFactor * renewableFactor * (houseSize / 2));
 
     // Food
     const dietType = answers.diet_type || "medium_meat";
-    const localFood = answers.local_food || "sometimes";
-    const foodWaste = answers.food_waste || 20;
 
     const dietFactor = questions[2].questions[0].options?.find(opt => opt.value === dietType)?.factor || 1.8;
-    const localFactor = questions[2].questions[1].options?.find(opt => opt.value === localFood)?.factor || 0.7;
-    totalEmissions += (dietFactor * localFactor * (1 + foodWaste / 100));
+    totalEmissions += (dietFactor);
 
     return Math.round(totalEmissions * 100) / 100;
   };
@@ -224,7 +227,6 @@ export default function PreAssessment() {
       });
       
       navigate("/dashboard");
-      setIsLoading(false);
     }, 1500);
   };
 
@@ -250,6 +252,8 @@ export default function PreAssessment() {
               <p className="text-muted-foreground">Help us calculate your initial carbon footprint</p>
             </div>
           </div>
+          
+
           
           {/* Progress bar */}
           <div className="space-y-2">
@@ -282,27 +286,54 @@ export default function PreAssessment() {
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-6">
-            {question.type === "radio" && (
-              <RadioGroup
-                value={answers[question.id] || ""}
-                onValueChange={handleAnswer}
-              >
-                {question.options?.map((option) => (
-                  <div key={option.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.value} id={option.value} />
-                    <Label 
-                      htmlFor={option.value} 
-                      className="flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth"
-                    >
-                      {option.label}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            )}
+                     <CardContent className="space-y-6">
+             {question.type === "radio" && (
+               <RadioGroup
+                 value={answers[question.id] || ""}
+                 onValueChange={handleAnswer}
+               >
+                 {question.options?.map((option) => (
+                   <div key={option.value} className="flex items-center space-x-2">
+                     <RadioGroupItem value={option.value} id={option.value} />
+                     <Label 
+                       htmlFor={option.value} 
+                       className="flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth"
+                     >
+                       {option.label}
+                     </Label>
+                   </div>
+                 ))}
+               </RadioGroup>
+             )}
 
-            {question.type === "slider" && (
+             {question.type === "checkbox" && (
+               <div className="space-y-3">
+                 {question.options?.map((option) => (
+                   <div key={option.value} className="flex items-center space-x-3">
+                     <Checkbox
+                       id={option.value}
+                       checked={answers[question.id]?.includes?.(option.value) || false}
+                       onCheckedChange={(checked) => {
+                         const currentValues = answers[question.id] || [];
+                         if (checked) {
+                           handleAnswer([...currentValues, option.value]);
+                         } else {
+                           handleAnswer(currentValues.filter((v: string) => v !== option.value));
+                         }
+                       }}
+                     />
+                     <Label 
+                       htmlFor={option.value} 
+                       className="flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth"
+                     >
+                       {option.label}
+                     </Label>
+                   </div>
+                 ))}
+               </div>
+             )}
+
+             {question.type === "slider" && (
               <div className="space-y-4">
                 <div className="text-center">
                   <span className="text-3xl font-bold text-foreground">
