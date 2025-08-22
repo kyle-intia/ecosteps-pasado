@@ -30,7 +30,7 @@ export default function Login() {
           title: "Welcome back!",
           description: "You've successfully logged in to EcoStep.",
         });
-        navigate("/dashboard");
+        navigate("/home");
       } else {
         toast({
           title: "Error",

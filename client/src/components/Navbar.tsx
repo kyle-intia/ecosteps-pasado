@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Home, BarChart3, Users, Trophy } from "lucide-react";
+import { Leaf, Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
 
@@ -15,8 +15,8 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { name: "Home", href: "/", icon: Home },
-    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Home", href: "/home", icon: Home },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },
     { name: "Leaderboards", href: "/leaderboards", icon: Trophy },
