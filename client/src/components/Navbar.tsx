@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Home, BarChart3, Users, Trophy } from "lucide-react";
+import { Leaf, Menu, X, Home, BarChart3, Users, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
 
@@ -16,10 +16,9 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
 
   const navigationItems = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },
-    { name: "Leaderboards", href: "/leaderboards", icon: Trophy },
   ];
 
   const isActivePath = (path: string) => location.pathname === path;
@@ -30,10 +29,15 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
+            {/* <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
               <Leaf className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">EcoStep</span>
+            </div> */}
+            <img 
+              src="/ecosteps.svg"
+              alt="EcoSteps Logo"
+              className="h-9 w-9 rounded"
+            />
+            <span className="text-xl font-bold text-foreground">EcoSteps</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -46,10 +50,10 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-smooth",
+                      "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out",
                       isActivePath(item.href)
                         ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted "
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -63,13 +67,19 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-3">
             {isLoggedIn ? (
-              <SettingsDropdown onLogout={onLogout} />
+              <SettingsDropdown onLogout={onLogout}/>
             ) : (
               <>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" 
+                        asChild
+                        className="transition-transform duration-200 ease-in-out hover:scale-105"
+                        >
                   <Link to="/login">Login</Link>
                 </Button>
-                <Button variant="hero" asChild>
+                <Button variant="hero" 
+                        asChild
+                        className="transition-transform duration-200 ease-in-out hover:scale-105"
+                        >
                   <Link to="/register">Get Started</Link>
                 </Button>
               </>
@@ -131,7 +141,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                 <div className="space-y-2">
                   <Button
                     variant="ghost"
-                    className="w-full justify-start"
+                    className="w-full justify-start transition-transform duration-200 ease-in-out hover:scale-105"
                     asChild
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -139,7 +149,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                   </Button>
                   <Button
                     variant="hero"
-                    className="w-full"
+                    className="w-full transition-transform duration-200 ease-in-out hover:scale-105"
                     asChild
                     onClick={() => setIsMobileMenuOpen(false)}
                   >

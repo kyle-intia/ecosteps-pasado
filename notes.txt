@@ -1,0 +1,15 @@
+*how to run
+
+1. cd client
+
+2. npm install (if new)
+
+3. allow scripts on powershell
+
+*temporary
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+*permanent
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+4. npm run dev

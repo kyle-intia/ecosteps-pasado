@@ -2,13 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* EcoStep Design System - Nature-inspired carbon tracking app */
+/* EcoSteps colors */
+/* body {
+  background-color: #f3e6d1;
+} */
 
 @layer base {
   :root {
     /* Base colors */
-    --background: 120 20% 98%;
+    --background: 33 55% 88%; /*- beige bg           120 20% 98%; - white bg   */
     --foreground: 150 25% 15%;
+
+    /* Off white colors */
+    --off-white: 95 25% 97%;
 
     /* Card system */
     --card: 0 0% 100%;
@@ -133,3 +139,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* .bg-gradient-partial {
+  background: var(--gradient-partial);
+} */
