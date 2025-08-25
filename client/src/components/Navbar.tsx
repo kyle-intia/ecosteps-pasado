@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Home, BarChart3, Users, Trophy } from "lucide-react";
+import { Menu, X, Home, BarChart3, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
 

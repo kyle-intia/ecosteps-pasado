@@ -3,8 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
-import { Leaf, TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
+import { TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-eco.jpg";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "@/config/queryClient";
+
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -22,16 +26,20 @@ const Index = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-  };
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
 
-  // Remove the automatic redirect so Home page can be accessed when logged in
+  
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -231,6 +239,11 @@ const Index = () => {
             </p>
           </div>
         </div>
+
+        <button onClick={() => signOut()}>
+  logout
+</button>
+
       </footer>
     </div>
   );
