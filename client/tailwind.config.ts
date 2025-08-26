@@ -50,7 +50,7 @@ export default {
 					foreground: 'hsl(var(--popover-foreground))'
 				},
 				card: {
-					DEFAULT: 'hsl(var(--card))',
+					DEFAULT: '#f5f5f4',
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				success: {

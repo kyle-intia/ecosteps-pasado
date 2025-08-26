@@ -14,48 +14,79 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
+
+  const [errors, setErrors] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    const validateForm = () => {
+    let newErrors: any = {};
+    let isValid = true;
 
-    // Basic validation
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required.";
+      isValid = false;
     }
 
-    // Mock registration
-    setTimeout(() => {
-      if (formData.fullName && formData.email && formData.password) {
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", formData.email);
-        localStorage.setItem("userName", formData.fullName);
-        localStorage.setItem("needsPreAssessment", "true");
-        toast({
-          title: "Welcome to EcoStep!",
-          description: "Your account has been created successfully.",
-        });
-        navigate("/pre-assessment");
-      } else {
-        toast({
-          title: "Error",
-          description: "Please fill in all fields.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required.";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Enter a valid email address.";
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required.";
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters.";
+      isValid = false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match.";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  if (!validateForm()) {
+    setIsLoading(false);
+    return;
+  }
+
+  // Mock registration
+  setTimeout(() => {
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userEmail", formData.email);
+    localStorage.setItem("userName", formData.fullName);
+    localStorage.setItem("needsPreAssessment", "true");
+    toast({
+      title: "Welcome to EcoStep!",
+      description: "Your account has been created successfully.",
+    });
+    navigate("/pre-assessment");
+    setIsLoading(false);
+  }, 1000);
+};
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -79,6 +110,7 @@ export default function Register() {
             onChange={handleInputChange}
             required
           />
+          {errors.fullName && <p className="text-red-500 text-sm italic">{errors.fullName}</p>}
         </div>
 
         <div className="space-y-2">
@@ -92,6 +124,7 @@ export default function Register() {
             onChange={handleInputChange}
             required
           />
+          {errors.email && <p className="text-red-500 text-sm italic">{errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -116,6 +149,7 @@ export default function Register() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
+          {errors.password && <p className="text-red-500 text-sm italic">{errors.password}</p>}
         </div>
 
         <div className="space-y-2">
@@ -129,6 +163,7 @@ export default function Register() {
             onChange={handleInputChange}
             required
           />
+          {errors.confirmPassword && <p className="text-red-500 text-sm italic">{errors.confirmPassword}</p>}
         </div>
 
         <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>

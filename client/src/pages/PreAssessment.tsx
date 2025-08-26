@@ -243,7 +243,11 @@ export default function PreAssessment() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-gradient-primary rounded-lg">
-              <Leaf className="h-6 w-6 text-primary-foreground" />
+              <img
+                src="/favicon.ico"
+                alt="EcoStep Logo"
+                className="h- w-6"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">EcoStep Pre-Assessment</h1>
