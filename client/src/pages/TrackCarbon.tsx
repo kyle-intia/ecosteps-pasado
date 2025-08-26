@@ -15,20 +15,39 @@ const TrackCarbon = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Transportation
-    dailyCommute: "",
-    commuteMethod: "",
-    weeklyDriving: "",
-    flightsPerYear: "",
+    transportModes: [],
+    flightsToday: "",
+    personalCarDistance: "",
+    publicTransportDistance: "",
+    motorcycleDistance: "",
+    walkingBikeDistance: "",
+    otherTransportDistance: "",
     
-    // Energy
-    homeSize: "",
-    electricityBill: "",
-    heatingType: "",
+    // Home Energy
+    homeType: "",
+    highEnergyAppliances: [],
     
     // Food
-    dietType: "",
-    localFood: "",
-    foodWaste: "",
+    breakfastType: "",
+    lunchType: "",
+    dinnerType: "",
+  });
+
+  const [checkedTransportModes, setCheckedTransportModes] = useState({
+    personalCar: false,
+    publicTransport: false,
+    motorcycle: false,
+    walkingBike: false,
+    otherTransport: false,
+  });
+
+  const [checkedAppliances, setCheckedAppliances] = useState({
+    aircon: false,
+    heating: false,
+    dryer: false,
+    dishwasher: false,
+    pool: false,
+    none: false,
   });
   
   const { toast } = useToast();
@@ -52,6 +71,47 @@ const TrackCarbon = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleTransportModeChange = (mode: string, isChecked: boolean) => {
+    setCheckedTransportModes(prev => ({ ...prev, [mode]: isChecked }));
+    
+    // If unchecking, clear the distance value
+    if (!isChecked) {
+      const distanceField = `${mode}Distance`;
+      setFormData(prev => ({ ...prev, [distanceField]: "" }));
+    }
+  };
+
+  const handleDistanceChange = (mode: string, value: string) => {
+    const distanceField = `${mode}Distance`;
+    setFormData(prev => ({ ...prev, [distanceField]: value }));
+  };
+
+  const handleApplianceChange = (appliance: string, isChecked: boolean) => {
+    if (appliance === "none") {
+      // If "none" is being checked, uncheck all other appliances
+      if (isChecked) {
+        setCheckedAppliances({
+          aircon: false,
+          heating: false,
+          dryer: false,
+          dishwasher: false,
+          pool: false,
+          none: true,
+        });
+      } else {
+        // If "none" is being unchecked, just set none to false
+        setCheckedAppliances(prev => ({ ...prev, none: false }));
+      }
+    } else {
+      // If any other appliance is checked, make sure "none" is unchecked
+      setCheckedAppliances(prev => ({
+        ...prev,
+        [appliance]: isChecked,
+        none: false,
+      }));
+    }
+  };
+
   const nextStep = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
@@ -65,12 +125,9 @@ const TrackCarbon = () => {
   };
 
   const calculateFootprint = () => {
-    // Simple calculation for demo purposes
-    const transportScore = parseInt(formData.weeklyDriving || "0") * 0.4;
-    const energyScore = parseInt(formData.electricityBill || "0") * 0.005;
-    const flightScore = parseInt(formData.flightsPerYear || "0") * 0.3;
-    
-    const totalFootprint = (transportScore + energyScore + flightScore).toFixed(1);
+    // TODO: Implement calculation with new CO₂ factors
+    // This will be updated after implementing the new form structure
+    const totalFootprint = "0.0";
     
     // Store results
     localStorage.setItem("currentFootprint", totalFootprint);
@@ -78,7 +135,7 @@ const TrackCarbon = () => {
     
     toast({
       title: "Carbon Footprint Calculated!",
-      description: `Your monthly carbon footprint is ${totalFootprint} tons CO₂`,
+      description: `Your daily carbon footprint is ${totalFootprint} tons CO₂`,
     });
     
     navigate("/dashboard");
@@ -124,58 +181,131 @@ const TrackCarbon = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Car className="h-6 w-6 text-primary" />
-                Transportation Habits
+                Transport & Travel (Daily)
               </CardTitle>
               <CardDescription>Tell us about your daily travel patterns</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="dailyCommute">Daily commute distance (km)</Label>
-                <Input
-                  id="dailyCommute"
-                  type="number"
-                  placeholder="e.g., 25"
-                  value={formData.dailyCommute}
-                  onChange={(e) => handleInputChange("dailyCommute", e.target.value)}
-                />
+              {/* Q1: Transportation Modes */}
+              <div className="space-y-4">
+                <Label>Q1. What is/are your mode(s) of transportation for daily commute? (Check all that apply)</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Personal Car */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="personalCar"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.personalCar}
+                      onChange={(e) => handleTransportModeChange("personalCar", e.target.checked)}
+                    />
+                    <Label htmlFor="personalCar" className="flex-1">Personal Car</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.personalCarDistance}
+                      onChange={(e) => handleDistanceChange("personalCar", e.target.value)}
+                      disabled={!checkedTransportModes.personalCar}
+                    />
+                  </div>
+
+                  {/* Public Transportation */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="publicTransport"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.publicTransport}
+                      onChange={(e) => handleTransportModeChange("publicTransport", e.target.checked)}
+                    />
+                    <Label htmlFor="publicTransport" className="flex-1">Public Transportation</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.publicTransportDistance}
+                      onChange={(e) => handleDistanceChange("publicTransport", e.target.value)}
+                      disabled={!checkedTransportModes.publicTransport}
+                    />
+                  </div>
+
+                  {/* Motorcycle */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="motorcycle"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.motorcycle}
+                      onChange={(e) => handleTransportModeChange("motorcycle", e.target.checked)}
+                    />
+                    <Label htmlFor="motorcycle" className="flex-1">Motorcycle</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.motorcycleDistance}
+                      onChange={(e) => handleDistanceChange("motorcycle", e.target.value)}
+                      disabled={!checkedTransportModes.motorcycle}
+                    />
+                  </div>
+
+                  {/* Walking/Bicycle/E-bike */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="walkingBike"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.walkingBike}
+                      onChange={(e) => handleTransportModeChange("walkingBike", e.target.checked)}
+                    />
+                    <Label htmlFor="walkingBike" className="flex-1">Walking / Bicycle / E-bike</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.walkingBikeDistance}
+                      onChange={(e) => handleDistanceChange("walkingBike", e.target.value)}
+                      disabled={!checkedTransportModes.walkingBike}
+                    />
+                  </div>
+
+                  {/* Other */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="otherTransport"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.otherTransport}
+                      onChange={(e) => handleTransportModeChange("otherTransport", e.target.checked)}
+                    />
+                    <Label htmlFor="otherTransport" className="flex-1">Other (specify)</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.otherTransportDistance}
+                      onChange={(e) => handleDistanceChange("otherTransport", e.target.value)}
+                      disabled={!checkedTransportModes.otherTransport}
+                    />
+                  </div>
+                </div>
               </div>
 
+              {/* Q2: Flights */}
               <div className="space-y-2">
-                <Label htmlFor="commuteMethod">Primary commute method</Label>
-                <Select value={formData.commuteMethod} onValueChange={(value) => handleInputChange("commuteMethod", value)}>
+                <Label htmlFor="flightsToday">Q2. Did you take any flights today?</Label>
+                <Select value={formData.flightsToday} onValueChange={(value) => handleInputChange("flightsToday", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your primary transportation" />
+                    <SelectValue placeholder="Select flight option" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="car">Personal Car</SelectItem>
-                    <SelectItem value="public">Public Transport</SelectItem>
-                    <SelectItem value="bike">Bicycle</SelectItem>
-                    <SelectItem value="walk">Walking</SelectItem>
-                    <SelectItem value="hybrid">Mixed Transportation</SelectItem>
+                    <SelectItem value="short-haul">Yes, short-haul (less than 3 hours) → 0.3 t</SelectItem>
+                    <SelectItem value="long-haul">Yes, long-haul (more than 3 hours) → 0.6 t</SelectItem>
+                    <SelectItem value="none">No</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="weeklyDriving">Weekly driving distance (km)</Label>
-                <Input
-                  id="weeklyDriving"
-                  type="number"
-                  placeholder="e.g., 200"
-                  value={formData.weeklyDriving}
-                  onChange={(e) => handleInputChange("weeklyDriving", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="flightsPerYear">Number of flights per year</Label>
-                <Input
-                  id="flightsPerYear"
-                  type="number"
-                  placeholder="e.g., 4"
-                  value={formData.flightsPerYear}
-                  onChange={(e) => handleInputChange("flightsPerYear", e.target.value)}
-                />
               </div>
             </CardContent>
           </Card>
@@ -193,41 +323,95 @@ const TrackCarbon = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="homeSize">Home size (square meters)</Label>
-                <Input
-                  id="homeSize"
-                  type="number"
-                  placeholder="e.g., 120"
-                  value={formData.homeSize}
-                  onChange={(e) => handleInputChange("homeSize", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="electricityBill">Monthly electricity bill (USD)</Label>
-                <Input
-                  id="electricityBill"
-                  type="number"
-                  placeholder="e.g., 150"
-                  value={formData.electricityBill}
-                  onChange={(e) => handleInputChange("electricityBill", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="heatingType">Primary heating source</Label>
-                <Select value={formData.heatingType} onValueChange={(value) => handleInputChange("heatingType", value)}>
+                <Label htmlFor="homeType">Q3. What type of home do you live in?</Label>
+                <Select value={formData.homeType} onValueChange={(value) => handleInputChange("homeType", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select heating type" />
+                    <SelectValue placeholder="Select home type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gas">Natural Gas</SelectItem>
-                    <SelectItem value="electric">Electric</SelectItem>
-                    <SelectItem value="oil">Oil</SelectItem>
-                    <SelectItem value="solar">Solar/Renewable</SelectItem>
-                    <SelectItem value="heat-pump">Heat Pump</SelectItem>
+                    <SelectItem value="apartment">Apartment/Condo → 0.2 t</SelectItem>
+                    <SelectItem value="small-house">Small House (less than 100m²) → 0.4 t</SelectItem>
+                    <SelectItem value="medium-house">Medium House (100-200m²) → 0.6 t</SelectItem>
+                    <SelectItem value="large-house">Large House (more than 200m²) → 0.8 t</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Q4. Which high-energy appliances do you use daily? (Check all that apply)</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="aircon" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.aircon}
+                      onChange={(e) => handleApplianceChange("aircon", e.target.checked)}
+                      disabled={checkedAppliances.none}
+                    />
+                    <Label htmlFor="aircon" className="flex-1">Air Conditioning</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="heating" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.heating}
+                      onChange={(e) => handleApplianceChange("heating", e.target.checked)}
+                      disabled={checkedAppliances.none}
+                    />
+                    <Label htmlFor="heating" className="flex-1">Heating System</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="dryer" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.dryer}
+                      onChange={(e) => handleApplianceChange("dryer", e.target.checked)}
+                      disabled={checkedAppliances.none}
+                    />
+                    <Label htmlFor="dryer" className="flex-1">Clothes Dryer</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="dishwasher" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.dishwasher}
+                      onChange={(e) => handleApplianceChange("dishwasher", e.target.checked)}
+                      disabled={checkedAppliances.none}
+                    />
+                    <Label htmlFor="dishwasher" className="flex-1">Dishwasher</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="pool" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.pool}
+                      onChange={(e) => handleApplianceChange("pool", e.target.checked)}
+                      disabled={checkedAppliances.none}
+                    />
+                    <Label htmlFor="pool" className="flex-1">Swimming Pool</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="none" 
+                      className="w-4 h-4" 
+                      checked={checkedAppliances.none}
+                      onChange={(e) => handleApplianceChange("none", e.target.checked)}
+                    />
+                    <Label htmlFor="none" className="flex-1">None</Label>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -245,49 +429,46 @@ const TrackCarbon = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="dietType">Diet type</Label>
-                <Select value={formData.dietType} onValueChange={(value) => handleInputChange("dietType", value)}>
+                <Label htmlFor="breakfastType">Q5. What did you have for breakfast today?</Label>
+                <Select value={formData.breakfastType} onValueChange={(value) => handleInputChange("breakfastType", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your diet type" />
+                    <SelectValue placeholder="Select breakfast type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="omnivore">Omnivore</SelectItem>
-                    <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                    <SelectItem value="vegan">Vegan</SelectItem>
-                    <SelectItem value="pescatarian">Pescatarian</SelectItem>
-                    <SelectItem value="low-meat">Low Meat</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (fruits, grains) → 0.1 t</SelectItem>
+                    <SelectItem value="dairy">Dairy (milk, yogurt, eggs) → 0.2 t</SelectItem>
+                    <SelectItem value="meat">Meat-based (bacon, sausage) → 0.4 t</SelectItem>
+                    <SelectItem value="none">Skipped breakfast → 0 t</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="localFood">Percentage of locally sourced food</Label>
-                <Select value={formData.localFood} onValueChange={(value) => handleInputChange("localFood", value)}>
+                <Label htmlFor="lunchType">Q6. What did you have for lunch today?</Label>
+                <Select value={formData.lunchType} onValueChange={(value) => handleInputChange("lunchType", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="How much of your food is local?" />
+                    <SelectValue placeholder="Select lunch type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="very-low">Less than 10%</SelectItem>
-                    <SelectItem value="low">10-30%</SelectItem>
-                    <SelectItem value="medium">30-50%</SelectItem>
-                    <SelectItem value="high">50-70%</SelectItem>
-                    <SelectItem value="very-high">More than 70%</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (salad, vegetables) → 0.2 t</SelectItem>
+                    <SelectItem value="dairy">Dairy (cheese, dairy products) → 0.3 t</SelectItem>
+                    <SelectItem value="meat">Meat-based (beef, chicken, fish) → 0.5 t</SelectItem>
+                    <SelectItem value="none">Skipped lunch → 0 t</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="foodWaste">Food waste level</Label>
-                <Select value={formData.foodWaste} onValueChange={(value) => handleInputChange("foodWaste", value)}>
+                <Label htmlFor="dinnerType">Q7. What did you have for dinner today?</Label>
+                <Select value={formData.dinnerType} onValueChange={(value) => handleInputChange("dinnerType", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="How much food do you waste?" />
+                    <SelectValue placeholder="Select dinner type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="very-low">Very Little (0-5%)</SelectItem>
-                    <SelectItem value="low">Low (5-15%)</SelectItem>
-                    <SelectItem value="medium">Average (15-25%)</SelectItem>
-                    <SelectItem value="high">High (25-40%)</SelectItem>
-                    <SelectItem value="very-high">Very High (40%+)</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (vegetables, grains) → 0.2 t</SelectItem>
+                    <SelectItem value="dairy">Dairy (cheese, dairy products) → 0.3 t</SelectItem>
+                    <SelectItem value="meat">Meat-based (beef, chicken, fish) → 0.5 t</SelectItem>
+                    <SelectItem value="none">Skipped dinner → 0 t</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
