@@ -17,10 +17,10 @@ const questions = [
     questions: [
       {
         id: "commute_method",
-        question: "What are your modes of transportation for daily commute? (You can select multiple options)",
-        type: "checkbox",
+        question: "What is your primary mode of transportation for daily commute?",
+        type: "radio",
         options: [
-          { value: "car_alone", label: "Personal car (alone)" },
+          { value: "car_alone", label: "Personal car" },
           { value: "motorcycle", label: "Motorcycle" },
           { value: "public_transport", label: "Public transportation (e.g. jeepney, tricycle, beep)" },
           { value: "bike_walk", label: "Bike/Walking" },
@@ -51,22 +51,22 @@ const questions = [
     icon: Zap,
     questions: [
       {
-        id: "house_size",
-        question: "With how many people do you normally share your house with?",
-        type: "slider",
-        min: 0,
-        max: 20,
-        unit: "people",
-      },
-      {
         id: "home_type",
         question: "What type of home do you live in?",
         type: "radio",
         options: [
-          { value: "house_large", label: "Large house" },
-          { value: "house_small", label: "Small house" },
-          { value: "apartment", label: "Apartment" },
+          { value: "house_large", label: "Large House (3 or more bedrooms)" },
+          { value: "house_small", label: "Small House (2 or less bedrooms)" },
+          { value: "apartment", label: "Apartment/Condo" },
         ],
+      },
+      {
+        id: "house_size",
+        question: "How many people, including yourself, live in your home?",
+        type: "slider",
+        min: 0,
+        max: 20,
+        unit: "people",
       },
       {
         id: "electricity_bill",
@@ -171,52 +171,61 @@ export default function PreAssessment() {
     }
   };
 
-  const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
-    // Map frontend answers to backend format
-    return {
-      Q1_modes: frontendAnswers.commute_method?.map((method: string) => {
-        const mapping: Record<string, string> = {
-          car_alone: "Personal Car",
-          motorcycle: "Motorcycle",
-          public_transport: "Public Transport",
-          bike_walk: "Walking/Biking/E-bike",
-          remote: "Work from Home"
-        };
-        return mapping[method] || "Personal Car";
-      }) || ["Personal Car"],
-      Q2_kmPerDay: frontendAnswers.commute_distance || 0,
-      Q3_flightsPerYear: frontendAnswers.flights_year || 0,
-      Q4_homeType: (() => {
-        const mapping: Record<string, string> = {
-          house_large: "Large House",
-          house_small: "Small House",
-          apartment: "Apartment"
-        };
-        return mapping[frontendAnswers.home_type] || "Apartment";
-      })(),
-      Q5_residents: frontendAnswers.house_size || 1,
-      Q6_billRange: (() => {
-        const mapping: Record<string, string> = {
-          cheap_bill: "<7500",
-          less_expensive_bill: "7501-12000",
-          expensive_bill: "12001-25000",
-          more_expensive_bill: ">25000"
-        };
-        return mapping[frontendAnswers.electricity_bill] || "<7500";
-      })(),
-      Q7_hasRenewables: frontendAnswers.renewable_energy === "fully",
-      Q8_dietType: (() => {
-        const mapping: Record<string, string> = {
-          high_meat: "High Meat",
-          medium_meat: "Moderate Meat",
-          low_meat: "Low Meat",
-          pesceterian: "Pescatarian",
-          vegetarian: "Vegan/Vegetarian"
-        };
-        return mapping[frontendAnswers.diet_type] || "Moderate Meat";
-      })()
-    };
+const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
+  // This function maps the frontend's answer format to the exact format expected by the backend API.
+  return {
+    // ✅ FIXED: Send a single primary mode, not an array.
+    Q1_primaryMode: (() => {
+      const mapping: Record<string, string> = {
+        car_alone: "Personal Car",
+        motorcycle: "Motorcycle",
+        public_transport: "Public Transport", 
+        bike_walk: "Bicycle/E-bike", // Matches backend enum
+        remote: "Work from Home"
+      };
+      return mapping[frontendAnswers.commute_method] || "Personal Car";
+    })(),
+
+    Q2_kmPerDay: frontendAnswers.commute_distance || 0,
+    Q3_flightsPerYear: frontendAnswers.flights_year || 0,
+
+    Q4_homeType: (() => {
+      const mapping: Record<string, string> = {
+        house_large: "Large House",
+        house_small: "Small House",
+        apartment: "Apartment" // Matches backend enum
+      };
+      return mapping[frontendAnswers.home_type] || "Apartment";
+    })(),
+
+    Q5_residents: frontendAnswers.house_size || 1,
+
+    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum'
+    Q6_billRange: (() => {
+      const mapping: Record<string, string> = {
+        cheap_bill: "Below ₱7,500 / month", // Must match backend enum exactly
+        less_expensive_bill: "₱7,501 – ₱12,000 / month",
+        expensive_bill: "₱12,001 – ₱25,000 / month",
+        more_expensive_bill: "Above ₱25,000 / month"
+      };
+      return mapping[frontendAnswers.electricity_bill] || "Below ₱7,500 / month";
+    })(),
+
+    Q7_hasRenewables: frontendAnswers.renewable_energy === "fully",
+
+    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum' and CO2_FACTORS key
+    Q8_dietType: (() => {
+      const mapping: Record<string, string> = {
+        high_meat: "High meat intake (more than 3 times a week)",
+        medium_meat: "Moderate meat intake (2–3 times a week)",
+        low_meat: "Low meat intake (about once a week)",
+        pescetarian: "Pescetarian (fish but no meat)", // Note: Spelling must match ('Pescetarian', not 'Pescatarian')
+        vegetarian: "Vegetarian or Vegan (no meat or fish)"
+      };
+      return mapping[frontendAnswers.diet_type] || "Moderate meat intake (2–3 times a week)";
+    })()
   };
+};
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -252,15 +261,18 @@ export default function PreAssessment() {
         throw new Error(data.error || "Failed to submit assessment");
       }
 
-      const footprint = data.data.results.totalCO2;
+      const annualFootprintKg = data.data.results.totalCO2;
+      // Convert to tonnes per month
+      const tonnesPerMonth = (annualFootprintKg / 1000) / 12; // First to tonnes per year, then to per month
+      const displayValue = tonnesPerMonth.toFixed(2); // Round to 2 decimal places
       
       // Store minimal data in localStorage for immediate use
       localStorage.setItem("needsPreAssessment", "false");
-      localStorage.setItem("initialFootprint", footprint.toString());
+      localStorage.setItem("initialFootprint", annualFootprintKg.toString());
       
       toast({
         title: "Assessment Complete!",
-        description: `Your estimated carbon footprint is ${footprint} tons CO₂ per month.`,
+        description: `Your estimated carbon footprint is ${displayValue} tons CO₂ per month.`,
       });
       
       navigate("/home");

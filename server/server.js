@@ -11,22 +11,25 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000' // Adjust based on your frontend URL
+};
+app.use(cors(corsOptions)); // Use app.use(cors()) for development simplicity
+
+app.use(express.json({ limit: '10mb' })); // Optional: Add a limit to JSON payloads
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// Rate limiting - Consider applying only in production
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100
 });
 app.use('/api/', limiter);
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecosteps', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// Database connection (Updated for Mongoose 6+)
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecosteps');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));

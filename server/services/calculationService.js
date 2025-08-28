@@ -1,34 +1,50 @@
 // CO2 factors and computation logic as per specifications
+// All annual values are in kg CO₂e
 
 const CO2_FACTORS = {
+  // Section A: Transport
   transport: {
-    'Personal Car': 0.00020,
-    'Motorcycle': 0.00010,
-    'Public Transport': 0.00005,
-    'Walking/Biking/E-bike': 0,
+    // Emission factors in kg CO₂e per km
+    'Personal Car': 0.25,
+    'Motorcycle': 0.11,
+    'Public Transport': 0.08,
+    'Bicycle/E-bike': 0,
+    'Walking': 0,
     'Work from Home': 0
   },
+  flight: {
+    // Average emission per flight in kg CO₂e
+    perFlight: 200
+  },
+
+  // Section B: Home
   home: {
-    'Large House': 4.5,
-    'Small House': 3.5,
-    'Apartment': 2.5
+    // Annual household footprint in kg CO₂e
+    'Large House': 4500,
+    'Small House': 3500,
+    'Apartment': 2500
   },
   bill: {
-    '<7500': 0.9,
-    '7501-12000': 1.0,
-    '12001-25000': 1.1,
-    '>25000': 1.15
+    // Multipliers for electricity bill adjustment
+    'Below ₱7,500 / month': 0.9,   // -10%
+    '₱7,501 – ₱12,000 / month': 1.0, // +0%
+    '₱12,001 – ₱25,000 / month': 1.15, // +15%
+    'Above ₱25,000 / month': 1.25   // +25%
   },
   renewables: {
-    true: 0.9,
-    false: 1.0
+    // Multiplier for renewable energy adjustment
+    true: 0.85, // -15%
+    false: 1.0  // No change
   },
+
+  // Section C: Food
   diet: {
-    'High Meat': 5.0,
-    'Moderate Meat': 2.0,
-    'Low Meat': 1.7,
-    'Pescatarian': 1.4,
-    'Vegan/Vegetarian': 1.2
+    // Annual diet footprint in kg CO₂e
+    'High meat intake (more than 3 times a week)': 5000,
+    'Moderate meat intake (2–3 times a week)': 3400,
+    'Low meat intake (about once a week)': 1700,
+    'Pescetarian (fish but no meat)': 1400,
+    'Vegetarian or Vegan (no meat or fish)': 1200
   }
 };
 
@@ -36,73 +52,78 @@ class CalculationService {
   /**
    * Calculate Section A: Transport and Travel
    * @param {Object} responses - User responses
-   * @returns {number} Section A CO2 total
+   * @returns {number} Section A CO2 total in kg
    */
   static calculateSectionA(responses) {
-    const { Q1_modes, Q2_kmPerDay, Q3_flightsPerYear } = responses;
+    const { Q1_primaryMode, Q2_kmPerDay, Q3_flightsPerYear } = responses;
     
-    // Calculate commute CO2 for each mode
-    let commuteCO2 = 0;
-    Q1_modes.forEach(mode => {
-      const factor = CO2_FACTORS.transport[mode] || 0;
-      commuteCO2 += Q2_kmPerDay * 365 * factor;
-    });
+    // 1. Calculate annual commute emissions from primary mode
+    const modeFactor = CO2_FACTORS.transport[Q1_primaryMode] || 0;
+    const annualCommuteCO2 = Q2_kmPerDay * 365 * modeFactor;
 
-    // Calculate flight CO2
-    const flightCO2 = Q3_flightsPerYear * 0.8;
+    // 2. Calculate annual flight emissions
+    const annualFlightCO2 = Q3_flightsPerYear * CO2_FACTORS.flight.perFlight;
 
-    return commuteCO2 + flightCO2;
+    return annualCommuteCO2 + annualFlightCO2;
   }
 
   /**
    * Calculate Section B: Home Energy
    * @param {Object} responses - User responses
-   * @returns {number} Section B CO2 total
+   * @returns {number} Section B CO2 total in kg
    */
   static calculateSectionB(responses) {
     const { Q4_homeType, Q5_residents, Q6_billRange, Q7_hasRenewables } = responses;
     
-    // Base home CO2 per person
-    const homeBase = CO2_FACTORS.home[Q4_homeType] || 0;
-    const homeCO2_perPerson = homeBase / Q5_residents;
+    // 1. Get the annual household footprint for the home type
+    const annualHouseholdFootprint = CO2_FACTORS.home[Q4_homeType] || 0;
 
-    // Adjust based on bill range
-    const billAdjustment = CO2_FACTORS.bill[Q6_billRange] || 1.0;
-    const adjustedHomeCO2 = homeCO2_perPerson * billAdjustment;
+    // 2. Calculate the user's share based on number of residents
+    const userShare = annualHouseholdFootprint / Q5_residents;
 
-    // Adjust for renewables
-    const renewableAdjustment = CO2_FACTORS.renewables[Q7_hasRenewables] || 1.0;
-    const finalAdjustedHomeCO2 = adjustedHomeCO2 * renewableAdjustment;
+    // 3. Adjust based on electricity bill (the bill range key must match exactly)
+    const billMultiplier = CO2_FACTORS.bill[Q6_billRange] || 1.0;
+    const afterBillAdjustment = userShare * billMultiplier;
 
-    return finalAdjustedHomeCO2;
+    // 4. Adjust for renewables
+    const renewableMultiplier = CO2_FACTORS.renewables[Q7_hasRenewables] || 1.0;
+    const finalHomeCO2 = afterBillAdjustment * renewableMultiplier;
+
+    return finalHomeCO2;
   }
 
   /**
    * Calculate Section C: Food and Diet
    * @param {Object} responses - User responses
-   * @returns {number} Section C CO2 total
+   * @returns {number} Section C CO2 total in kg
    */
   static calculateSectionC(responses) {
     const { Q8_dietType } = responses;
+    // Directly return the annual value for the selected diet
     return CO2_FACTORS.diet[Q8_dietType] || 0;
   }
 
   /**
    * Calculate all sections and total CO2
    * @param {Object} responses - User responses
-   * @returns {Object} All calculated results
+   * @returns {Object} All calculated results in kg, rounded
    */
   static calculateAll(responses) {
+    const validation = this.validateResponses(responses);
+    if (!validation.isValid) {
+      throw new Error(`Invalid responses: ${validation.errors.join(', ')}`);
+    }
+
     const sectionA = this.calculateSectionA(responses);
     const sectionB = this.calculateSectionB(responses);
     const sectionC = this.calculateSectionC(responses);
     const totalCO2 = sectionA + sectionB + sectionC;
 
     return {
-      sectionA: Math.round(sectionA * 100) / 100, // Round to 2 decimal places
-      sectionB: Math.round(sectionB * 100) / 100,
-      sectionC: Math.round(sectionC * 100) / 100,
-      totalCO2: Math.round(totalCO2 * 100) / 100
+      sectionA: Math.round(sectionA),
+      sectionB: Math.round(sectionB),
+      sectionC: Math.round(sectionC),
+      totalCO2: Math.round(totalCO2)
     };
   }
 
@@ -114,9 +135,10 @@ class CalculationService {
   static validateResponses(responses) {
     const errors = [];
 
-    // Validate Q1_modes
-    if (!Array.isArray(responses.Q1_modes) || responses.Q1_modes.length === 0) {
-      errors.push('Q1_modes must be a non-empty array');
+    // Validate Q1_primaryMode (now a single string)
+    const validTransportModes = Object.keys(CO2_FACTORS.transport);
+    if (!validTransportModes.includes(responses.Q1_primaryMode)) {
+      errors.push('Q1_primaryMode must be a valid transport mode');
     }
 
     // Validate Q2_kmPerDay
@@ -130,31 +152,31 @@ class CalculationService {
     }
 
     // Validate Q4_homeType
-    const validHomeTypes = ['Large House', 'Small House', 'Apartment'];
+    const validHomeTypes = Object.keys(CO2_FACTORS.home);
     if (!validHomeTypes.includes(responses.Q4_homeType)) {
-      errors.push('Q4_homeType must be one of: Large House, Small House, Apartment');
+      errors.push('Q4_homeType must be one of: ' + validHomeTypes.join(', '));
     }
 
     // Validate Q5_residents
     if (typeof responses.Q5_residents !== 'number' || responses.Q5_residents < 1) {
-      errors.push('Q5_residents must be a positive integer');
+      errors.push('Q5_residents must be a number greater than 0');
     }
 
-    // Validate Q6_billRange
-    const validBillRanges = ['<7500', '7501-12000', '12001-25000', '>25000'];
+    // Validate Q6_billRange (keys must match the dropdown options exactly)
+    const validBillRanges = Object.keys(CO2_FACTORS.bill);
     if (!validBillRanges.includes(responses.Q6_billRange)) {
-      errors.push('Q6_billRange must be one of the specified ranges');
+      errors.push('Q6_billRange must be one of: ' + validBillRanges.join(', '));
     }
 
     // Validate Q7_hasRenewables
     if (typeof responses.Q7_hasRenewables !== 'boolean') {
-      errors.push('Q7_hasRenewables must be a boolean');
+      errors.push('Q7_hasRenewables must be a boolean (true/false)');
     }
 
     // Validate Q8_dietType
-    const validDietTypes = ['High Meat', 'Moderate Meat', 'Low Meat', 'Pescatarian', 'Vegan/Vegetarian'];
+    const validDietTypes = Object.keys(CO2_FACTORS.diet);
     if (!validDietTypes.includes(responses.Q8_dietType)) {
-      errors.push('Q8_dietType must be one of the specified diet types');
+      errors.push('Q8_dietType must be one of: ' + validDietTypes.join(', '));
     }
 
     return {
