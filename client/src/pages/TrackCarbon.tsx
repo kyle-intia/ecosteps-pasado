@@ -21,10 +21,11 @@ const TrackCarbon = () => {
     publicTransportDistance: "",
     motorcycleDistance: "",
     walkingBikeDistance: "",
-    otherTransportDistance: "",
+    noTransportDistance: "",
     
     // Home Energy
     homeType: "",
+    houseSharing: "",
     highEnergyAppliances: [],
     
     // Food
@@ -38,15 +39,13 @@ const TrackCarbon = () => {
     publicTransport: false,
     motorcycle: false,
     walkingBike: false,
-    otherTransport: false,
+    noTransport: false,
   });
 
   const [checkedAppliances, setCheckedAppliances] = useState({
     aircon: false,
     heating: false,
-    dryer: false,
-    dishwasher: false,
-    pool: false,
+    laundry: false,
     none: false,
   });
   
@@ -93,9 +92,7 @@ const TrackCarbon = () => {
         setCheckedAppliances({
           aircon: false,
           heating: false,
-          dryer: false,
-          dishwasher: false,
-          pool: false,
+          laundry: false,
           none: true,
         });
       } else {
@@ -271,23 +268,23 @@ const TrackCarbon = () => {
                     />
                   </div>
 
-                  {/* Other */}
+                  {/* No Transport */}
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      id="otherTransport"
+                      id="noTransport"
                       className="w-4 h-4"
-                      checked={checkedTransportModes.otherTransport}
-                      onChange={(e) => handleTransportModeChange("otherTransport", e.target.checked)}
+                      checked={checkedTransportModes.noTransport}
+                      onChange={(e) => handleTransportModeChange("noTransport", e.target.checked)}
                     />
-                    <Label htmlFor="otherTransport" className="flex-1">Other (specify)</Label>
+                    <Label htmlFor="noTransport" className="flex-1">No Transport</Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
-                      value={formData.otherTransportDistance}
-                      onChange={(e) => handleDistanceChange("otherTransport", e.target.value)}
-                      disabled={!checkedTransportModes.otherTransport}
+                      value={formData.noTransportDistance}
+                      onChange={(e) => handleDistanceChange("noTransport", e.target.value)}
+                      disabled={!checkedTransportModes.noTransport}
                     />
                   </div>
                 </div>
@@ -337,8 +334,19 @@ const TrackCarbon = () => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="houseSharing">Q4. With how many people did share your house with today? (Probably you can type the number)</Label>
+                <Input
+                  id="houseSharing"
+                  type="number"
+                  value={formData.houseSharing}
+                  onChange={(e) => handleInputChange("houseSharing", e.target.value)}
+                  placeholder="Enter number of people"
+                />
+              </div>
+
               <div className="space-y-4">
-                <Label>Q4. Which high-energy appliances do you use daily? (Check all that apply)</Label>
+                <Label>Q5. Which high-energy appliances did you use today? (Check all that apply)</Label>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
@@ -368,38 +376,16 @@ const TrackCarbon = () => {
                   <div className="flex items-center space-x-2">
                     <input 
                       type="checkbox" 
-                      id="dryer" 
+                      id="laundry" 
                       className="w-4 h-4" 
-                      checked={checkedAppliances.dryer}
-                      onChange={(e) => handleApplianceChange("dryer", e.target.checked)}
+                      checked={checkedAppliances.laundry}
+                      onChange={(e) => handleApplianceChange("laundry", e.target.checked)}
                       disabled={checkedAppliances.none}
                     />
-                    <Label htmlFor="dryer" className="flex-1">Clothes Dryer</Label>
+                    <Label htmlFor="laundry" className="flex-1">Laundry Machine</Label>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="dishwasher" 
-                      className="w-4 h-4" 
-                      checked={checkedAppliances.dishwasher}
-                      onChange={(e) => handleApplianceChange("dishwasher", e.target.checked)}
-                      disabled={checkedAppliances.none}
-                    />
-                    <Label htmlFor="dishwasher" className="flex-1">Dishwasher</Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="pool" 
-                      className="w-4 h-4" 
-                      checked={checkedAppliances.pool}
-                      onChange={(e) => handleApplianceChange("pool", e.target.checked)}
-                      disabled={checkedAppliances.none}
-                    />
-                    <Label htmlFor="pool" className="flex-1">Swimming Pool</Label>
-                  </div>
+
+                
 
                   <div className="flex items-center space-x-2">
                     <input 
@@ -429,7 +415,7 @@ const TrackCarbon = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="breakfastType">Q5. What did you have for breakfast today?</Label>
+                <Label htmlFor="breakfastType">Q6. What did you have for breakfast today?</Label>
                 <Select value={formData.breakfastType} onValueChange={(value) => handleInputChange("breakfastType", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select breakfast type" />
@@ -444,7 +430,7 @@ const TrackCarbon = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lunchType">Q6. What did you have for lunch today?</Label>
+                <Label htmlFor="lunchType">Q7. What did you have for lunch today?</Label>
                 <Select value={formData.lunchType} onValueChange={(value) => handleInputChange("lunchType", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select lunch type" />
@@ -459,7 +445,7 @@ const TrackCarbon = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dinnerType">Q7. What did you have for dinner today?</Label>
+                <Label htmlFor="dinnerType">Q8. What did you have for dinner today?</Label>
                 <Select value={formData.dinnerType} onValueChange={(value) => handleInputChange("dinnerType", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select dinner type" />
