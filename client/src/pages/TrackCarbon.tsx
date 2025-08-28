@@ -15,13 +15,14 @@ const TrackCarbon = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Transportation
+    // Transportation
     transportModes: [],
     flightsToday: "",
     personalCarDistance: "",
     publicTransportDistance: "",
     motorcycleDistance: "",
-    walkingBikeDistance: "",
-    noTransportDistance: "",
+    bicycleDistance: "",
+    walkingDistance: "",
     
     // Home Energy
     homeType: "",
@@ -38,13 +39,13 @@ const TrackCarbon = () => {
     personalCar: false,
     publicTransport: false,
     motorcycle: false,
-    walkingBike: false,
+    bicycle: false,
+    walking: false,
     noTransport: false,
   });
 
   const [checkedAppliances, setCheckedAppliances] = useState({
     aircon: false,
-    heating: false,
     laundry: false,
     none: false,
   });
@@ -91,7 +92,6 @@ const TrackCarbon = () => {
       if (isChecked) {
         setCheckedAppliances({
           aircon: false,
-          heating: false,
           laundry: false,
           none: true,
         });
@@ -248,23 +248,43 @@ const TrackCarbon = () => {
                     />
                   </div>
 
-                  {/* Walking/Bicycle/E-bike */}
+                  {/* Bicycle/E-bike */}
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      id="walkingBike"
+                      id="bicycle"
                       className="w-4 h-4"
-                      checked={checkedTransportModes.walkingBike}
-                      onChange={(e) => handleTransportModeChange("walkingBike", e.target.checked)}
+                      checked={checkedTransportModes.bicycle}
+                      onChange={(e) => handleTransportModeChange("bicycle", e.target.checked)}
                     />
-                    <Label htmlFor="walkingBike" className="flex-1">Walking / Bicycle / E-bike</Label>
+                    <Label htmlFor="bicycle" className="flex-1">Bicycle / E-bike</Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
-                      value={formData.walkingBikeDistance}
-                      onChange={(e) => handleDistanceChange("walkingBike", e.target.value)}
-                      disabled={!checkedTransportModes.walkingBike}
+                      value={formData.bicycleDistance}
+                      onChange={(e) => handleDistanceChange("bicycle", e.target.value)}
+                      disabled={!checkedTransportModes.bicycle}
+                    />
+                  </div>
+
+                  {/* Walking */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="walking"
+                      className="w-4 h-4"
+                      checked={checkedTransportModes.walking}
+                      onChange={(e) => handleTransportModeChange("walking", e.target.checked)}
+                    />
+                    <Label htmlFor="walking" className="flex-1">Walking</Label>
+                    <Input
+                      type="number"
+                      placeholder="km"
+                      className="w-20"
+                      value={formData.walkingDistance}
+                      onChange={(e) => handleDistanceChange("walking", e.target.value)}
+                      disabled={!checkedTransportModes.walking}
                     />
                   </div>
 
@@ -277,15 +297,8 @@ const TrackCarbon = () => {
                       checked={checkedTransportModes.noTransport}
                       onChange={(e) => handleTransportModeChange("noTransport", e.target.checked)}
                     />
-                    <Label htmlFor="noTransport" className="flex-1">No Transport</Label>
-                    <Input
-                      type="number"
-                      placeholder="km"
-                      className="w-20"
-                      value={formData.noTransportDistance}
-                      onChange={(e) => handleDistanceChange("noTransport", e.target.value)}
-                      disabled={!checkedTransportModes.noTransport}
-                    />
+                    <Label htmlFor="noTransport" className="flex-1">Didn't commute today</Label>
+                    {/* Removed Input for noTransport as it's not needed */}
                   </div>
                 </div>
               </div>
@@ -358,19 +371,7 @@ const TrackCarbon = () => {
                       onChange={(e) => handleApplianceChange("aircon", e.target.checked)}
                       disabled={checkedAppliances.none}
                     />
-                    <Label htmlFor="aircon" className="flex-1">Air Conditioning</Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="heating" 
-                      className="w-4 h-4" 
-                      checked={checkedAppliances.heating}
-                      onChange={(e) => handleApplianceChange("heating", e.target.checked)}
-                      disabled={checkedAppliances.none}
-                    />
-                    <Label htmlFor="heating" className="flex-1">Heating System</Label>
+                    <Label htmlFor="aircon" className="flex-1">Air Conditioning / Heating Systems</Label>
                   </div>
                   
                   <div className="flex items-center space-x-2">
