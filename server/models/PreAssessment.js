@@ -7,11 +7,13 @@ const preAssessmentSchema = new mongoose.Schema({
     required: true
   },
   responses: {
-    Q1_modes: [{
+    // CHANGED: Now a single String, not an Array
+    Q1_primaryMode: {
       type: String,
-      enum: ['Personal Car', 'Walking/Biking/E-bike', 'Public Transport', 'Motorcycle', 'Work from Home'],
+      // UPDATED: Enum values must match keys in CO2_FACTORS.transport
+      enum: ['Personal Car', 'Motorcycle', 'Public Transport', 'Bicycle/E-bike', 'Walking', 'Work from Home'],
       required: true
-    }],
+    },
     Q2_kmPerDay: {
       type: Number,
       required: true,
@@ -32,18 +34,21 @@ const preAssessmentSchema = new mongoose.Schema({
       required: true,
       min: 1
     },
+    // CHANGED: Enum values must match the SELECTION OPTIONS (not the factor keys)
+    // The frontend form should use these exact strings.
     Q6_billRange: {
       type: String,
-      enum: ['<7500', '7501-12000', '12001-25000', '>25000'],
+      enum: ['Below ₱7,500 / month', '₱7,501 – ₱12,000 / month', '₱12,001 – ₱25,000 / month', 'Above ₱25,000 / month'],
       required: true
     },
     Q7_hasRenewables: {
       type: Boolean,
       required: true
     },
+    // CHANGED: Enum values must match keys in CO2_FACTORS.diet
     Q8_dietType: {
       type: String,
-      enum: ['High Meat', 'Moderate Meat', 'Low Meat', 'Pescatarian', 'Vegan/Vegetarian'],
+      enum: ['High meat intake (more than 3 times a week)', 'Moderate meat intake (2–3 times a week)', 'Low meat intake (about once a week)', 'Pescetarian (fish but no meat)', 'Vegetarian or Vegan (no meat or fish)'],
       required: true
     }
   },

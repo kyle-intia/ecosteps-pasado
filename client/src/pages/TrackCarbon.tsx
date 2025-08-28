@@ -15,7 +15,6 @@ const TrackCarbon = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Transportation
-    // Transportation
     transportModes: [],
     flightsToday: "",
     personalCarDistance: "",
@@ -72,12 +71,38 @@ const TrackCarbon = () => {
   };
 
   const handleTransportModeChange = (mode: string, isChecked: boolean) => {
-    setCheckedTransportModes(prev => ({ ...prev, [mode]: isChecked }));
-    
-    // If unchecking, clear the distance value
-    if (!isChecked) {
-      const distanceField = `${mode}Distance`;
-      setFormData(prev => ({ ...prev, [distanceField]: "" }));
+    if (mode === "noTransport") {
+      // If selecting "Didn't commute today", uncheck all other options
+      if (isChecked) {
+        setCheckedTransportModes({
+          personalCar: false,
+          publicTransport: false,
+          motorcycle: false,
+          bicycle: false,
+          walking: false,
+          noTransport: true,
+        });
+        
+        // Clear all distance values
+        setFormData(prev => ({
+          ...prev,
+          personalCarDistance: "",
+          publicTransportDistance: "",
+          motorcycleDistance: "",
+          bicycleDistance: "",
+          walkingDistance: "",
+        }));
+      } else {
+        // If unchecking "Didn't commute today", just set it to false
+        setCheckedTransportModes(prev => ({ ...prev, noTransport: false }));
+      }
+    } else {
+      // If selecting any other option, make sure "noTransport" is unchecked
+      setCheckedTransportModes(prev => ({
+        ...prev,
+        [mode]: isChecked,
+        noTransport: false,
+      }));
     }
   };
 
@@ -124,15 +149,18 @@ const TrackCarbon = () => {
   const calculateFootprint = () => {
     // TODO: Implement calculation with new CO₂ factors
     // This will be updated after implementing the new form structure
-    const totalFootprint = "0.0";
+    const annualFootprintKg = 0.0; // This should be calculated based on user inputs
+    // Convert to tonnes per day
+    const tonnesPerDay = (annualFootprintKg / 1000) / 365; // First to tonnes per year, then to per day
+    const displayValue = tonnesPerDay.toFixed(2); // Round to 2 decimal places
     
     // Store results
-    localStorage.setItem("currentFootprint", totalFootprint);
+    localStorage.setItem("currentFootprint", annualFootprintKg.toString());
     localStorage.setItem("lastTrackingDate", new Date().toISOString());
     
     toast({
       title: "Carbon Footprint Calculated!",
-      description: `Your daily carbon footprint is ${totalFootprint} tons CO₂`,
+      description: `Your daily carbon footprint is ${displayValue} tons CO₂`,
     });
     
     navigate("/dashboard");
@@ -145,6 +173,12 @@ const TrackCarbon = () => {
   ];
 
   const progress = (currentStep / 3) * 100;
+
+  // Check if "Didn't commute today" is selected
+  const isNoTransportSelected = checkedTransportModes.noTransport;
+  
+  // Check if "None" is selected for appliances
+  const isNoApplianceSelected = checkedAppliances.none;
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -196,15 +230,21 @@ const TrackCarbon = () => {
                       className="w-4 h-4"
                       checked={checkedTransportModes.personalCar}
                       onChange={(e) => handleTransportModeChange("personalCar", e.target.checked)}
+                      disabled={isNoTransportSelected}
                     />
-                    <Label htmlFor="personalCar" className="flex-1">Personal Car</Label>
+                    <Label 
+                      htmlFor="personalCar" 
+                      className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Personal Car
+                    </Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
                       value={formData.personalCarDistance}
                       onChange={(e) => handleDistanceChange("personalCar", e.target.value)}
-                      disabled={!checkedTransportModes.personalCar}
+                      disabled={!checkedTransportModes.personalCar || isNoTransportSelected}
                     />
                   </div>
 
@@ -216,15 +256,21 @@ const TrackCarbon = () => {
                       className="w-4 h-4"
                       checked={checkedTransportModes.publicTransport}
                       onChange={(e) => handleTransportModeChange("publicTransport", e.target.checked)}
+                      disabled={isNoTransportSelected}
                     />
-                    <Label htmlFor="publicTransport" className="flex-1">Public Transportation</Label>
+                    <Label 
+                      htmlFor="publicTransport" 
+                      className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Public Transportation
+                    </Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
                       value={formData.publicTransportDistance}
                       onChange={(e) => handleDistanceChange("publicTransport", e.target.value)}
-                      disabled={!checkedTransportModes.publicTransport}
+                      disabled={!checkedTransportModes.publicTransport || isNoTransportSelected}
                     />
                   </div>
 
@@ -236,15 +282,21 @@ const TrackCarbon = () => {
                       className="w-4 h-4"
                       checked={checkedTransportModes.motorcycle}
                       onChange={(e) => handleTransportModeChange("motorcycle", e.target.checked)}
+                      disabled={isNoTransportSelected}
                     />
-                    <Label htmlFor="motorcycle" className="flex-1">Motorcycle</Label>
+                    <Label 
+                      htmlFor="motorcycle" 
+                      className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Motorcycle
+                    </Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
                       value={formData.motorcycleDistance}
                       onChange={(e) => handleDistanceChange("motorcycle", e.target.value)}
-                      disabled={!checkedTransportModes.motorcycle}
+                      disabled={!checkedTransportModes.motorcycle || isNoTransportSelected}
                     />
                   </div>
 
@@ -256,15 +308,21 @@ const TrackCarbon = () => {
                       className="w-4 h-4"
                       checked={checkedTransportModes.bicycle}
                       onChange={(e) => handleTransportModeChange("bicycle", e.target.checked)}
+                      disabled={isNoTransportSelected}
                     />
-                    <Label htmlFor="bicycle" className="flex-1">Bicycle / E-bike</Label>
+                    <Label 
+                      htmlFor="bicycle" 
+                      className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Bicycle / E-bike
+                    </Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
                       value={formData.bicycleDistance}
                       onChange={(e) => handleDistanceChange("bicycle", e.target.value)}
-                      disabled={!checkedTransportModes.bicycle}
+                      disabled={!checkedTransportModes.bicycle || isNoTransportSelected}
                     />
                   </div>
 
@@ -276,15 +334,21 @@ const TrackCarbon = () => {
                       className="w-4 h-4"
                       checked={checkedTransportModes.walking}
                       onChange={(e) => handleTransportModeChange("walking", e.target.checked)}
+                      disabled={isNoTransportSelected}
                     />
-                    <Label htmlFor="walking" className="flex-1">Walking</Label>
+                    <Label 
+                      htmlFor="walking" 
+                      className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Walking
+                    </Label>
                     <Input
                       type="number"
                       placeholder="km"
                       className="w-20"
                       value={formData.walkingDistance}
                       onChange={(e) => handleDistanceChange("walking", e.target.value)}
-                      disabled={!checkedTransportModes.walking}
+                      disabled={!checkedTransportModes.walking || isNoTransportSelected}
                     />
                   </div>
 
@@ -311,8 +375,8 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select flight option" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="short-haul">Yes, short-haul (less than 3 hours) → 0.3 t</SelectItem>
-                    <SelectItem value="long-haul">Yes, long-haul (more than 3 hours) → 0.6 t</SelectItem>
+                    <SelectItem value="long-haul">Yes, long-haul (More than 3 hours)</SelectItem>
+                    <SelectItem value="short-haul">Yes, short-haul (Less than 3 hours)</SelectItem>
                     <SelectItem value="none">No</SelectItem>
                   </SelectContent>
                 </Select>
@@ -339,22 +403,21 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select home type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="apartment">Apartment/Condo → 0.2 t</SelectItem>
-                    <SelectItem value="small-house">Small House (less than 100m²) → 0.4 t</SelectItem>
-                    <SelectItem value="medium-house">Medium House (100-200m²) → 0.6 t</SelectItem>
-                    <SelectItem value="large-house">Large House (more than 200m²) → 0.8 t</SelectItem>
+                    <SelectItem value="large-house">Large House (3 or more bedrooms)</SelectItem>
+                    <SelectItem value="small-house">Small House (2 or less bedrooms)</SelectItem>
+                    <SelectItem value="apartment">Apartment/Condo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="houseSharing">Q4. With how many people did share your house with today? (Probably you can type the number)</Label>
+                <Label htmlFor="houseSharing">Q4. With how many people did share your house with today?</Label>
                 <Input
                   id="houseSharing"
                   type="number"
                   value={formData.houseSharing}
                   onChange={(e) => handleInputChange("houseSharing", e.target.value)}
-                  placeholder="Enter number of people"
+                  placeholder="Enter number of people (including yourself)"
                 />
               </div>
 
@@ -369,9 +432,14 @@ const TrackCarbon = () => {
                       className="w-4 h-4" 
                       checked={checkedAppliances.aircon}
                       onChange={(e) => handleApplianceChange("aircon", e.target.checked)}
-                      disabled={checkedAppliances.none}
+                      disabled={isNoApplianceSelected}
                     />
-                    <Label htmlFor="aircon" className="flex-1">Air Conditioning / Heating Systems</Label>
+                    <Label 
+                      htmlFor="aircon" 
+                      className={`flex-1 ${isNoApplianceSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Air Conditioning / Heating Systems
+                    </Label>
                   </div>
                   
                   <div className="flex items-center space-x-2">
@@ -381,12 +449,15 @@ const TrackCarbon = () => {
                       className="w-4 h-4" 
                       checked={checkedAppliances.laundry}
                       onChange={(e) => handleApplianceChange("laundry", e.target.checked)}
-                      disabled={checkedAppliances.none}
+                      disabled={isNoApplianceSelected}
                     />
-                    <Label htmlFor="laundry" className="flex-1">Laundry Machine</Label>
+                    <Label 
+                      htmlFor="laundry" 
+                      className={`flex-1 ${isNoApplianceSelected ? "text-muted-foreground" : ""}`}
+                    >
+                      Laundry Machine
+                    </Label>
                   </div>
-
-                
 
                   <div className="flex items-center space-x-2">
                     <input 
@@ -422,10 +493,12 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select breakfast type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="plant-based">Plant-based (fruits, grains) → 0.1 t</SelectItem>
-                    <SelectItem value="dairy">Dairy (milk, yogurt, eggs) → 0.2 t</SelectItem>
-                    <SelectItem value="meat">Meat-based (bacon, sausage) → 0.4 t</SelectItem>
-                    <SelectItem value="none">Skipped breakfast → 0 t</SelectItem>
+                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">🚫 Skipped breakfast</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -437,10 +510,12 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select lunch type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="plant-based">Plant-based (salad, vegetables) → 0.2 t</SelectItem>
-                    <SelectItem value="dairy">Dairy (cheese, dairy products) → 0.3 t</SelectItem>
-                    <SelectItem value="meat">Meat-based (beef, chicken, fish) → 0.5 t</SelectItem>
-                    <SelectItem value="none">Skipped lunch → 0 t</SelectItem>
+                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">🚫 Skipped lunch</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -452,10 +527,12 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select dinner type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="plant-based">Plant-based (vegetables, grains) → 0.2 t</SelectItem>
-                    <SelectItem value="dairy">Dairy (cheese, dairy products) → 0.3 t</SelectItem>
-                    <SelectItem value="meat">Meat-based (beef, chicken, fish) → 0.5 t</SelectItem>
-                    <SelectItem value="none">Skipped dinner → 0 t</SelectItem>
+                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">🚫 Skipped dinner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
