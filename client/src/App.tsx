@@ -17,6 +17,8 @@ import queryClient from "./config/queryClient";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import UserSession from "./pages/UserSession";
+import Settings from "./pages/Settings";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,6 +41,8 @@ const App = () => (
           <Route path="/email/verify/:code" element={<VerifyEmail />} />
           <Route path="/password/forgot" element={<ForgotPassword />} />
           <Route path="/password/reset" element={<ResetPassword/>} />
+          <Route path="/settings" element={<Settings/>} />
+          <Route path="/sessions" element={<UserSession/>} />
           
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -241,8 +241,8 @@ const Index = () => {
         </div>
 
         <button onClick={() => signOut()}>
-  logout
-</button>
+          logout
+        </button>
 
       </footer>
     </div>

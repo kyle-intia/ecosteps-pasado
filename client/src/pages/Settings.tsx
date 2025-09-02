@@ -377,11 +377,24 @@ const Settings = () => {
                   }
                 />
               </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Sessions</Label>
+                  <p className="text-sm text-muted-foreground">
+                    See your previous and current sessions.
+                  </p>
+                </div>
+                  <Button variant="default" asChild>
+                    <Link to="/sessions">View Sessions</Link>
+                  </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </main>
     </div>
+    
   );
 };
 
