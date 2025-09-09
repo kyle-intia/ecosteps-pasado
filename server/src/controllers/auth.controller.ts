@@ -1,38 +1,11 @@
 import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
 import SessionModel from "../models/session.model";
-<<<<<<< HEAD
 import { createAccount,loginUser,  refreshUserAccessToken,  resetPassword,  sendPasswordResetEmail,  verifyEmail} from "../services/auth.service";
 import appAssert from "../utils/appAssert";
 import { clearAuthCookies,  getAccessTokenCookieOptions,  getRefreshTokenCookieOptions,  setAuthCookies} from "../utils/cookies";
 import { verifyToken } from "../utils/jwt";
 import catchErrors from "../utils/catchErrors";
 import { emailSchema,  loginSchema,  registerSchema,  resetPasswordSchema,  verificationCodeSchema} from "./auth.schemas";
-=======
-import {
-  createAccount,
-  loginUser,
-  refreshUserAccessToken,
-  resetPassword,
-  sendPasswordResetEmail,
-  verifyEmail,
-} from "../services/auth.service";
-import appAssert from "../utils/appAssert";
-import {
-  clearAuthCookies,
-  getAccessTokenCookieOptions,
-  getRefreshTokenCookieOptions,
-  setAuthCookies,
-} from "../utils/cookies";
-import { verifyToken } from "../utils/jwt";
-import catchErrors from "../utils/catchErrors";
-import {
-  emailSchema,
-  loginSchema,
-  registerSchema,
-  resetPasswordSchema,
-  verificationCodeSchema,
-} from "./auth.schemas";
->>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
 
 export const registerHandler = catchErrors(async (req, res) => {
   const request = registerSchema.parse({
@@ -63,10 +36,6 @@ export const logoutHandler = catchErrors(async (req, res) => {
   const { payload } = verifyToken(accessToken || "");
 
   if (payload) {
-<<<<<<< HEAD
-=======
-    // remove session from db
->>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
     await SessionModel.findByIdAndDelete(payload.sessionId);
   }
 

@@ -77,41 +77,9 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-// Di pasure
     if (validateForm()) {
       signIn({ email: formData.email, password: formData.password });
     }
-
-    setIsLoading(true);
-
-    // Mock authentication
-    setTimeout(() => {
-      if (formData.email && formData.password) {
-        // Ensure a mock userId exists (re-use if already created during register)
-        let userId = localStorage.getItem("userId");
-        if (!userId) {
-          userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join("");
-          localStorage.setItem("userId", userId);
-        }
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", formData.email);
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully logged in to EcoStep.",
-        });
-        navigate("/home");
-      } else {
-        toast({
-          title: "Error",
-          description: "Please fill in all fields.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
-// Di pa sure
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

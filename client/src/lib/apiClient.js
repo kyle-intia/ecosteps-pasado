@@ -13,7 +13,7 @@ class ApiClient {
       viteUrl = import.meta && import.meta.env && import.meta.env.VITE_API_URL;
     } catch (_) {}
     // Avoid using process.env in the browser; default to localhost if Vite var missing
-    this.baseURL = viteUrl || 'http://localhost:5000/api';
+    this.baseURL = viteUrl || 'http://localhost:4004/api';
   }
 
   async request(endpoint, options = {}) {

@@ -50,6 +50,8 @@ const Settings = () => {
 
   const [formData, setFormData] = useState({
     fullName: "",
+    firstName: "",
+    lastName: "",
     username: "",
     email: "",
     bio: "",
@@ -120,6 +122,8 @@ const Settings = () => {
     if (profile) {
       setFormData({
         fullName: `${profile.firstName} ${profile.lastName}`,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
         username: profile.username,
         email: localStorage.getItem("userEmail") || "",
         bio: profile.bio,
@@ -239,17 +243,30 @@ const Settings = () => {
               {/* Profile Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="fullName"
+                    id="firstName"
                     readOnly={!isEditing}
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    placeholder="Enter your full name"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    placeholder="Enter your First Name"
                     className={`${!isEditing ? 'border-none focus:outline-none cursor-default bg-transparent' : 'border border-gray-300 focus:outline-blue-500 cursor-text bg-white'}`}
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    readOnly={!isEditing}
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    placeholder="Enter your Last Name"
+                    className={`${!isEditing ? 'border-none focus:outline-none cursor-default bg-transparent' : 'border border-gray-300 focus:outline-blue-500 cursor-text bg-white'}`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
@@ -259,20 +276,6 @@ const Settings = () => {
                     placeholder="Enter your username"
                     className={`${!isEditing ? 'border-none focus:outline-none cursor-default bg-transparent' : 'border border-gray-300 focus:outline-blue-500 cursor-text bg-white'}`}
                   />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  readOnly={!isEditing}
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  placeholder="Enter your email"
-                  className={`${!isEditing ? 'border-none focus:outline-none cursor-default bg-transparent' : 'border border-gray-300 focus:outline-blue-500 cursor-text bg-white'}`}
-                />
               </div>
 
               <div className="space-y-2">

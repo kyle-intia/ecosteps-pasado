@@ -244,7 +244,7 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
           description: "User not logged in. Please log in again.",
           variant: "destructive",
         });
-        navigate("/");
+        navigate("/userprofile");
         return;
       }
 
