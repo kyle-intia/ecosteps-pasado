@@ -500,15 +500,14 @@ const TrackCarbon = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="houseSharing">Q4. With how many people did you share your house today? (maximum of 20 people)</Label>
+                <Label htmlFor="houseSharing">Q4. With how many people did you share your house today?</Label>
                 <Input
                   id="houseSharing"
                   type="number"
                   value={formData.houseSharing}
                   onChange={(e) => handleInputChange("houseSharing", e.target.value)}
                   placeholder="Enter number of people (including yourself)"
-                  min={1}
-                  max={20}
+
                 />
               </div>
 

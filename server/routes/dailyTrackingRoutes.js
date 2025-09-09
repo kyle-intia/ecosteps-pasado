@@ -1,4 +1,3 @@
-// File: server/routes/dailyTrackingRoutes.js
 // API routes for daily carbon footprint tracking
 // Handles CRUD operations for daily tracking entries
 
@@ -181,8 +180,10 @@ router.get('/:userId/today', async (req, res) => {
     });
 
     if (!todayEntry) {
-      return res.status(404).json({ 
-        error: 'No tracking entry found for today',
+      // Return 200 with null data to indicate no entry for today (avoid 404 noise on client)
+      return res.status(200).json({
+        success: true,
+        data: null,
         hasEntry: false
       });
     }

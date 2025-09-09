@@ -1,6 +1,3 @@
-// File: server/models/DailyTracking.js
-// MongoDB model for storing daily carbon footprint tracking data
-
 const mongoose = require('mongoose');
 
 const dailyTrackingSchema = new mongoose.Schema({

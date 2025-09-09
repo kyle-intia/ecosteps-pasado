@@ -1,5 +1,3 @@
-// File: server/services/dailyTrackingService.js
-
 const CO2_FACTORS_DAILY = {
   // Transport factors (kg CO₂e per km)
   transport: {
@@ -182,12 +180,8 @@ class DailyTrackingService {
       total: Math.round(total * 100) / 100
     };
   }
+ 
   
-  /**
-   * Validate daily tracking responses
-   * @param {Object} responses - User responses
-   * @returns {Object} Validation result
-   */
   static validateDailyResponses(responses) {
     const errors = [];
     const safe = responses || {};
