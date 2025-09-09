@@ -7,6 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navbar } from "@/components/Navbar";
 import { Heart, MessageCircle, Repeat2, Share, Camera, Users, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import queryClient from "@/config/queryClient";
+import { logout } from "@/lib/api";
+import useSessions from "../hooks/useSessions";
 
 interface Post {
   id: string;
@@ -31,71 +35,77 @@ const Community = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { sessions, isPending, isError } = useSessions();
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!loggedIn) {
-      navigate("/");
-      return;
+    if (!isPending && sessions.length > 0) {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
     }
-    setIsLoggedIn(true);
-    
-    // Initialize with some sample posts
-    const samplePosts: Post[] = [
-      {
-        id: "1",
-        author: {
-          name: "Sarah Green",
-          username: "@sarah_eco",
-          avatar: "/placeholder.svg"
-        },
-        content: "Just switched to a plant-based diet this week! Already feeling more energized and knowing I'm reducing my carbon footprint by 0.8 tons per year feels amazing. 🌱 #PlantBased #EcoLiving",
-        likes: 24,
-        comments: 8,
-        reposts: 3,
-        timestamp: "2 hours ago",
-        isLiked: false,
-        isReposted: false
-      },
-      {
-        id: "2",
-        author: {
-          name: "Mike Chen",
-          username: "@mike_sustain",
-          avatar: "/placeholder.svg"
-        },
-        content: "Cycled to work all week instead of driving! 50km total distance and saved about 12kg of CO₂. Small changes, big impact! 🚴‍♂️",
-        likes: 31,
-        comments: 12,
-        reposts: 7,
-        timestamp: "4 hours ago",
-        isLiked: true,
-        isReposted: false
-      },
-      {
-        id: "3",
-        author: {
-          name: "Eco Warriors",
-          username: "@ecowarriors",
-          avatar: "/placeholder.svg"
-        },
-        content: "Did you know that reducing food waste by just 25% can cut your household carbon footprint by 1-2%? Every bit counts! Start meal planning today 📝✨",
-        likes: 56,
-        comments: 15,
-        reposts: 23,
-        timestamp: "6 hours ago",
-        isLiked: false,
-        isReposted: true
-      }
-    ];
-    
-    setPosts(samplePosts);
-  }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+    if (!isPending && (isError || sessions.length === 0)) {
+      localStorage.removeItem("isLoggedIn");
+      navigate("/", { replace: true });
+    }
+  }, [isPending, isError, sessions, navigate]);
+
+
+
+  useEffect(() => {
+  const samplePosts: Post[] = [
+    {
+      id: "1",
+      author: {
+        name: "Sarah Green",
+        username: "@sarah_eco",
+        avatar: "/placeholder.svg",
+      },
+      content:
+        "Just switched to a plant-based diet this week! Already feeling more energized and knowing I'm reducing my carbon footprint by 0.8 tons per year feels amazing. 🌱 #PlantBased #EcoLiving",
+      likes: 24,
+      comments: 8,
+      reposts: 3,
+      timestamp: "2 hours ago",
+      isLiked: false,
+      isReposted: false,
+    },
+    {
+      id: "2",
+      author: {
+        name: "Mike Chen",
+        username: "@mike_sustain",
+        avatar: "/placeholder.svg",
+      },
+      content:
+        "Cycled to work all week instead of driving! 50km total distance and saved about 12kg of CO₂. Small changes, big impact! 🚴‍♂️",
+      likes: 31,
+      comments: 12,
+      reposts: 7,
+      timestamp: "4 hours ago",
+      isLiked: true,
+      isReposted: false,
+    },
+    {
+      id: "3",
+      author: {
+        name: "Eco Warriors",
+        username: "@ecowarriors",
+        avatar: "/placeholder.svg",
+      },
+      content:
+        "Did you know that reducing food waste by just 25% can cut your household carbon footprint by 1-2%? Every bit counts! Start meal planning today 📝✨",
+      likes: 56,
+      comments: 15,
+      reposts: 23,
+      timestamp: "6 hours ago",
+      isLiked: false,
+      isReposted: true,
+    },
+  ];
+
+    setPosts(samplePosts);
+  }, []);
+
 
   const handlePost = () => {
     if (!postContent.trim()) {
@@ -164,9 +174,18 @@ const Community = () => {
     }
   };
 
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

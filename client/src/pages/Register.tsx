@@ -6,69 +6,89 @@ import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/AuthLayout";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { register } from "@/lib/api";
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [errors, setErrors] = useState<{ email?: string; password?: string ; confirmPassword?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
 
-    // Basic validation
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
-    // Mock registration
-    setTimeout(() => {
-      if (formData.fullName && formData.email && formData.password) {
-        // Ensure a mock userId exists (24-char hex to satisfy ObjectId casting)
-        let userId = localStorage.getItem("userId");
-        if (!userId) {
-          userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join("");
-          localStorage.setItem("userId", userId);
-        }
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", formData.email);
-        localStorage.setItem("userName", formData.fullName);
-        localStorage.setItem("needsPreAssessment", "true");
-        toast({
-          title: "Welcome to EcoStep!",
-          description: "Your account has been created successfully.",
-        });
-        navigate("/pre-assessment");
-      } else {
-        toast({
-          title: "Error",
-          description: "Please fill in all fields.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.confirmPassword = "Password must be at least 8 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const {
+    mutate: createAccount,
+    isPending,
+  } = useMutation({
+    mutationFn: (data: { email: string; password: string; confirmPassword: string }) => register(data),
+    onSuccess: () => {
+      toast({
+        title: "Account Registered",
+        description: "You've successfully registered an Account.",
+      });
+      navigate("/", { replace: true });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Register failed",
+        description: error?.message || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      createAccount({ email: formData.email, password: formData.password,  confirmPassword: formData.confirmPassword  });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
+
+  const isFormValid =
+    formData.email &&
+    formData.password.length >= 8 &&
+    formData.password === formData.confirmPassword &&
+    Object.keys(errors).length === 0;
+
 
   return (
     <AuthLayout
@@ -76,18 +96,7 @@ export default function Register() {
       description="Create your account and start making a positive environmental impact today"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Full Name</Label>
-          <Input
-            id="fullName"
-            name="fullName"
-            type="text"
-            placeholder="Enter your full name"
-            value={formData.fullName}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+        
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -139,8 +148,8 @@ export default function Register() {
           />
         </div>
 
-        <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Create Account"}
+        <Button type="submit" variant="hero" className="w-full" disabled={isPending || !isFormValid}>
+          {isPending ? "Creating Account..." : "Create Account"}
         </Button>
 
         <div className="text-center text-sm text-muted-foreground">
