@@ -37,6 +37,7 @@ const App: React.FC = () => {
         <Toaster />
         <Sonner />
         <Routes>
+          
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -53,6 +54,7 @@ const App: React.FC = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="/sessions" element={<UserSession />} />
           <Route path="/userprofile" element={<ProfilePage />}/>
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

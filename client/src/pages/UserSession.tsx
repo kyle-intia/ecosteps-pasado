@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from "react";
 import useSessions from "../hooks/useSessions";
 import SessionCard from "../components/sessionCard";
+import { useNavigate } from "react-router-dom";
 
 const Settings: React.FC = () => {
   const { sessions, isPending, isSuccess, isError } = useSessions();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+  if (!loggedIn) {
+    navigate("/");
+    return;
+  }
+  setIsLoggedIn(true);
+}, []);
+
 
   return (
     <div style={styles.container}>

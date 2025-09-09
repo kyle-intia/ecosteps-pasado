@@ -10,6 +10,8 @@ import { logout } from "@/lib/api";
 import queryClient from "../config/queryClient";
 
 
+
+
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
@@ -237,7 +239,6 @@ const Index = () => {
             </p>
           </div>
         </div>
-
       </footer>
     </div>
   );

@@ -1,14 +1,45 @@
 import { APP_ORIGIN } from "../constants/env";
+<<<<<<< HEAD
 import { CONFLICT, INTERNAL_SERVER_ERROR, NOT_FOUND, TOO_MANY_REQUESTS, UNAUTHORIZED} from "../constants/http";
+=======
+import {
+  CONFLICT,
+  INTERNAL_SERVER_ERROR,
+  NOT_FOUND,
+  TOO_MANY_REQUESTS,
+  UNAUTHORIZED,
+  UNPROCESSABLE_CONTENT,
+} from "../constants/http";
+>>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
 import VerificationCodeType from "../constants/verificationCodeType";
 import SessionModel, { SessionDocument } from "../models/session.model";
 import UserModel, { UserDocument } from "../models/user.model";
 import VerificationCodeModel from "../models/verificationCode.model";
 import appAssert from "../utils/appAssert";
 import { hashValue } from "../utils/bcrypt";
+<<<<<<< HEAD
 import { ONE_DAY_MS, fiveMinutesAgo,  oneHourFromNow,  oneYearFromNow,  thirtyDaysFromNow} from "../utils/date";
 import {  getPasswordResetTemplate, getVerifyEmailTemplate} from "../utils/emailTemplates";
 import {  RefreshTokenPayload,  refreshTokenSignOptions,  signToken,  verifyToken} from "../utils/jwt";
+=======
+import {
+  ONE_DAY_MS,
+  fiveMinutesAgo,
+  oneHourFromNow,
+  oneYearFromNow,
+  thirtyDaysFromNow,
+} from "../utils/date";
+import {
+  getPasswordResetTemplate,
+  getVerifyEmailTemplate,
+} from "../utils/emailTemplates";
+import {
+  RefreshTokenPayload,
+  refreshTokenSignOptions,
+  signToken,
+  verifyToken,
+} from "../utils/jwt";
+>>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
 import { sendMail } from "../utils/sendMail";
 
 type CreateAccountParams = {
@@ -16,7 +47,10 @@ type CreateAccountParams = {
   password: string;
   userAgent?: string;
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
 export const createAccount = async (data: CreateAccountParams) => {
   // verify email is not taken
   const existingUser = await UserModel.findOne({ email: data.email });
@@ -255,7 +289,11 @@ export const resetPassword = async ({
   await SessionModel.deleteMany({ userId: validCode.userId });
 
   return { user: updatedUser.omitPassword() };
+<<<<<<< HEAD
 };
 
 
 
+=======
+};
+>>>>>>> c6059f8e8fe8634fc8af4f54f89449f8e645847e
