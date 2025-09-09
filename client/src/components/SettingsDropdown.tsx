@@ -76,7 +76,7 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="transition-all duration-300 ease-out">
           <Settings className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

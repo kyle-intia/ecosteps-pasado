@@ -50,7 +50,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Welcome Back"
-      description="Sign in to your EcoStep account to continue tracking your carbon footprint"
+      description="Sign in to your EcoSteps account to continue tracking your carbon footprint"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -62,6 +62,7 @@ export default function Login() {
             placeholder="Enter your email"
             value={formData.email}
             onChange={handleInputChange}
+            maxLength={30}
             required
           />
         </div>
@@ -77,32 +78,33 @@ export default function Login() {
               value={formData.password}
               onChange={handleInputChange}
               required
-            />
+            /> 
+            {/* Eye icon */}
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 transition-all duration-300 ease-out"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-4 w-4 " /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+          <Link to="/forgot-password" className="text-sm text-primary underline underline-offset-4 decoration-transparent hover:decoration-current transition-colors duration-200 ease-out">
             Forgot password?
           </Link>
         </div>
 
-        <Button type="submit" variant="hero" className="w-full" disabled={isLoading}>
+        <Button type="submit" variant="hero" className="w-full transition-all duration-300 ease-out" disabled={isLoading}>
           {isLoading ? "Signing In..." : "Sign In"}
         </Button>
 
         <div className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/register" className="text-primary hover:underline font-medium">
+          <Link to="/register" className="text-primary font-medium underline underline-offset-4 decoration-transparent hover:decoration-current transition-colors duration-200 ease-out">
             Sign up
           </Link>
         </div>

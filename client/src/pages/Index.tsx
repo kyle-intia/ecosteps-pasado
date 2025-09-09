@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Leaf, TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
-import heroImage from "@/assets/hero-eco.jpg";
+import homeImage from "@/assets/home_bg2.png";
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -33,12 +33,12 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
       
-      {/* Hero Section */}
+      {/* Home Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src={heroImage}
-            alt="EcoStep Carbon Tracking"
+            src={homeImage}
+            alt="EcoSteps Carbon Footprint Tracker"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-accent/60" />
@@ -53,18 +53,18 @@ const Index = () => {
               </h1>
               <p className="text-xl lg:text-2xl text-primary-foreground/90 max-w-3xl mx-auto">
                 Join thousands of eco-warriors making a positive impact on our planet. 
-                Monitor, reduce, and offset your carbon emissions with EcoStep.
+                Monitor, reduce, and offset your carbon emissions with EcoSteps.
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="hero" size="xl" asChild>
+              <Button variant="hero" size="xl" asChild className="transition-all duration-300 ease-out">
                 <Link to="/register">
                   Start Your Eco Journey
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20" asChild>
+              <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20 transition-all duration-300 ease-out" asChild>
                 <Link to="/login">Sign In</Link>
               </Button>
             </div>
@@ -100,7 +100,7 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="shadow-card border-border hover:shadow-elevated transition-smooth">
+            <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth">
               <CardHeader className="text-center">
                 <div className="p-3 bg-gradient-primary rounded-xl w-fit mx-auto mb-4">
                   <TrendingDown className="h-8 w-8 text-primary-foreground" />
@@ -112,7 +112,7 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            <Card className="shadow-card border-border hover:shadow-elevated transition-smooth">
+            <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth">
               <CardHeader className="text-center">
                 <div className="p-3 bg-gradient-eco rounded-xl w-fit mx-auto mb-4">
                   <Users className="h-8 w-8 text-primary-foreground" />
@@ -124,7 +124,7 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            <Card className="shadow-card border-border hover:shadow-elevated transition-smooth">
+            <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth">
               <CardHeader className="text-center">
                 <div className="p-3 bg-warning rounded-xl w-fit mx-auto mb-4">
                   <Award className="h-8 w-8 text-warning-foreground" />
@@ -163,7 +163,7 @@ const Index = () => {
                 ))}
               </div>
               
-              <Button variant="hero" size="lg" asChild>
+              <Button variant="hero" size="lg" asChild className="transition-all duration-300 ease-out">
                 <Link to="/register">
                   Join EcoStep Today
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -208,7 +208,7 @@ const Index = () => {
             Start your journey towards a more sustainable future today. 
             Every small step counts towards a greener planet.
           </p>
-          <Button variant="outline" size="xl" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90" asChild>
+          <Button variant="outline" size="xl" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 transition-all duration-300 ease-out" asChild>
             <Link to="/register">
               Get Started for Free
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -222,13 +222,18 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gradient-primary rounded-lg">
+              {/* <div className="p-2 bg-gradient-primary rounded-lg">
                 <Leaf className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-foreground">EcoStep</span>
+              </div> */}
+              <img 
+                src="/ecosteps.svg"
+                alt="EcoSteps Logo"
+                className="h-9 w-9 rounded"
+              />
+              <span className="text-xl font-bold text-foreground">EcoSteps</span>
             </div>
             <p className="text-muted-foreground">
-              © 2024 EcoStep. Making the world greener, one step at a time.
+              © 2025 EcoSteps. Making the world greener, one step at a time.
             </p>
           </div>
         </div>
