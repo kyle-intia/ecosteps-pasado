@@ -30,9 +30,6 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            {/* <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
-              <Leaf className="h-6 w-6 text-primary-foreground" />
-            </div> */}
             <img 
               src="/ecosteps.svg"
               alt="EcoSteps Logo"
