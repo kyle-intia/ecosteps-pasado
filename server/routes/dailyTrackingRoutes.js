@@ -13,7 +13,7 @@ const DailyTrackingService = require('../services/dailyTrackingService');
  */
 router.post('/submit', async (req, res) => {
   try {
-    const { userId, transport, homeEnergy, food } = req.body;
+    const { userId, transport, homeEnergy, food, flightsToday } = req.body;
 
     // Validate required fields
     if (!userId) {
@@ -21,11 +21,12 @@ router.post('/submit', async (req, res) => {
     }
 
     // Prepare responses object for calculation service
+    const normalizedOccupants = Math.max(1, Math.min(20, Number(homeEnergy?.occupants) || 1));
     const responses = {
       transport: transport || { modes: [], distances: {} },
-      flightType: transport?.flightType || 'no_flight',
+      flightType: flightsToday || transport?.flightType || 'no_flight',
       homeType: homeEnergy?.homeType,
-      occupants: homeEnergy?.occupants,
+      occupants: normalizedOccupants,
       appliances: homeEnergy?.appliances || [],
       breakfast: food?.breakfast || 'skipped',
       lunch: food?.lunch || 'skipped',
@@ -34,6 +35,31 @@ router.post('/submit', async (req, res) => {
 
     // Calculate footprint using the service
     const calculatedFootprint = DailyTrackingService.calculateDailyFootprint(responses);
+
+    // Normalize payload fields to match schema enums before saving
+    const normalizeHomeType = (t) => (t || '').replace('-', '_');
+    const normalizeAppliance = (a) => {
+      const key = (a || '').replace('-', '_');
+      return key === 'aircon' ? 'ac_heating' : key;
+    };
+    const normalizeMeal = (m) => {
+      const key = (m || '').replace('-', '_');
+      if (key === 'none') return 'skipped';
+      if (key === 'plant_based') return 'plant';
+      return key;
+    };
+
+    const normalizedHomeEnergy = homeEnergy ? {
+      homeType: normalizeHomeType(homeEnergy.homeType),
+      occupants: normalizedOccupants,
+      appliances: Array.isArray(homeEnergy.appliances) ? homeEnergy.appliances.map(normalizeAppliance) : []
+    } : undefined;
+
+    const normalizedFood = food ? {
+      breakfast: normalizeMeal(food.breakfast || 'skipped'),
+      lunch: normalizeMeal(food.lunch || 'skipped'),
+      dinner: normalizeMeal(food.dinner || 'skipped')
+    } : undefined;
 
     // Get today's date (start of day)
     const today = new Date();
@@ -53,8 +79,8 @@ router.post('/submit', async (req, res) => {
     if (existingEntry) {
       // Update existing entry
       existingEntry.transport = transport;
-      existingEntry.homeEnergy = homeEnergy;
-      existingEntry.food = food;
+      existingEntry.homeEnergy = normalizedHomeEnergy;
+      existingEntry.food = normalizedFood;
       existingEntry.calculatedFootprint = calculatedFootprint;
       dailyTracking = await existingEntry.save();
     } else {
@@ -63,8 +89,8 @@ router.post('/submit', async (req, res) => {
         userId,
         date: today,
         transport,
-        homeEnergy,
-        food,
+        homeEnergy: normalizedHomeEnergy,
+        food: normalizedFood,
         calculatedFootprint
       });
       await dailyTracking.save();

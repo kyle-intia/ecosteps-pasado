@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const preAssessmentRoutes = require('./routes/preAssessmentRoutes');
+const dailyTrackingRoutes = require('./routes/dailyTrackingRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ db.once('open', () => {
 
 // Routes
 app.use('/api/preassessment', preAssessmentRoutes);
+app.use('/api/daily-tracking', dailyTrackingRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
