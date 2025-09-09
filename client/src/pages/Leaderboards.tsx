@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "../config/queryClient";
+import useSessions from "../hooks/useSessions";
 
 // Mock data for leaderboards
 const mockUsers = [
@@ -70,6 +74,23 @@ const mockUsers = [
 const Leaderboards = () => {
   const [sortBy, setSortBy] = useState("score");
   const [users] = useState(mockUsers);
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { sessions, isPending, isError } = useSessions();
+  
+
+  useEffect(() => {
+    if (!isPending && sessions.length > 0) {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
+    }
+
+    if (!isPending && (isError || sessions.length === 0)) {
+      localStorage.removeItem("isLoggedIn");
+      navigate("/", { replace: true });
+    }
+  }, [isPending, isError, sessions, navigate]);
+
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -94,10 +115,24 @@ const Leaderboards = () => {
         return b.score - a.score;
     }
   });
+  
+
+
+
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
+
+  
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
