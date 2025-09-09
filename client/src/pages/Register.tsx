@@ -66,6 +66,7 @@ export default function Register() {
     },
   });
 
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
