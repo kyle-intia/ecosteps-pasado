@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,30 +21,16 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Globe
+  Globe,
+  Cake
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock user data
-const currentUser = {
-  id: "current-user",
-  username: "yourUsername",
-  fullName: "Your Name",
-  email: "your.email@example.com",
-  bio: "Passionate about sustainable living and making a positive environmental impact. 🌱",
-  location: "San Francisco, CA",
-  website: "https://yourwebsite.com",
-  avatarUrl: null,
-  joinedDate: "March 2024",
-  stats: {
-    posts: 24,
-    reposts: 8,
-    followers: 156,
-    following: 89,
-    carbonSaved: "2.3 tons"
-  }
-};
+import { useQuery } from "@tanstack/react-query";
+import { getProfile } from "../lib/api";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "../config/queryClient";
 
 // Mock posts data
 const mockPosts = [
@@ -81,9 +67,46 @@ const mockPosts = [
   }
 ];
 
+
+
+type ProfileType = {
+  profilePic: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  birthday: string;
+  address: string;
+  bio: string;
+  createdAt: string;
+};
+
 const Profile = () => {
+
   const [posts] = useState(mockPosts);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  
+  useEffect(() => {
+  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!loggedIn) {
+      navigate("/");
+      return;
+    }
+    setIsLoggedIn(true);
+  }, [navigate]);
+
+
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
+
 
   const handleEditPost = (postId: string) => {
     toast({
@@ -100,9 +123,55 @@ const Profile = () => {
     });
   };
 
+  const { data: profile, isLoading, error } = useQuery<ProfileType>({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+  });
+
+  if (isLoading) return <p>Loading...</p>;
+
+  if (error) {
+    toast({
+      title: "Failed to load profile",
+      description: "Please try again later.",
+      variant: "destructive",
+    });
+    return <p>Error loading profile.</p>;
+  }
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const month = d.toLocaleString('en-US', { month: 'short' }); 
+    const day = String(d.getUTCDate()).padStart(2, '0');      
+    const year = d.getUTCFullYear();                            
+    return `${month}-${day}-${year}`;
+  };
+
+  const birthday = formatDate(profile.birthday);
+  const joinedDate = formatDate(profile.createdAt);
+  
+  const currentUser = {
+  username: profile.username,
+  fullName: `${profile.firstName} ${profile.lastName}`,
+  bio: profile.bio,
+  location: profile.address,
+  birthday: birthday,
+  avatarUrl: profile.profilePic,
+  joinedDate: joinedDate,
+  stats: {
+    posts: 24,
+    reposts: 8,
+    followers: 156,
+    following: 89,
+    carbonSaved: "2.3 tons"
+  }
+};
+
+  if (!profile) return <p>No profile data found.</p>;
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Profile Header */}
@@ -148,10 +217,10 @@ const Profile = () => {
                     {currentUser.location}
                   </div>
                   <div className="flex items-center">
-                    <Globe className="h-4 w-4 mr-1" />
-                    <a href={currentUser.website} className="text-primary hover:underline">
-                      Website
-                    </a>
+                    <Cake className="h-4 w-4 mr-1" />
+                  
+                     {currentUser.birthday}
+                   
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />

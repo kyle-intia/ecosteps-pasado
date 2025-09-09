@@ -5,6 +5,10 @@ import { Navbar } from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, Target, Award, Leaf, Zap, Car, Utensils } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "../config/queryClient";
+import useSessions from "../hooks/useSessions";
 
 const monthlyData = [
   { month: "Jan", emissions: 2.3, savings: 0.5 },
@@ -25,24 +29,32 @@ const categoryData = [
 export default function Dashboard() {
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { sessions, isPending, isError } = useSessions();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      navigate("/");
-      return;
+    if (!isPending && sessions.length > 0) {
+      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(loggedIn);
     }
-    
+
+    if (!isPending && (isError || sessions.length === 0)) {
+      localStorage.removeItem("isLoggedIn");
+      navigate("/", { replace: true });
+    }
     const storedName = localStorage.getItem("userName") || "Eco Warrior";
     setUserName(storedName);
-  }, [navigate]);
+  }, [isPending, isError, sessions, navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userName");
-    navigate("/");
-  };
+
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
 
   const currentEmissions = 1.3; // tons CO2/month
   const targetEmissions = 1.0;
@@ -50,7 +62,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={true} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
