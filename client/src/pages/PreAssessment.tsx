@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
@@ -16,14 +17,14 @@ const questions = [
     questions: [
       {
         id: "commute_method",
-        question: "What's your primary mode of transportation for daily commute?",
+        question: "What is your primary mode of transportation for daily commute?",
         type: "radio",
         options: [
-          { value: "car_alone", label: "Personal car (alone)", factor: 2.3 },
-          { value: "carpool", label: "Carpool/rideshare", factor: 1.2 },
-          { value: "public_transport", label: "Public transportation", factor: 0.6 },
-          { value: "bike_walk", label: "Bike/Walking", factor: 0.1 },
-          { value: "remote", label: "Work from home", factor: 0.0 },
+          { value: "car_alone", label: "Personal car" },
+          { value: "motorcycle", label: "Motorcycle" },
+          { value: "public_transport", label: "Public transportation (e.g. jeepney, tricycle, beep)" },
+          { value: "bike_walk", label: "Bike/Walking" },
+          { value: "remote", label: "Work from home" },
         ],
       },
       {
@@ -54,29 +55,37 @@ const questions = [
         question: "What type of home do you live in?",
         type: "radio",
         options: [
-          { value: "apartment", label: "Apartment", factor: 0.8 },
-          { value: "townhouse", label: "Townhouse", factor: 1.0 },
-          { value: "house_small", label: "Small house", factor: 1.2 },
-          { value: "house_large", label: "Large house", factor: 1.8 },
+          { value: "house_large", label: "Large House (3 or more bedrooms)" },
+          { value: "house_small", label: "Small House (2 or less bedrooms)" },
+          { value: "apartment", label: "Apartment/Condo" },
         ],
       },
       {
-        id: "electricity_bill",
-        question: "What's your monthly electricity bill? (USD)",
+        id: "house_size",
+        question: "How many people, including yourself, live in your home?",
         type: "slider",
         min: 0,
-        max: 500,
-        unit: "$",
+        max: 20,
+        unit: "people",
+      },
+      {
+        id: "electricity_bill",
+        question: "What's your monthly electricity bill? (PHP)",
+        type: "radio",
+        options: [
+          { value: "more_expensive_bill", label: "Above ₱25,000 / month" },
+          { value: "expensive_bill", label: "₱12,001 – ₱25,000 / month" },
+          { value: "less_expensive_bill", label: "₱7,501 – ₱12,000 / month" },
+          { value: "cheap_bill", label: "Below ₱7,500 / month" },
+        ],
       },
       {
         id: "renewable_energy",
         question: "Do you use renewable energy sources?",
         type: "radio",
         options: [
-          { value: "none", label: "No renewable energy", factor: 1.0 },
-          { value: "partial", label: "Partially renewable", factor: 0.6 },
-          { value: "mostly", label: "Mostly renewable", factor: 0.3 },
-          { value: "fully", label: "100% renewable", factor: 0.1 },
+          { value: "fully", label: "Yes" },
+          { value: "none", label: "No" },
         ],
       },
     ],
@@ -88,35 +97,15 @@ const questions = [
     questions: [
       {
         id: "diet_type",
-        question: "Which best describes your diet?",
+        question: "Which best describes your food diet?",
         type: "radio",
         options: [
-          { value: "high_meat", label: "High meat consumption", factor: 2.5 },
-          { value: "medium_meat", label: "Moderate meat consumption", factor: 1.8 },
-          { value: "low_meat", label: "Low meat consumption", factor: 1.2 },
-          { value: "vegetarian", label: "Vegetarian", factor: 0.8 },
-          { value: "vegan", label: "Vegan", factor: 0.5 },
+          { value: "high_meat", label: "High meat intake (more than 3 times a week)" },
+          { value: "medium_meat", label: "Moderate meat intake (2–3 times a week)" },
+          { value: "low_meat", label: "Low meat intake (about once a week)" },
+          { value: "pescetarian", label: "Pescetarian (fish but no meat)" },
+          { value: "vegetarian", label: "Vegetarian or Vegan (no meat or fish)" },
         ],
-      },
-      {
-        id: "local_food",
-        question: "How often do you buy local/organic food?",
-        type: "radio",
-        options: [
-          { value: "never", label: "Never", factor: 1.0 },
-          { value: "rarely", label: "Rarely", factor: 0.9 },
-          { value: "sometimes", label: "Sometimes", factor: 0.7 },
-          { value: "often", label: "Often", factor: 0.5 },
-          { value: "always", label: "Always", factor: 0.3 },
-        ],
-      },
-      {
-        id: "food_waste",
-        question: "How much food do you typically waste? (%)",
-        type: "slider",
-        min: 0,
-        max: 50,
-        unit: "%",
       },
     ],
   },
@@ -147,6 +136,15 @@ export default function PreAssessment() {
 
   const canProceed = () => {
     const questionId = getCurrentQuestion().id;
+    const question = getCurrentQuestion();
+    
+    // Basic UI validation - only check if input is provided
+    // Server-side validation will handle detailed validation
+    if (question.type === "checkbox") {
+      const currentAnswers = answers[questionId];
+      return currentAnswers && Array.isArray(currentAnswers) && currentAnswers.length > 0;
+    }
+    
     return answers[questionId] !== undefined && answers[questionId] !== null;
   };
 
@@ -173,59 +171,122 @@ export default function PreAssessment() {
     }
   };
 
-  const calculateFootprint = () => {
-    // Simple calculation based on answers
-    let totalEmissions = 0;
+const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
+  // This function maps the frontend's answer format to the exact format expected by the backend API.
+  return {
+    // ✅ FIXED: Send a single primary mode, not an array.
+    Q1_primaryMode: (() => {
+      const mapping: Record<string, string> = {
+        car_alone: "Personal Car",
+        motorcycle: "Motorcycle",
+        public_transport: "Public Transport", 
+        bike_walk: "Bicycle/E-bike", // Matches backend enum
+        remote: "Work from Home"
+      };
+      return mapping[frontendAnswers.commute_method] || "Personal Car";
+    })(),
 
-    // Transportation
-    const commuteMethod = answers.commute_method || "car_alone";
-    const commuteDistance = answers.commute_distance || 20;
-    const flights = answers.flights_year || 2;
-    
-    const methodFactor = questions[0].questions[0].options?.find(opt => opt.value === commuteMethod)?.factor || 2.3;
-    totalEmissions += (methodFactor * commuteDistance * 22) / 1000; // Monthly emissions
-    totalEmissions += flights * 0.5; // Flight emissions
+    Q2_kmPerDay: frontendAnswers.commute_distance || 0,
+    Q3_flightsPerYear: frontendAnswers.flights_year || 0,
 
-    // Energy
-    const homeType = answers.home_type || "apartment";
-    const electricityBill = answers.electricity_bill || 100;
-    const renewable = answers.renewable_energy || "none";
+    Q4_homeType: (() => {
+      const mapping: Record<string, string> = {
+        house_large: "Large House",
+        house_small: "Small House",
+        apartment: "Apartment" // Matches backend enum
+      };
+      return mapping[frontendAnswers.home_type] || "Apartment";
+    })(),
 
-    const homeFactor = questions[1].questions[0].options?.find(opt => opt.value === homeType)?.factor || 1.0;
-    const renewableFactor = questions[1].questions[2].options?.find(opt => opt.value === renewable)?.factor || 1.0;
-    totalEmissions += (electricityBill * 0.005 * homeFactor * renewableFactor);
+    Q5_residents: frontendAnswers.house_size || 1,
 
-    // Food
-    const dietType = answers.diet_type || "medium_meat";
-    const localFood = answers.local_food || "sometimes";
-    const foodWaste = answers.food_waste || 20;
+    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum'
+    Q6_billRange: (() => {
+      const mapping: Record<string, string> = {
+        cheap_bill: "Below ₱7,500 / month", // Must match backend enum exactly
+        less_expensive_bill: "₱7,501 – ₱12,000 / month",
+        expensive_bill: "₱12,001 – ₱25,000 / month",
+        more_expensive_bill: "Above ₱25,000 / month"
+      };
+      return mapping[frontendAnswers.electricity_bill] || "Below ₱7,500 / month";
+    })(),
 
-    const dietFactor = questions[2].questions[0].options?.find(opt => opt.value === dietType)?.factor || 1.8;
-    const localFactor = questions[2].questions[1].options?.find(opt => opt.value === localFood)?.factor || 0.7;
-    totalEmissions += (dietFactor * localFactor * (1 + foodWaste / 100));
+    Q7_hasRenewables: frontendAnswers.renewable_energy === "fully",
 
-    return Math.round(totalEmissions * 100) / 100;
+    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum' and CO2_FACTORS key
+    Q8_dietType: (() => {
+      const mapping: Record<string, string> = {
+        high_meat: "High meat intake (more than 3 times a week)",
+        medium_meat: "Moderate meat intake (2–3 times a week)",
+        low_meat: "Low meat intake (about once a week)",
+        pescetarian: "Pescetarian (fish but no meat)", // Note: Spelling must match ('Pescetarian', not 'Pescatarian')
+        vegetarian: "Vegetarian or Vegan (no meat or fish)"
+      };
+      return mapping[frontendAnswers.diet_type] || "Moderate meat intake (2–3 times a week)";
+    })()
   };
+};
 
   const handleSubmit = async () => {
     setIsLoading(true);
     
-    const footprint = calculateFootprint();
-    
-    // Store assessment results
-    setTimeout(() => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast({
+          title: "Error",
+          description: "User not logged in. Please log in again.",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+
+      const responses = transformAnswersForBackend(answers);
+      
+      const response = await fetch("http://localhost:5000/api/preassessment/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          responses
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit assessment");
+      }
+
+      const annualFootprintKg = data.data.results.totalCO2;
+      // Convert to tonnes per month
+      const tonnesPerMonth = (annualFootprintKg / 1000) / 12; // First to tonnes per year, then to per month
+      const displayValue = tonnesPerMonth.toFixed(2); // Round to 2 decimal places
+      
+      // Store minimal data in localStorage for immediate use
       localStorage.setItem("needsPreAssessment", "false");
-      localStorage.setItem("initialFootprint", footprint.toString());
-      localStorage.setItem("assessmentAnswers", JSON.stringify(answers));
+      localStorage.setItem("initialFootprint", annualFootprintKg.toString());
       
       toast({
         title: "Assessment Complete!",
-        description: `Your estimated carbon footprint is ${footprint} tons CO₂ per month.`,
+        description: `Your estimated carbon footprint is ${displayValue} tons CO₂ per month.`,
       });
       
-      navigate("/dashboard");
+      navigate("/home");
+      
+    } catch (error) {
+      console.error("Error submitting assessment:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit assessment",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const totalQuestions = questions.reduce((total, section) => total + section.questions.length, 0);
@@ -300,6 +361,33 @@ export default function PreAssessment() {
                   </div>
                 ))}
               </RadioGroup>
+            )}
+
+            {question.type === "checkbox" && (
+              <div className="space-y-3">
+                {question.options?.map((option) => (
+                  <div key={option.value} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={option.value}
+                      checked={answers[question.id]?.includes?.(option.value) || false}
+                      onCheckedChange={(checked) => {
+                        const currentValues = answers[question.id] || [];
+                        if (checked) {
+                          handleAnswer([...currentValues, option.value]);
+                        } else {
+                          handleAnswer(currentValues.filter((v: string) => v !== option.value));
+                        }
+                      }}
+                    />
+                    <Label 
+                      htmlFor={option.value} 
+                      className="flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth"
+                    >
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             )}
 
             {question.type === "slider" && (

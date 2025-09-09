@@ -41,6 +41,9 @@ export default function Dashboard() {
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
+    localStorage.removeItem("needsPreAssessment");
+    localStorage.removeItem("initialFootprint");
+    localStorage.removeItem("assessmentAnswers");
     navigate("/");
   };
 
@@ -56,7 +59,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, {userName}! 🌱
+            {userName}'s Dashboard! 🌱
           </h1>
           <p className="text-muted-foreground">
             Here's your environmental impact dashboard for this month.

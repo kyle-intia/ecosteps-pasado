@@ -24,13 +24,21 @@ export default function Login() {
     // Mock authentication
     setTimeout(() => {
       if (formData.email && formData.password) {
+        // Ensure a mock userId exists (re-use if already created during register)
+        let userId = localStorage.getItem("userId");
+        if (!userId) {
+          userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+          localStorage.setItem("userId", userId);
+        }
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userEmail", formData.email);
         toast({
           title: "Welcome back!",
           description: "You've successfully logged in to EcoStep.",
         });
-        navigate("/dashboard");
+        navigate("/home");
       } else {
         toast({
           title: "Error",

@@ -14,11 +14,9 @@ const Index = () => {
     const loggedIn = localStorage.getItem("isLoggedIn") === "true";
     setIsLoggedIn(loggedIn);
     
+    // Redirect logged-in users to home page
     if (loggedIn) {
-      const needsPreAssessment = localStorage.getItem("needsPreAssessment") === "true";
-      if (needsPreAssessment) {
-        navigate("/pre-assessment");
-      }
+      navigate("/home");
     }
   }, [navigate]);
 
@@ -38,7 +36,7 @@ const Index = () => {
         <div className="absolute inset-0">
           <img
             src={heroImage}
-            alt="ecosteps Carbon Tracking"
+            alt="EcoStep Carbon Tracking"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-accent/60" />
@@ -53,7 +51,7 @@ const Index = () => {
               </h1>
               <p className="text-xl lg:text-2xl text-primary-foreground/90 max-w-3xl mx-auto">
                 Join thousands of eco-warriors making a positive impact on our planet. 
-                Monitor, reduce, and offset your carbon emissions with ecosteps.
+                Monitor, reduce, and offset your carbon emissions with EcoStep.
               </p>
             </div>
             
@@ -87,6 +85,7 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Features Section */}
       <section className="py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -144,7 +143,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <h2 className="text-4xl font-bold text-foreground">
-                Why Choose ecosteps?
+                Why Choose EcoStep?
               </h2>
               
               <div className="space-y-6">
@@ -164,7 +163,7 @@ const Index = () => {
               
               <Button variant="hero" size="lg" asChild>
                 <Link to="/register">
-                  Join ecosteps Today
+                  Join EcoStep Today
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
@@ -221,13 +220,13 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="p-2 rounded-lg">
-                <img src="/favicon.ico" alt="EcoSteps Logo" className="h-20 w-20" />
+              <div className="p-2 bg-gradient-primary rounded-lg">
+                <Leaf className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">EcoSteps</span>
+              <span className="text-xl font-bold text-foreground">EcoStep</span>
             </div>
             <p className="text-muted-foreground">
-              © 2024 ecosteps. Making the world greener, one step at a time.
+              © 2024 EcoStep. Making the world greener, one step at a time.
             </p>
           </div>
         </div>
@@ -237,3 +236,4 @@ const Index = () => {
 };
 
 export default Index;
+
