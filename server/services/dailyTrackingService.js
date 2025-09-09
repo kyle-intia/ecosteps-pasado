@@ -65,20 +65,36 @@ class DailyTrackingService {
    */
   static calculateTransport(transportData, flightType) {
     let transportTotal = 0;
-    
+
+    const safeTransport = transportData || {};
+    const modes = Array.isArray(safeTransport.modes) ? safeTransport.modes : [];
+    const distances = typeof safeTransport.distances === 'object' && safeTransport.distances !== null
+      ? safeTransport.distances
+      : {};
+
     // Calculate transport mode emissions
-    if (transportData.modes && transportData.modes.length > 0) {
-      transportData.modes.forEach(mode => {
-        const distance = transportData.distances[mode.id] || 0;
-        const factor = CO2_FACTORS_DAILY.transport[mode.id] || 0;
+    if (modes.length > 0) {
+      modes.forEach(mode => {
+        const modeId = typeof mode === 'string' ? mode : mode.id;
+        const distanceFromMap = Number(distances[modeId]) || 0;
+        const distanceFromMode = typeof mode === 'object' && mode && typeof mode.distance !== 'undefined'
+          ? Number(mode.distance) || 0
+          : 0;
+        const distance = Math.max(distanceFromMap, distanceFromMode);
+        const factor = CO2_FACTORS_DAILY.transport[modeId] || 0;
         transportTotal += distance * factor;
       });
     }
-    
+
     // Add flight emissions
-    const flightEmission = CO2_FACTORS_DAILY.flights[flightType] || 0;
+    const normalizedFlight = (() => {
+      const v = (flightType || '').replace('-', '_');
+      if (v === 'none') return 'no_flight';
+      return v;
+    })();
+    const flightEmission = CO2_FACTORS_DAILY.flights[normalizedFlight] || 0;
     transportTotal += flightEmission;
-    
+
     return transportTotal;
   }
   
@@ -90,23 +106,20 @@ class DailyTrackingService {
    * @returns {number} Home energy CO2 in kg per day
    */
   static calculateHomeEnergy(homeType, occupants, appliances) {
-    // Get annual household footprint
-    const annualHouseholdFootprint = CO2_FACTORS_DAILY.homeEnergy[homeType] || 0;
-    
-    // Calculate daily per-person base rate
-    const dailyPerPersonBase = annualHouseholdFootprint / 365 / occupants;
-    
-    // Calculate appliance percentage increases
+    const normalizedHomeType = (homeType || '').replace('-', '_');
+    const annualHouseholdFootprint = CO2_FACTORS_DAILY.homeEnergy[normalizedHomeType] || 0;
+
+    const numOccupants = Math.max(1, Number(occupants) || 1);
+    const dailyPerPersonBase = annualHouseholdFootprint / 365 / numOccupants;
+
     let applianceIncrease = 0;
-    if (appliances && appliances.length > 0) {
-      appliances.forEach(appliance => {
-        applianceIncrease += CO2_FACTORS_DAILY.appliances[appliance] || 0;
-      });
-    }
-    
-    // Apply percentage increase
+    const list = Array.isArray(appliances) ? appliances : [];
+    list.forEach(appliance => {
+      const key = (appliance || '').replace('-', '_');
+      applianceIncrease += CO2_FACTORS_DAILY.appliances[key] || 0;
+    });
+
     const dailyHomeEnergy = dailyPerPersonBase * (1 + (applianceIncrease / 100));
-    
     return dailyHomeEnergy;
   }
   
@@ -118,9 +131,15 @@ class DailyTrackingService {
    * @returns {number} Food CO2 in kg
    */
   static calculateFood(breakfast, lunch, dinner) {
-    const breakfastEmission = CO2_FACTORS_DAILY.food[`breakfast_${breakfast}`] || 0;
-    const lunchEmission = CO2_FACTORS_DAILY.food[`lunch_${lunch}`] || 0;
-    const dinnerEmission = CO2_FACTORS_DAILY.food[`dinner_${dinner}`] || 0;
+    const normalize = (value) => {
+      const v = (value || '').replace('-', '_');
+      if (v === 'none') return 'skipped';
+      if (v === 'plant_based') return 'plant';
+      return v;
+    };
+    const breakfastEmission = CO2_FACTORS_DAILY.food[`breakfast_${normalize(breakfast)}`] || 0;
+    const lunchEmission = CO2_FACTORS_DAILY.food[`lunch_${normalize(lunch)}`] || 0;
+    const dinnerEmission = CO2_FACTORS_DAILY.food[`dinner_${normalize(dinner)}`] || 0;
     
     return breakfastEmission + lunchEmission + dinnerEmission;
   }
@@ -171,35 +190,49 @@ class DailyTrackingService {
    */
   static validateDailyResponses(responses) {
     const errors = [];
-    
+    const safe = responses || {};
+
     // Validate transport data structure
-    if (responses.transport && responses.transport.modes) {
-      responses.transport.modes.forEach(mode => {
-        if (!Object.keys(CO2_FACTORS_DAILY.transport).includes(mode.id)) {
-          errors.push(`Invalid transport mode: ${mode.id}`);
+    if (safe.transport && Array.isArray(safe.transport.modes)) {
+      safe.transport.modes.forEach(mode => {
+        const modeId = typeof mode === 'string' ? mode : mode.id;
+        if (!Object.prototype.hasOwnProperty.call(CO2_FACTORS_DAILY.transport, modeId)) {
+          errors.push(`Invalid transport mode: ${modeId}`);
         }
       });
     }
     
-    // Validate flight type
-    if (responses.flightType && !Object.keys(CO2_FACTORS_DAILY.flights).includes(responses.flightType)) {
-      errors.push('Invalid flight type');
+    // Validate flight type (accept variants: long-haul/short-haul/none)
+    if (safe.flightType) {
+      const normalizedFlight = (() => {
+        const v = String(safe.flightType).replace('-', '_');
+        if (v === 'none') return 'no_flight';
+        return v;
+      })();
+      if (!Object.prototype.hasOwnProperty.call(CO2_FACTORS_DAILY.flights, normalizedFlight)) {
+        errors.push('Invalid flight type');
+      }
     }
     
     // Validate home type
-    if (responses.homeType && !Object.keys(CO2_FACTORS_DAILY.homeEnergy).includes(responses.homeType)) {
-      errors.push('Invalid home type');
+    if (safe.homeType) {
+      const normalizedHomeType = safe.homeType.replace('-', '_');
+      if (!Object.prototype.hasOwnProperty.call(CO2_FACTORS_DAILY.homeEnergy, normalizedHomeType)) {
+        errors.push('Invalid home type');
+      }
     }
     
     // Validate occupants
-    if (responses.occupants && (typeof responses.occupants !== 'number' || responses.occupants < 1)) {
+    if (safe.occupants && (isNaN(Number(safe.occupants)) || Number(safe.occupants) < 1)) {
       errors.push('Occupants must be a number greater than 0');
     }
     
     // Validate appliances
-    if (responses.appliances) {
-      responses.appliances.forEach(appliance => {
-        if (!Object.keys(CO2_FACTORS_DAILY.appliances).includes(appliance)) {
+    if (safe.appliances && Array.isArray(safe.appliances)) {
+      safe.appliances.forEach(appliance => {
+        let key = (appliance || '').replace('-', '_');
+        if (key === 'aircon') key = 'ac_heating';
+        if (!Object.prototype.hasOwnProperty.call(CO2_FACTORS_DAILY.appliances, key)) {
           errors.push(`Invalid appliance: ${appliance}`);
         }
       });
@@ -208,8 +241,12 @@ class DailyTrackingService {
     // Validate food choices
     const foodTypes = ['meat', 'fish', 'dairy', 'mixed', 'plant', 'skipped'];
     ['breakfast', 'lunch', 'dinner'].forEach(meal => {
-      if (responses[meal] && !foodTypes.includes(responses[meal])) {
-        errors.push(`Invalid ${meal} type: ${responses[meal]}`);
+      if (safe[meal]) {
+        const normalized = safe[meal].replace('-', '_');
+        const mapped = normalized === 'none' ? 'skipped' : (normalized === 'plant_based' ? 'plant' : normalized);
+        if (!foodTypes.includes(mapped)) {
+          errors.push(`Invalid ${meal} type: ${safe[meal]}`);
+        }
       }
     });
     

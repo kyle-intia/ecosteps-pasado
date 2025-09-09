@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
 import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import apiClient from "@/lib/apiClient";
 
 const TrackCarbon = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -48,6 +49,10 @@ const TrackCarbon = () => {
     laundry: false,
     none: false,
   });
+  const [isLoadingToday, setIsLoadingToday] = useState(false);
+  const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -60,6 +65,39 @@ const TrackCarbon = () => {
     }
     setIsLoggedIn(true);
   }, [navigate]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    const fetchToday = async () => {
+      try {
+        setIsLoadingToday(true);
+        const res = await apiClient.getTodaysTracking(userId);
+        setTodayEntry(res?.data || null);
+      } catch (_e) {
+        setTodayEntry(null);
+      } finally {
+        setIsLoadingToday(false);
+      }
+    };
+
+    const fetchHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const res = await apiClient.getDailyTrackingHistory(userId, 7, 0);
+        setHistoryEntries(res?.data?.entries || []);
+      } catch (_e) {
+        setHistoryEntries([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchToday();
+    fetchHistory();
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -146,24 +184,75 @@ const TrackCarbon = () => {
     }
   };
 
-  const calculateFootprint = () => {
-    // TODO: Implement calculation with new CO₂ factors
-    // This will be updated after implementing the new form structure
-    const annualFootprintKg = 0.0; // This should be calculated based on user inputs
-    // Convert to tonnes per day
-    const tonnesPerDay = (annualFootprintKg / 1000) / 365; // First to tonnes per year, then to per day
-    const displayValue = tonnesPerDay.toFixed(2); // Round to 2 decimal places
-    
-    // Store results
-    localStorage.setItem("currentFootprint", annualFootprintKg.toString());
-    localStorage.setItem("lastTrackingDate", new Date().toISOString());
+  const calculateFootprint = async () => {
+    try {
+      // Map UI selections to backend enums
+      const modes: Array<{ id: string; distance?: number }> = [];
+      const distances: Record<string, number> = {};
+
+      const addMode = (key: string, backendId: string, distanceStr: string) => {
+        const enabled = (checkedTransportModes as any)[key];
+        if (!enabled) return;
+        const km = Number(distanceStr || 0) || 0;
+        modes.push({ id: backendId, distance: km });
+        distances[backendId] = km;
+      };
+
+      if (checkedTransportModes.noTransport) {
+        modes.push({ id: "no_travel", distance: 0 });
+      } else {
+        addMode("personalCar", "car", formData.personalCarDistance);
+        addMode("publicTransport", "public_transport", formData.publicTransportDistance);
+        addMode("motorcycle", "motorcycle", formData.motorcycleDistance);
+        addMode("bicycle", "bicycle", formData.bicycleDistance);
+        addMode("walking", "walking", formData.walkingDistance);
+      }
+
+      const flightsToday = formData.flightsToday || "none"; // long-haul | short-haul | none
+
+      const homeType = formData.homeType; // large-house | small-house | apartment
+      const occupants = Number(formData.houseSharing || 1) || 1;
+
+      const appliances: string[] = [];
+      if (checkedAppliances.none) {
+        appliances.push("none");
+      } else {
+        if (checkedAppliances.aircon) appliances.push("aircon");
+        if (checkedAppliances.laundry) appliances.push("laundry");
+      }
+
+      const mapMeal = (value: string) => value || "none"; // backend normalizes 'none'->'skipped'
+      const food = {
+        breakfast: mapMeal(formData.breakfastType),
+        lunch: mapMeal(formData.lunchType),
+        dinner: mapMeal(formData.dinnerType),
+      };
+
+      // Build payload expected by backend
+      const userId = localStorage.getItem("userId") || "000000000000000000000000";
+      const payload = {
+        userId,
+        transport: { modes, distances },
+        flightsToday,
+        homeEnergy: { homeType, occupants, appliances },
+        food,
+      };
+
+      const result = await apiClient.submitDailyTracking(payload);
     
     toast({
-      title: "Carbon Footprint Calculated!",
-      description: `Your daily carbon footprint is ${displayValue} tons CO₂`,
+        title: "Daily tracking saved",
+        description: `Total: ${result?.data?.calculatedFootprint?.total ?? "-"} kg CO₂e`,
     });
     
     navigate("/dashboard");
+    } catch (error: any) {
+      const message = error?.message || "Failed to submit tracking";
+      toast({
+        title: "Submission failed",
+        description: message,
+      });
+    }
   };
 
   const stepTitles = [
@@ -411,13 +500,15 @@ const TrackCarbon = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="houseSharing">Q4. With how many people did share your house with today?</Label>
+                <Label htmlFor="houseSharing">Q4. With how many people did you share your house today? (maximum of 20 people)</Label>
                 <Input
                   id="houseSharing"
                   type="number"
                   value={formData.houseSharing}
                   onChange={(e) => handleInputChange("houseSharing", e.target.value)}
                   placeholder="Enter number of people (including yourself)"
+                  min={1}
+                  max={20}
                 />
               </div>
 
@@ -559,6 +650,54 @@ const TrackCarbon = () => {
             </Button>
           )}
         </div>
+      {/* Today's Entry Summary */}
+      <div className="mt-10 grid grid-cols-1 gap-6">
+        <Card className="shadow-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-6 w-6 text-primary" />
+              Today's Entry
+            </CardTitle>
+            <CardDescription>
+              {isLoadingToday ? "Loading today's entry..." : todayEntry ? `Date: ${todayEntry.date}` : 'No entry for today'}
+            </CardDescription>
+          </CardHeader>
+          {todayEntry && (
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between"><span>Transport</span><span>{todayEntry.calculatedFootprint?.transport ?? '-'} kg</span></div>
+              <div className="flex justify-between"><span>Home Energy</span><span>{todayEntry.calculatedFootprint?.homeEnergy ?? '-'} kg</span></div>
+              <div className="flex justify-between"><span>Food</span><span>{todayEntry.calculatedFootprint?.food ?? '-'} kg</span></div>
+              <div className="flex justify-between font-medium"><span>Total</span><span>{todayEntry.calculatedFootprint?.total ?? '-'} kg</span></div>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Recent History */}
+        <Card className="shadow-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plane className="h-6 w-6 text-muted-foreground" />
+              Recent History (7 days)
+            </CardTitle>
+            <CardDescription>
+              {isLoadingHistory ? 'Loading history...' : `Entries: ${historyEntries.length}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              {historyEntries.length === 0 && !isLoadingHistory && (
+                <div className="text-muted-foreground">No recent entries</div>
+              )}
+              {historyEntries.map((e) => (
+                <div key={e.id} className="flex justify-between">
+                  <span>{e.date}{e.isToday ? ' (Today)' : ''}</span>
+                  <span>{(e.footprint && e.footprint.total) ?? e.footprint ?? '-'} kg</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       </main>
     </div>
   );

@@ -37,6 +37,14 @@ export default function Register() {
     // Mock registration
     setTimeout(() => {
       if (formData.fullName && formData.email && formData.password) {
+        // Ensure a mock userId exists (24-char hex to satisfy ObjectId casting)
+        let userId = localStorage.getItem("userId");
+        if (!userId) {
+          userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+          localStorage.setItem("userId", userId);
+        }
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userEmail", formData.email);
         localStorage.setItem("userName", formData.fullName);
