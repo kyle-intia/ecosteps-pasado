@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft } from "lucide-react";
+import useSessions from "../hooks/useSessions";
 
 const questions = [
   {
@@ -118,13 +119,18 @@ export default function PreAssessment() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { sessions, isPending, isError } = useSessions();
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      navigate("/");
+    if (!isPending && sessions.length > 0) {
+      localStorage.setItem("isLoggedIn", "true");
     }
-  }, [navigate]);
+
+    if (!isPending && (isError || sessions.length === 0)) {
+      localStorage.removeItem("isLoggedIn");
+      navigate("/", { replace: true });
+    }
+  }, [isPending, isError, sessions, navigate]);
 
   const getCurrentSection = () => questions[currentSection];
   const getCurrentQuestion = () => getCurrentSection().questions[currentQuestion];
@@ -275,7 +281,9 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
         description: `Your estimated carbon footprint is ${displayValue} tons CO₂ per month.`,
       });
       
-      navigate("/home");
+
+      navigate("/userprofile");
+
       
     } catch (error) {
       console.error("Error submitting assessment:", error);

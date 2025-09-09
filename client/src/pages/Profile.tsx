@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import React, { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -22,14 +23,22 @@ import {
   Trash2,
   MapPin,
   Globe,
+  Cake,
   Trophy,
   Footprints,
   Recycle,
   Car,
   GripVertical
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
+import { useQuery } from "@tanstack/react-query";
+import { getProfile } from "../lib/api";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "../config/queryClient";
+
 
 // Mock user data
 const currentUser = {
@@ -99,6 +108,7 @@ const currentUser = {
   }
 };
 
+
 // Mock posts data
 const mockPosts = [
   {
@@ -134,11 +144,48 @@ const mockPosts = [
   }
 ];
 
+
+
+type ProfileType = {
+  profilePic: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  birthday: string;
+  address: string;
+  bio: string;
+  createdAt: string;
+};
+
 const Profile = () => {
+
   const [posts] = useState(mockPosts);
   const [displayedAchievements, setDisplayedAchievements] = useState(currentUser.achievements.displayed);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  
+  useEffect(() => {
+  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!loggedIn) {
+      navigate("/");
+      return;
+    }
+    setIsLoggedIn(true);
+  }, [navigate]);
+
+
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
+
 
   const handleEditPost = (postId: string) => {
     toast({
@@ -155,6 +202,53 @@ const Profile = () => {
     });
   };
 
+// Di pa sure
+  const { data: profile, isLoading, error } = useQuery<ProfileType>({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+  });
+
+  if (isLoading) return <p>Loading...</p>;
+
+  if (error) {
+    toast({
+      title: "Failed to load profile",
+      description: "Please try again later.",
+      variant: "destructive",
+    });
+    return <p>Error loading profile.</p>;
+  }
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const month = d.toLocaleString('en-US', { month: 'short' }); 
+    const day = String(d.getUTCDate()).padStart(2, '0');      
+    const year = d.getUTCFullYear();                            
+    return `${month}-${day}-${year}`;
+  };
+
+  const birthday = formatDate(profile.birthday);
+  const joinedDate = formatDate(profile.createdAt);
+  
+  const currentUser = {
+  username: profile.username,
+  fullName: `${profile.firstName} ${profile.lastName}`,
+  bio: profile.bio,
+  location: profile.address,
+  birthday: birthday,
+  avatarUrl: profile.profilePic,
+  joinedDate: joinedDate,
+  stats: {
+    posts: 24,
+    reposts: 8,
+    followers: 156,
+    following: 89,
+    carbonSaved: "2.3 tons"
+  }
+};
+
+  if (!profile) return <p>No profile data found.</p>;
+ // Di pasure
   const handleAchievementDragStart = (e: React.DragEvent, achievementId: string) => {
     e.dataTransfer.setData("text/plain", achievementId);
   };
@@ -182,10 +276,11 @@ const Profile = () => {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
+// Di pa sure
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Profile Header */}
@@ -231,10 +326,10 @@ const Profile = () => {
                     {currentUser.location}
                   </div>
                   <div className="flex items-center">
-                    <Globe className="h-4 w-4 mr-1" />
-                    <a href={currentUser.website} className="text-primary hover:underline">
-                      Website
-                    </a>
+                    <Cake className="h-4 w-4 mr-1" />
+                  
+                     {currentUser.birthday}
+                   
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />

@@ -9,7 +9,12 @@ import { Navbar } from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
 import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { logout } from "@/lib/api";
+import queryClient from "../config/queryClient";
+import useSessions from "../hooks/useSessions";
 import apiClient from "@/lib/apiClient";
+
 
 const TrackCarbon = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -56,16 +61,31 @@ const TrackCarbon = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
-
+  const { sessions, isPending, isError } = useSessions();
+  
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!loggedIn) {
-      navigate("/");
-      return;
+    if (!isPending && sessions.length > 0) {
+        const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+        setIsLoggedIn(loggedIn);
     }
-    setIsLoggedIn(true);
-  }, [navigate]);
 
+// Di pa sure
+    if (!isPending && (isError || sessions.length === 0)) {
+      localStorage.removeItem("isLoggedIn");
+      navigate("/", { replace: true });
+    }
+  }, [isPending, isError, sessions, navigate]);
+
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear(); 
+      navigate("/login", { replace: true }); 
+    },
+  });
+
+// Di pa sure
   useEffect(() => {
     if (!isLoggedIn) return;
     const userId = localStorage.getItem("userId");
@@ -103,6 +123,7 @@ const TrackCarbon = () => {
     localStorage.clear();
     navigate("/");
   };
+// Di pa sure
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -271,7 +292,7 @@ const TrackCarbon = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 text-center">
