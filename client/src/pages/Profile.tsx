@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,15 +23,91 @@ import {
   Trash2,
   MapPin,
   Globe,
-  Cake
+  Cake,
+  Trophy,
+  Footprints,
+  Recycle,
+  Car,
+  GripVertical
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
 import { useQuery } from "@tanstack/react-query";
 import { getProfile } from "../lib/api";
 import { useMutation } from "@tanstack/react-query";
 import { logout } from "@/lib/api";
 import queryClient from "../config/queryClient";
+
+
+// Mock user data
+const currentUser = {
+  id: "current-user",
+  username: "yourUsername",
+  fullName: "Your Name",
+  email: "your.email@example.com",
+  bio: "Passionate about sustainable living and making a positive environmental impact. 🌱",
+  location: "San Francisco, CA",
+  website: "https://www.facebook.com/westley.intia/",
+  avatarUrl: null,
+  joinedDate: "March 2024",
+  stats: {
+    posts: 24,
+    reposts: 8,
+    followers: 156,
+    following: 89,
+    carbonSaved: "2.3 tons"
+  },
+  achievements: {
+    unlocked: [
+      {
+        id: "walk_the_talk",
+        name: "Walk the Talk",
+        description: "Walk 50 km in a single day",
+        icon: Footprints,
+        dateEarned: "2025-08-20"
+      },
+      {
+        id: "green_commuter",
+        name: "Green Commuter", 
+        description: "Use public transport for 30 consecutive days",
+        icon: Car,
+        dateEarned: "2025-08-15"
+      },
+      {
+        id: "recycling_champion",
+        name: "Recycling Champion",
+        description: "Recycle 100 kg of materials in a month",
+        icon: Recycle,
+        dateEarned: "2025-08-10"
+      }
+    ],
+    displayed: [
+      {
+        id: "walk_the_talk",
+        name: "Walk the Talk",
+        description: "Walk 50 km in a single day",
+        icon: Footprints,
+        dateEarned: "2025-08-20"
+      },
+      {
+        id: "green_commuter",
+        name: "Green Commuter",
+        description: "Use public transport for 30 consecutive days", 
+        icon: Car,
+        dateEarned: "2025-08-15"
+      },
+      {
+        id: "recycling_champion",
+        name: "Recycling Champion",
+        description: "Recycle 100 kg of materials in a month",
+        icon: Recycle,
+        dateEarned: "2025-08-10"
+      }
+    ]
+  }
+};
+
 
 // Mock posts data
 const mockPosts = [
@@ -83,6 +160,8 @@ type ProfileType = {
 const Profile = () => {
 
   const [posts] = useState(mockPosts);
+  const [displayedAchievements, setDisplayedAchievements] = useState(currentUser.achievements.displayed);
+  const [isEditingAchievements, setIsEditingAchievements] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -123,6 +202,7 @@ const Profile = () => {
     });
   };
 
+// Di pa sure
   const { data: profile, isLoading, error } = useQuery<ProfileType>({
     queryKey: ["profile"],
     queryFn: getProfile,
@@ -168,6 +248,35 @@ const Profile = () => {
 };
 
   if (!profile) return <p>No profile data found.</p>;
+ // Di pasure
+  const handleAchievementDragStart = (e: React.DragEvent, achievementId: string) => {
+    e.dataTransfer.setData("text/plain", achievementId);
+  };
+
+  const handleAchievementDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData("text/plain");
+    const draggedAchievement = currentUser.achievements.unlocked.find(a => a.id === draggedId);
+    
+    if (draggedAchievement && !displayedAchievements.find(a => a.id === draggedId)) {
+      const newDisplayed = [...displayedAchievements];
+      if (targetIndex < newDisplayed.length) {
+        newDisplayed[targetIndex] = draggedAchievement;
+      } else {
+        newDisplayed.push(draggedAchievement);
+      }
+      setDisplayedAchievements(newDisplayed.slice(0, 3));
+    }
+  };
+
+  const handleAchievementRemove = (achievementId: string) => {
+    setDisplayedAchievements(prev => prev.filter(a => a.id !== achievementId));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+// Di pa sure
 
   return (
     <div className="min-h-screen bg-background">
@@ -253,6 +362,124 @@ const Profile = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Achievements Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                Featured Achievements
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/achievements">View All</Link>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsEditingAchievements(!isEditingAchievements)}
+                >
+                  {isEditingAchievements ? "Done" : "Edit"}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isEditingAchievements ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Drag achievements from your unlocked list to display them (max 3):
+                </p>
+                
+                {/* Display Slots */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {[0, 1, 2].map((index) => (
+                    <div
+                      key={index}
+                      className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 min-h-[120px] flex items-center justify-center"
+                      onDrop={(e) => handleAchievementDrop(e, index)}
+                      onDragOver={handleDragOver}
+                    >
+                      {displayedAchievements[index] ? (
+                        <div className="text-center w-full">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              {React.createElement(displayedAchievements[index].icon, { 
+                                className: "h-6 w-6 text-primary" 
+                              })}
+                              <span className="font-medium text-sm">{displayedAchievements[index].name}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAchievementRemove(displayedAchievements[index].id)}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{displayedAchievements[index].description}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center">
+                          Drop achievement here
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Available Achievements */}
+                <div>
+                  <h4 className="font-medium mb-3">Your Unlocked Achievements:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {currentUser.achievements.unlocked.map((achievement) => (
+                      <div
+                        key={achievement.id}
+                        draggable
+                        onDragStart={(e) => handleAchievementDragStart(e, achievement.id)}
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-move transition-smooth hover:shadow-md ${
+                          displayedAchievements.find(a => a.id === achievement.id) 
+                            ? 'opacity-50 bg-muted' 
+                            : 'bg-background hover:bg-accent'
+                        }`}
+                      >
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        {React.createElement(achievement.icon, { 
+                          className: "h-5 w-5 text-primary" 
+                        })}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{achievement.name}</p>
+                          <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                        </div>
+                        {displayedAchievements.find(a => a.id === achievement.id) && (
+                          <Badge variant="secondary" className="text-xs">Displayed</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {displayedAchievements.map((achievement) => (
+                  <div key={achievement.id} className="flex items-center gap-3 p-4 bg-accent/50 rounded-lg">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      {React.createElement(achievement.icon, { 
+                        className: "h-6 w-6 text-primary" 
+                      })}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{achievement.name}</h4>
+                      <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                      <p className="text-xs text-success font-medium">Earned {achievement.dateEarned}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

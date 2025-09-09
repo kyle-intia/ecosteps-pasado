@@ -1,15 +1,16 @@
 {
-  "name": "server",
+  "name": "ecostep-backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && cp ./package.json ./dist",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["eco", "carbon", "assessment", "survey"],
+  "author": "EcoSteps Team",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -21,7 +22,9 @@
     "mongoose": "^8.18.0",
     "multer": "^2.0.2",
     "resend": "^6.0.1",
-    "zod": "^4.0.17"
+    "zod": "^4.0.17",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.10.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -31,6 +34,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "nodemon": "^3.0.1"
+
   }
 }
