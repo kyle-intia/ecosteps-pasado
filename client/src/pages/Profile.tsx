@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,75 +39,6 @@ import { logout } from "@/lib/api";
 import queryClient from "../config/queryClient";
 
 
-// Mock user data
-const currentUser = {
-  id: "current-user",
-  username: "yourUsername",
-  fullName: "Your Name",
-  email: "your.email@example.com",
-  bio: "Passionate about sustainable living and making a positive environmental impact. 🌱",
-  location: "San Francisco, CA",
-  website: "https://www.facebook.com/westley.intia/",
-  avatarUrl: null,
-  joinedDate: "March 2024",
-  stats: {
-    posts: 24,
-    reposts: 8,
-    followers: 156,
-    following: 89,
-    carbonSaved: "2.3 tons"
-  },
-  achievements: {
-    unlocked: [
-      {
-        id: "walk_the_talk",
-        name: "Walk the Talk",
-        description: "Walk 50 km in a single day",
-        icon: Footprints,
-        dateEarned: "2025-08-20"
-      },
-      {
-        id: "green_commuter",
-        name: "Green Commuter", 
-        description: "Use public transport for 30 consecutive days",
-        icon: Car,
-        dateEarned: "2025-08-15"
-      },
-      {
-        id: "recycling_champion",
-        name: "Recycling Champion",
-        description: "Recycle 100 kg of materials in a month",
-        icon: Recycle,
-        dateEarned: "2025-08-10"
-      }
-    ],
-    displayed: [
-      {
-        id: "walk_the_talk",
-        name: "Walk the Talk",
-        description: "Walk 50 km in a single day",
-        icon: Footprints,
-        dateEarned: "2025-08-20"
-      },
-      {
-        id: "green_commuter",
-        name: "Green Commuter",
-        description: "Use public transport for 30 consecutive days", 
-        icon: Car,
-        dateEarned: "2025-08-15"
-      },
-      {
-        id: "recycling_champion",
-        name: "Recycling Champion",
-        description: "Recycle 100 kg of materials in a month",
-        icon: Recycle,
-        dateEarned: "2025-08-10"
-      }
-    ]
-  }
-};
-
-
 // Mock posts data
 const mockPosts = [
   {
@@ -143,8 +74,6 @@ const mockPosts = [
   }
 ];
 
-
-
 type ProfileType = {
   profilePic: string;
   firstName: string;
@@ -159,15 +88,15 @@ type ProfileType = {
 const Profile = () => {
 
   const [posts] = useState(mockPosts);
-  const [displayedAchievements, setDisplayedAchievements] = useState(currentUser.achievements.displayed);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
+  const [displayedAchievements, setDisplayedAchievements] = useState([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  
+  // Redirect if not logged in
   useEffect(() => {
-  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (!loggedIn) {
       navigate("/");
       return;
@@ -175,17 +104,59 @@ const Profile = () => {
     setIsLoggedIn(true);
   }, [navigate]);
 
-
+  // Logout mutation
   const { mutate: signOut } = useMutation({
     mutationFn: logout,
     onSettled: () => {
       localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
+      queryClient.clear();
+      navigate("/login", { replace: true });
     },
   });
 
+  const { data: profile, isLoading, error } = useQuery<ProfileType>({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+  });
 
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const month = d.toLocaleString("en-US", { month: "short" });
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const year = d.getUTCFullYear();
+    return `${month}-${day}-${year}`;
+  };
+
+  // When profile is loaded, set displayed achievements
+  useEffect(() => {
+    if (profile) {
+      setDisplayedAchievements([
+        {
+          id: "walk_the_talk",
+          name: "Walk the Talk",
+          description: "Walk 50 km in a single day",
+          icon: Footprints,
+          dateEarned: "2025-08-20",
+        },
+        {
+          id: "green_commuter",
+          name: "Green Commuter",
+          description: "Use public transport for 30 consecutive days",
+          icon: Car,
+          dateEarned: "2025-08-15",
+        },
+        {
+          id: "recycling_champion",
+          name: "Recycling Champion",
+          description: "Recycle 100 kg of materials in a month",
+          icon: Recycle,
+          dateEarned: "2025-08-10",
+        },
+      ]);
+    }
+  }, [profile]);
+
+  // Handle Post Editing
   const handleEditPost = (postId: string) => {
     toast({
       title: "Edit Post",
@@ -197,16 +168,11 @@ const Profile = () => {
     toast({
       title: "Delete Post",
       description: "Are you sure you want to delete this post?",
-      variant: "destructive"
+      variant: "destructive",
     });
   };
 
-// Di pa sure
-  const { data: profile, isLoading, error } = useQuery<ProfileType>({
-    queryKey: ["profile"],
-    queryFn: getProfile,
-  });
-
+  // Loading & Error States
   if (isLoading) return <p>Loading...</p>;
 
   if (error) {
@@ -218,36 +184,55 @@ const Profile = () => {
     return <p>Error loading profile.</p>;
   }
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    const month = d.toLocaleString('en-US', { month: 'short' }); 
-    const day = String(d.getUTCDate()).padStart(2, '0');      
-    const year = d.getUTCFullYear();                            
-    return `${month}-${day}-${year}`;
-  };
+  if (!profile) return <p>No profile data found.</p>;
 
+  // Build currentUser once profile is loaded
   const birthday = formatDate(profile.birthday);
   const joinedDate = formatDate(profile.createdAt);
-  
-  const currentUser = {
-  username: profile.username,
-  fullName: `${profile.firstName} ${profile.lastName}`,
-  bio: profile.bio,
-  location: profile.address,
-  birthday: birthday,
-  avatarUrl: profile.profilePic,
-  joinedDate: joinedDate,
-  stats: {
-    posts: 24,
-    reposts: 8,
-    followers: 156,
-    following: 89,
-    carbonSaved: "2.3 tons"
-  }
-};
 
-  if (!profile) return <p>No profile data found.</p>;
- // Di pasure
+  const currentUser = {
+    username: profile.username,
+    fullName: `${profile.firstName} ${profile.lastName}`,
+    bio: profile.bio,
+    location: profile.address,
+    birthday: birthday,
+    avatarUrl: profile.profilePic,
+    joinedDate: joinedDate,
+    stats: {
+      posts: 24,
+      reposts: 8,
+      followers: 156,
+      following: 89,
+      carbonSaved: "2.3 tons",
+    },
+    achievements: {
+      unlocked: [
+        {
+          id: "walk_the_talk",
+          name: "Walk the Talk",
+          description: "Walk 50 km in a single day",
+          icon: Footprints,
+          dateEarned: "2025-08-20",
+        },
+        {
+          id: "green_commuter",
+          name: "Green Commuter",
+          description: "Use public transport for 30 consecutive days",
+          icon: Car,
+          dateEarned: "2025-08-15",
+        },
+        {
+          id: "recycling_champion",
+          name: "Recycling Champion",
+          description: "Recycle 100 kg of materials in a month",
+          icon: Recycle,
+          dateEarned: "2025-08-10",
+        },
+      ],
+    },
+  };
+
+  // Drag-and-Drop Logic
   const handleAchievementDragStart = (e: React.DragEvent, achievementId: string) => {
     e.dataTransfer.setData("text/plain", achievementId);
   };
@@ -256,7 +241,7 @@ const Profile = () => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData("text/plain");
     const draggedAchievement = currentUser.achievements.unlocked.find(a => a.id === draggedId);
-    
+
     if (draggedAchievement && !displayedAchievements.find(a => a.id === draggedId)) {
       const newDisplayed = [...displayedAchievements];
       if (targetIndex < newDisplayed.length) {
@@ -275,7 +260,7 @@ const Profile = () => {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
-// Di pa sure
+
 
   return (
     <div className="min-h-screen bg-background">

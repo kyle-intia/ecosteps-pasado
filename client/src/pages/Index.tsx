@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
-import { TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
+import { Leaf,TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-eco.jpg";
 import { useMutation } from "@tanstack/react-query";
 import { logout } from "@/lib/api";

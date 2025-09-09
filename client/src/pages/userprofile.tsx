@@ -76,10 +76,6 @@ export default function CreateProfile() {
       newErrors.birthday = "Enter a valid date in MM-DD-YYYY format.";
     }
 
-    if (!(formData.profilePic instanceof File)) {
-      newErrors.profilePic = "Invalid profile picture.";
-    }
-
     if (!formData.address.trim()) {
       newErrors.address = "Address is required.";
     }
