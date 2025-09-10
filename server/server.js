@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-
+const authenticate = require('./middleware/authenticate');
 const preAssessmentRoutes = require('./routes/preAssessmentRoutes');
 const dailyTrackingRoutes = require('./routes/dailyTrackingRoutes');
 
@@ -15,7 +15,7 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000' // Adjust based on your frontend URL
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080' // Adjust based on your frontend URL
 };
 app.use(cors(corsOptions)); // Use app.use(cors()) for development simplicity
 
@@ -39,8 +39,8 @@ db.once('open', () => {
 });
 
 // Routes
-app.use('/api/preassessment', preAssessmentRoutes);
-app.use('/api/daily-tracking', dailyTrackingRoutes);
+app.use('/api/preassessment', authenticate, preAssessmentRoutes);
+app.use('/api/daily-tracking', authenticate, dailyTrackingRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -57,11 +57,11 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4004;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
