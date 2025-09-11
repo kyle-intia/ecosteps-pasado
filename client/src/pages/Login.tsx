@@ -67,9 +67,17 @@ export default function Login() {
       navigate(redirectUrl, { replace: true });
     },
     onError: (error: any) => {
+      let description = "Invalid email or password. Please try again.";
+
+      if (error?.message?.includes("verify your email")) {
+        description = "Please verify your email before logging in. Check your inbox for the verification link.";
+      } else if (error?.message) {
+        description = error.message;
+      }
+
       toast({
         title: "Login failed",
-        description: error?.message || "Invalid email or password. Please try again.",
+        description,
         variant: "destructive",
       });
     },

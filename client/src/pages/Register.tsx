@@ -7,7 +7,7 @@ import { AuthLayout } from "@/components/AuthLayout";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { register } from "../lib/api";
+import { register, login } from "../lib/api";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -50,12 +50,26 @@ export default function Register() {
     isPending,
   } = useMutation({
     mutationFn: (data: { email: string; password: string; confirmPassword: string }) => register(data),
-    onSuccess: () => {
-      toast({
-        title: "Account Registered",
-        description: "You've successfully registered an Account.",
-      });
-      navigate("/", { replace: true });
+    onSuccess: async (_, variables) => {
+      try {
+        // Attempt auto-login after registration
+        await login({ email: variables.email, password: variables.password });
+        localStorage.setItem("isLoggedIn", "true");
+        toast({
+          title: "Welcome to EcoStep!",
+          description: "Your account is ready and you're now signed in.",
+        });
+        // Navigate to main app since login succeeded
+        navigate("/pre-assessment", { replace: true });
+      } catch (error: any) {
+        // Login failed (likely due to unverified email)
+        // Don't set isLoggedIn, navigate to verification prompt
+        toast({
+          title: "Account Created Successfully",
+          description: "Please check your email and verify your account before signing in.",
+        });
+        navigate("/verify-email-prompt", { replace: true });
+      }
     },
     onError: (error: any) => {
       toast({

@@ -51,20 +51,20 @@ class ApiClient {
     });
   }
 
-  async getDailyTrackingHistory(userId, limit = 30, offset = 0) {
-    return this.request(`/daily-tracking/${userId}?limit=${limit}&offset=${offset}`);
+  async getDailyTrackingHistory(limit = 30, offset = 0) {
+    return this.request(`/daily-tracking?limit=${limit}&offset=${offset}`);
   }
 
-  async getTodaysTracking(userId) {
-    return this.request(`/daily-tracking/${userId}/today`);
+  async getTodaysTracking() {
+    return this.request(`/daily-tracking/today`);
   }
 
-  async getDailyTrackingStats(userId, days = 7) {
-    return this.request(`/daily-tracking/${userId}/stats?days=${days}`);
+  async getDailyTrackingStats(days = 7) {
+    return this.request(`/daily-tracking/stats?days=${days}`);
   }
 
-  async deleteDailyTracking(userId, entryId) {
-    return this.request(`/daily-tracking/${userId}/${entryId}`, {
+  async deleteDailyTracking(entryId) {
+    return this.request(`/daily-tracking/${entryId}`, {
       method: 'DELETE',
     });
   }
@@ -77,12 +77,12 @@ class ApiClient {
     });
   }
 
-  async getPreAssessmentHistory(userId) {
-    return this.request(`/preassessment/${userId}`);
+  async getPreAssessmentHistory() {
+    return this.request(`/preassessment`);
   }
 
-  async getLatestPreAssessment(userId) {
-    return this.request(`/preassessment/${userId}/latest`);
+  async getLatestPreAssessment() {
+    return this.request(`/preassessment/latest`);
   }
 }
 

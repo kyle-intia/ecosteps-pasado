@@ -16,6 +16,9 @@ const env_1 = require("./constants/env");
 const authenticate_1 = __importDefault(require("./middleware/authenticate"));
 const session_route_1 = __importDefault(require("./routes/session.route"));
 const profile_route_1 = __importDefault(require("./routes/profile.route"));
+// Bring in feature routers that were previously mounted in server.js
+const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
+const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
 app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
@@ -35,6 +38,11 @@ app.use("/auth", auth_route_1.default);
 app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
+// Mount Daily Tracking and Pre-Assessment routes under both legacy and /api prefixes
+app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
+app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
+app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
+app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use(errorHandler_1.default);
 const startServer = async () => {
     await (0, db_1.default)();

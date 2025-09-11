@@ -5,6 +5,10 @@ const express = require('express');
 const router = express.Router();
 const DailyTracking = require('../models/DailyTracking');
 const DailyTrackingService = require('../services/dailyTrackingService');
+const authenticate = require('../middleware/authenticate');
+
+// All routes below require an authenticated user; user id comes from req.userId
+router.use(authenticate);
 
 /**
  * POST /api/daily-tracking/submit
@@ -12,12 +16,8 @@ const DailyTrackingService = require('../services/dailyTrackingService');
  */
 router.post('/submit', async (req, res) => {
   try {
-    const { userId, transport, homeEnergy, food, flightsToday } = req.body;
-
-    // Validate required fields
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const { transport, homeEnergy, food, flightsToday } = req.body;
+    const userId = req.userId;
 
     // Prepare responses object for calculation service
     const normalizedOccupants = Math.max(1, Math.min(20, Number(homeEnergy?.occupants) || 1));
@@ -60,16 +60,19 @@ router.post('/submit', async (req, res) => {
       dinner: normalizeMeal(food.dinner || 'skipped')
     } : undefined;
 
-    // Get today's date (start of day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's date in Philippines timezone (start of day)
+    const now = new Date();
+    const phOffset = 8 * 60 * 60 * 1000;
+    const phNow = new Date(now.getTime() + phOffset);
+    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     // Check if entry already exists for today
     const existingEntry = await DailyTracking.findOne({
       userId: userId,
       date: {
         $gte: today,
-        $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+        $lt: tomorrow
       }
     });
 
@@ -124,12 +127,12 @@ router.post('/submit', async (req, res) => {
 });
 
 /**
- * GET /api/daily-tracking/:userId
- * Get daily tracking history for a user
+ * GET /api/daily-tracking
+ * Get daily tracking history for the authenticated user
  */
-router.get('/:userId', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
     const { limit = 30, offset = 0 } = req.query;
 
     const dailyEntries = await DailyTracking.find({ userId })
@@ -162,16 +165,18 @@ router.get('/:userId', async (req, res) => {
 });
 
 /**
- * GET /api/daily-tracking/:userId/today
- * Get today's tracking entry for a user
+ * GET /api/daily-tracking/today
+ * Get today's tracking entry for the authenticated user
  */
-router.get('/:userId/today', async (req, res) => {
+router.get('/today', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
     
-    // Get today's date range
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's date range in Philippines timezone
+    const now = new Date();
+    const phOffset = 8 * 60 * 60 * 1000;
+    const phNow = new Date(now.getTime() + phOffset);
+    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     const todayEntry = await DailyTracking.findOne({
@@ -212,12 +217,12 @@ router.get('/:userId/today', async (req, res) => {
 });
 
 /**
- * GET /api/daily-tracking/:userId/stats
- * Get summary statistics for a user's tracking data
+ * GET /api/daily-tracking/stats
+ * Get summary statistics for the authenticated user's tracking data
  */
-router.get('/:userId/stats', async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
     const { days = 7 } = req.query; // Default to last 7 days
 
     const startDate = new Date();
@@ -282,12 +287,13 @@ router.get('/:userId/stats', async (req, res) => {
 });
 
 /**
- * DELETE /api/daily-tracking/:userId/:entryId
- * Delete a specific tracking entry
+ * DELETE /api/daily-tracking/:entryId
+ * Delete a specific tracking entry for the authenticated user
  */
-router.delete('/:userId/:entryId', async (req, res) => {
+router.delete('/:entryId', async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = req.userId;
+    const { entryId } = req.params;
 
     const deletedEntry = await DailyTracking.findOneAndDelete({
       _id: entryId,

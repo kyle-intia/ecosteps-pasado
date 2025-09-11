@@ -132,6 +132,15 @@ export default function PreAssessment() {
     }
   }, [isPending, isError, sessions, navigate]);
 
+  useEffect(() => {
+    const needsPreAssessment = localStorage.getItem("needsPreAssessment");
+    const userName = localStorage.getItem("userName");
+
+    if (needsPreAssessment === "false" && userName) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
+
   const getCurrentSection = () => questions[currentSection];
   const getCurrentQuestion = () => getCurrentSection().questions[currentQuestion];
 
@@ -237,17 +246,6 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
     setIsLoading(true);
     
     try {
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        toast({
-          title: "Error",
-          description: "User not logged in. Please log in again.",
-          variant: "destructive",
-        });
-        navigate("/userprofile");
-        return;
-      }
-
       const responses = transformAnswersForBackend(answers);
       
       const response = await fetch("http://localhost:4004/api/preassessment/submit", {
@@ -255,8 +253,8 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
-          userId,
           responses
         }),
       });

@@ -95,7 +95,11 @@ export default function CreateProfile() {
     isPending,
   } = useMutation({
     mutationFn: createProfile,
-    onSuccess: () => {
+    onSuccess: (profile: any) => {
+      // Store the user's first name in localStorage for display on Home and Dashboard
+      if (profile?.firstName) {
+        localStorage.setItem("userName", profile.firstName);
+      }
       toast({
         title: "Profile Complete!",
         description: "You've successfully completed the profile page.",

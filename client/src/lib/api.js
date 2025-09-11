@@ -24,24 +24,24 @@ export const updateProfile = (data) => API.patch("/profile/update", data);
 export const submitDailyTracking = (trackingData) =>
   API.post("/daily-tracking/submit", trackingData);
 
-export const getDailyTrackingHistory = (userId, limit = 30, offset = 0) =>
-  API.get(`/daily-tracking/${userId}?limit=${limit}&offset=${offset}`);
+export const getDailyTrackingHistory = (limit = 30, offset = 0) =>
+  API.get(`/daily-tracking?limit=${limit}&offset=${offset}`);
 
-export const getTodaysTracking = (userId) =>
-  API.get(`/daily-tracking/${userId}/today`);
+export const getTodaysTracking = () =>
+  API.get(`/daily-tracking/today`);
 
-export const getDailyTrackingStats = (userId, days = 7) =>
-  API.get(`/daily-tracking/${userId}/stats?days=${days}`);
+export const getDailyTrackingStats = (days = 7) =>
+  API.get(`/daily-tracking/stats?days=${days}`);
 
-export const deleteDailyTracking = (userId, entryId) =>
-  API.delete(`/daily-tracking/${userId}/${entryId}`);
+export const deleteDailyTracking = (entryId) =>
+  API.delete(`/daily-tracking/${entryId}`);
 
 // ========== PRE-ASSESSMENT ==========
 export const submitPreAssessment = (assessmentData) =>
   API.post("/preassessment/submit", assessmentData);
 
-export const getPreAssessmentHistory = (userId) =>
-  API.get(`/preassessment/${userId}`);
+export const getPreAssessmentHistory = () =>
+  API.get(`/preassessment`);
 
-export const getLatestPreAssessment = (userId) =>
-  API.get(`/preassessment/${userId}/latest`);
+export const getLatestPreAssessment = () =>
+  API.get(`/preassessment/latest`);
