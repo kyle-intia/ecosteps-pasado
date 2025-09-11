@@ -18,6 +18,7 @@ import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
 import queryClient from "./config/queryClient";
 import VerifyEmail from "./pages/VerifyEmail";
+import VerifyEmailPrompt from "./pages/VerifyEmailPrompt";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import UserSession from "./pages/UserSession";
@@ -52,6 +53,7 @@ const App: React.FC = () => {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/pre-assessment" element={<PreAssessment />} />
 
+          <Route path="/verify-email-prompt" element={<VerifyEmailPrompt />} />
           <Route path="/email/verify/:code" element={<VerifyEmail />} />
           <Route path="/password/forgot" element={<ForgotPassword />} />
           <Route path="/password/reset" element={<ResetPassword />} />

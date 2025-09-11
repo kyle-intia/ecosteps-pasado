@@ -10,10 +10,11 @@ import { Progress } from "@/components/ui/progress";
 import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout } from "../lib/api";
+import { logout, getTodaysTracking, getDailyTrackingHistory, submitDailyTracking } from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
-import apiClient from "../config/apiClient";
+import useAuth from "../hooks/useAuth";
+// use typed API helpers instead of raw axios instance
 
 
 const TrackCarbon = () => {
@@ -85,16 +86,17 @@ const TrackCarbon = () => {
     },
   });
 
-// Di pa sure
+  const { user } = useAuth();
+
   useEffect(() => {
     if (!isLoggedIn) return;
-    const userId = localStorage.getItem("userId");
+    const userId = user?._id;
     if (!userId) return;
 
     const fetchToday = async () => {
       try {
         setIsLoadingToday(true);
-        const res = await apiClient.getTodaysTracking(userId);
+        const res = await getTodaysTracking();
         setTodayEntry(res?.data || null);
       } catch (_e) {
         setTodayEntry(null);
@@ -106,7 +108,7 @@ const TrackCarbon = () => {
     const fetchHistory = async () => {
       try {
         setIsLoadingHistory(true);
-        const res = await apiClient.getDailyTrackingHistory(userId, 7, 0);
+        const res = await getDailyTrackingHistory(7, 0);
         setHistoryEntries(res?.data?.entries || []);
       } catch (_e) {
         setHistoryEntries([]);
@@ -117,7 +119,7 @@ const TrackCarbon = () => {
 
     fetchToday();
     fetchHistory();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, user]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -250,16 +252,14 @@ const TrackCarbon = () => {
       };
 
       // Build payload expected by backend
-      const userId = localStorage.getItem("userId") || "000000000000000000000000";
       const payload = {
-        userId,
         transport: { modes, distances },
         flightsToday,
         homeEnergy: { homeType, occupants, appliances },
         food,
       };
 
-      const result = await apiClient.submitDailyTracking(payload);
+      const result = await submitDailyTracking(payload);
     
     toast({
         title: "Daily tracking saved",

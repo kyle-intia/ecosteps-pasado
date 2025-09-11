@@ -63,9 +63,7 @@ exports.createAccount = createAccount;
 const loginUser = async ({ email, password, userAgent, }) => {
     const user = await user_model_1.default.findOne({ email });
     (0, appAssert_1.default)(user, http_1.UNAUTHORIZED, "Invalid email or password");
-    if (!user.verified) {
-        throw new Error("Please verify your email before logging in.");
-    }
+    (0, appAssert_1.default)(user.verified, http_1.UNAUTHORIZED, "Please verify your email before logging in.", "EmailNotVerified");
     const isValid = await user.comparePassword(password);
     (0, appAssert_1.default)(isValid, http_1.UNAUTHORIZED, "Invalid email or password");
     const userId = user._id;

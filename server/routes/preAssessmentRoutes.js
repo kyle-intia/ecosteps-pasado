@@ -2,21 +2,18 @@ const express = require('express');
 const router = express.Router();
 const PreAssessment = require('../models/PreAssessment');
 const CalculationService = require('../services/calculationService');
-// Import your auth middleware (e.g., const auth = require('../middleware/auth');)
+const authenticate = require('../middleware/authenticate');
 
 /**
  * POST /api/preassessment/submit
  * Accepts user responses Q1–Q8, runs backend computation, saves inputs + results to MongoDB, and returns computed totals.
  */
-// Add auth middleware: router.post('/submit', auth, async (req, res) => {
+router.use(authenticate);
+
 router.post('/submit', async (req, res) => {
   try {
-    const { userId, responses } = req.body;
-
-    // Validate required fields
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const { responses } = req.body;
+    const userId = req.userId;
     if (!responses) {
       return res.status(400).json({ error: 'responses are required' });
     }
@@ -68,10 +65,9 @@ router.post('/submit', async (req, res) => {
  * GET /api/preassessment/:userId
  * Fetches stored pre-assessment results for a user.
  */
-// Add auth middleware: router.get('/:userId', auth, async (req, res) => {
-router.get('/:userId', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
 
     // ❌ REMOVED: The ObjectId validation check.
     // The find query will work with any string ID and just return an empty array if none exist.
@@ -107,10 +103,9 @@ router.get('/:userId', async (req, res) => {
  * GET /api/preassessment/:userId/latest
  * Fetches the latest pre-assessment for a user, including their original responses.
  */
-// Add auth middleware: router.get('/:userId/latest', auth, async (req, res) => {
-router.get('/:userId/latest', async (req, res) => {
+router.get('/latest', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
 
     // ❌ REMOVED: The ObjectId validation check.
 
