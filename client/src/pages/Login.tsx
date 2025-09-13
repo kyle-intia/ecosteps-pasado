@@ -52,6 +52,30 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const checkPreAssessmentStatus = async () => {
+    try {
+      const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data?.assessmentDone) {
+        navigate("/home", { replace: true });
+      } else {
+        navigate("/pre-assessment", { replace: true });
+      }
+    } catch (error) {
+      console.error("Error checking assessment status:", error);
+      // Default to pre-assessment if error
+      navigate("/pre-assessment", { replace: true });
+    }
+  };
+
   const {
     mutate: signIn,
     isPending,
@@ -63,7 +87,7 @@ export default function Login() {
         title: "Welcome back!",
         description: "You've successfully logged in to EcoStep.",
       });
-      navigate(redirectUrl, { replace: true });
+      checkPreAssessmentStatus();
     },
     onError: (error: any) => {
       let description = "Invalid email or password. Please try again.";
