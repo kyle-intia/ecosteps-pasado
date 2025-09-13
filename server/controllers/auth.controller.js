@@ -40,6 +40,8 @@ exports.logoutHandler = (0, catchErrors_1.default)(async (req, res) => {
         await session_model_1.default.findByIdAndDelete(payload.sessionId);
     }
     // clear cookies
+    res.set('Cache-Control', 'no-store');
+    
     return (0, cookies_1.clearAuthCookies)(res)
         .status(http_1.OK)
         .json({ message: "Logout successful" });

@@ -17,7 +17,8 @@ const userProfileSchema = new mongoose_1.default.Schema({
     birthday: { type: Date },
     profilePic: { type: String },
     address: { type: String },
-    bio: { type: String }
+    bio: { type: String },
+    userProfileDone: {type: Boolean, default: false}
 }, {
     timestamps: true,
 });

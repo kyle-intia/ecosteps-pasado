@@ -26,6 +26,9 @@ import Settings from "./pages/Settings";
 import ProfilePage from "./pages/userprofile";
 import { useEffect } from "react";
 import { setNavigate } from "./lib/navigate";
+import PrivateRoute from "./components/PrivateRoute";
+import PrivateRoute2 from "./components/PrivateRoute2";
+import PrivateRoute3 from "./components/UserProfileRoute";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -44,23 +47,28 @@ const App: React.FC = () => {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/track" element={<TrackCarbon />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/leaderboards" element={<Leaderboards />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:userId" element={<Profile />} />
-          <Route path="/pre-assessment" element={<PreAssessment />} />
-
           <Route path="/verify-email-prompt" element={<VerifyEmailPrompt />} />
           <Route path="/email/verify/:code" element={<VerifyEmail />} />
           <Route path="/password/forgot" element={<ForgotPassword />} />
           <Route path="/password/reset" element={<ResetPassword />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/sessions" element={<UserSession />} />
+          <Route path="/pre-assessment" element={<PreAssessment />} />
           <Route path="/userprofile" element={<ProfilePage />}/>
-          <Route path="/achievements" element={<Achievements />} />
+          
+          <Route element={<PrivateRoute />}>
+            <Route element={<PrivateRoute3 />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/track" element={<TrackCarbon />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/leaderboards" element={<Leaderboards />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/sessions" element={<UserSession />} />
+              <Route path="/achievements" element={<Achievements />} />
+            </Route>
+          </Route>
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -31,7 +31,7 @@ router.post('/submit', async (req, res) => {
     const results = CalculationService.calculateAll(responses);
 
     // Create and save new pre-assessment
-    const preAssessment = new PreAssessment({ userId, responses, results });
+    const preAssessment = new PreAssessment({ userId, responses, results, assessmentDone: true });
     await preAssessment.save();
 
     // ✅ Explicitly select data to return (Best Practice)
@@ -40,7 +40,8 @@ router.post('/submit', async (req, res) => {
       data: {
         id: preAssessment._id,
         results: preAssessment.results,
-        createdAt: preAssessment.createdAt
+        createdAt: preAssessment.createdAt,
+        assessmentDone: preAssessment.assessmentDone
       }
     });
 
@@ -132,5 +133,26 @@ router.get('/latest', async (req, res) => {
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
+
+
+
+router.get('/user/status', async (req, res) => {
+  try {
+    const userId = req.userId; 
+    const preAssessment = await PreAssessment.findOne({ userId });
+
+    if (!preAssessment) {
+      return res.status(404).json({ error: "User Pre-assessment not found" });
+    }
+
+    res.status(200).json({
+      assessmentDone: preAssessment.assessmentDone || false,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 module.exports = router;

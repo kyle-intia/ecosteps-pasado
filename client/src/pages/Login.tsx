@@ -59,7 +59,6 @@ export default function Login() {
     mutationFn:  (data: typeof formData) => login(data),
     onSuccess: () => {
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userEmail", formData.email);
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in to EcoStep.",
@@ -99,11 +98,12 @@ export default function Login() {
     }
   };
 
-  const isFormValid =
-    Object.keys(errors).length === 0 &&
-    formData.email &&
-    formData.password.length >= 8;
-    
+  const isEmailValid = formData.email;
+  const isPasswordValid = formData.password.length >= 8;
+  const isNoErrors = Object.keys(errors).length === 0;
+  
+  const isFormValid = isNoErrors && isEmailValid && isPasswordValid;
+      
 
   return (
     <AuthLayout
@@ -120,7 +120,6 @@ export default function Login() {
             placeholder="Enter your email"
             value={formData.email}
             onChange={handleInputChange}
-            onBlur={validateForm}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? "email-error" : undefined}
             required

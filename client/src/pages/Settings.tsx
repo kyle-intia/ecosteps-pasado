@@ -29,10 +29,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProfile } from "../lib/api";
-import { Spinner } from "@/components/ui/spinner";
 import { updateProfile } from "../lib/api";
-import { logout } from "@/lib/api";
-
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
 
 type ProfileType = {
   profilePic: string;
@@ -44,7 +44,6 @@ type ProfileType = {
   bio: string;
   createdAt: string;
 };
-
 
 const Settings = () => {
 
@@ -77,11 +76,12 @@ const Settings = () => {
   );
 
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
+  
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -133,16 +133,6 @@ const Settings = () => {
     }
   }, [profile]);
 
-    
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-      if (!loggedIn) {
-        navigate("/");
-        return;
-      }
-      setIsLoggedIn(true);
-  }, [navigate]);
-
   const handleButtonClick = () => {
     if (isEditing) {
       updateDataProfile(formData);
@@ -177,16 +167,8 @@ const Settings = () => {
     });
   };
 
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
-    },
-  });
-
-  if (isLoading) return <Spinner />;
+  if (isLoading) 
+    return <Spinner />;
 
   if (error) {
     toast({
@@ -197,9 +179,17 @@ const Settings = () => {
     return <p>Error loading profile.</p>;
   }
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">

@@ -15,6 +15,7 @@ const createProfile = async (userId, input) => {
         user: userId,
         ...input,
         profilePic: input.profilePic ?? undefined,
+        userProfileDone: true,
     };
     const profile = await userprofile_model_1.default.create(profileData);
     return profile;
@@ -28,3 +29,7 @@ const updateProfile = async (userId, input) => {
     return userprofile_model_1.default.findOneAndUpdate({ user: userId }, input, { new: true, runValidators: true });
 };
 exports.updateProfile = updateProfile;
+const getProfileDone = async (userId) => {
+   return userprofile_model_1.default.findOne({ user: userId }, { userProfileDone: 1 });
+};
+exports.getProfileDone = getProfileDone;

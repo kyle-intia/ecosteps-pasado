@@ -17,6 +17,9 @@ import {
   Users,
   Target
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
 
 // Mock achievements data
 const mockAchievements = [
@@ -160,7 +163,13 @@ const Achievements = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const categories = ["All", ...new Set(mockAchievements.map(a => a.category))];
-  
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut();
+
+  const handleSignOut = () => {
+    signOut();
+  };
+
   const filteredAchievements = mockAchievements.filter(achievement => {
     const matchesSearch = achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          achievement.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -171,9 +180,13 @@ const Achievements = () => {
   const unlockedCount = mockAchievements.filter(a => a.unlocked).length;
   const totalPoints = mockAchievements.filter(a => a.unlocked).reduce((sum, a) => sum + a.points, 0);
 
+  if (isPending) {
+    return <Spinner />;
+  }
+  
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}

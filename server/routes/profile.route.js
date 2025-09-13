@@ -11,4 +11,5 @@ const profileRoutes = express_1.default.Router();
 profileRoutes.post("/create", multer_1.default.single("profilePic"), profile_controller_1.createProfileHandler);
 profileRoutes.get("/", profile_controller_1.getProfileHandler);
 profileRoutes.patch("/update", multer_1.default.single("profilePic"), profile_controller_1.updateProfileHandler);
+profileRoutes.get("/user/status", profile_controller_1.getProfileDone);
 exports.default = profileRoutes;

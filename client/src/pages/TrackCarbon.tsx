@@ -86,7 +86,7 @@ const TrackCarbon = () => {
     },
   });
 
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: { _id?: string } };
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -121,11 +121,9 @@ const TrackCarbon = () => {
     fetchHistory();
   }, [isLoggedIn, user]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
+  const handleSignOut = () => {
+    signOut();
   };
-// Di pa sure
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -292,7 +290,7 @@ const TrackCarbon = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 text-center">

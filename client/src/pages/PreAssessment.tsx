@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft } from "lucide-react";
-import useSessions from "../hooks/useSessions";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
 
 const questions = [
   {
@@ -119,18 +120,31 @@ export default function PreAssessment() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { sessions, isPending, isError } = useSessions();
+  const { isPending } = useSessionStatus();
 
   useEffect(() => {
-    if (!isPending && sessions.length > 0) {
-      localStorage.setItem("isLoggedIn", "true");
-    }
+    const checkAssessmentStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
 
-    if (!isPending && (isError || sessions.length === 0)) {
-      localStorage.removeItem("isLoggedIn");
-      navigate("/", { replace: true });
-    }
-  }, [isPending, isError, sessions, navigate]);
+        const data = await response.json();
+
+        if (response.ok && data?.assessmentDone) {
+          navigate("/home", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking assessment status:", error);
+      }
+    };
+
+    checkAssessmentStatus();
+  }, [navigate]);
 
   useEffect(() => {
     const needsPreAssessment = localStorage.getItem("needsPreAssessment");
@@ -302,6 +316,11 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
   const section = getCurrentSection();
   const question = getCurrentQuestion();
   const Icon = section.icon;
+
+  if (isPending) {
+    return <Spinner />;
+  }
+  
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

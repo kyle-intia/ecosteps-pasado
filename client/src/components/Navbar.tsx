@@ -16,7 +16,6 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { name: "Home", href: "/home", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },
@@ -30,7 +29,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/home" className="flex items-center space-x-2 group">
             <div className="p-2 rounded-full group-hover:bg-accent transition-colors">
               <img src="/favicon.ico" alt="EcoStep Logo" className="h-10 w-10" />
             </div>

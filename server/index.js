@@ -39,7 +39,7 @@ app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
 // Mount Daily Tracking and Pre-Assessment routes under both legacy and /api prefixes
-app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
+app.use("/preassessment", authenticate_1.default,  preAssessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
