@@ -26,18 +26,9 @@ const Index = () => {
     }
   }, [navigate]);
 
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
-    },
-  });
-
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn}  />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">

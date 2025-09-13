@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { createProfile } from "../lib/api";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
 
 type FormData = {
   firstName: string;
@@ -44,14 +46,31 @@ export default function CreateProfile() {
   const location = useLocation();
   const navigate = useNavigate();
   const redirectUrl = location.state?.redirectUrl || "/";
-
+  const { isPending: sessionPending } = useSessionStatus();
 
   useEffect(() => {
-      const isLoggedIn = localStorage.getItem("isLoggedIn");
-      if (!isLoggedIn) {
-        navigate("/");
+    const checkAssessmentStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:4004/profile/user/status", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data?.userProfileDone) {
+          navigate("/home", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking assessment status:", error);
       }
-    }, [navigate]);
+    };
+
+    checkAssessmentStatus();
+  }, [navigate]);
 
   const validateForm = () => {
     const newErrors: Errors = {};
@@ -95,11 +114,7 @@ export default function CreateProfile() {
     isPending,
   } = useMutation({
     mutationFn: createProfile,
-    onSuccess: (profile: any) => {
-      // Store the user's first name in localStorage for display on Home and Dashboard
-      if (profile?.firstName) {
-        localStorage.setItem("userName", profile.firstName);
-      }
+    onSuccess: () => {
       toast({
         title: "Profile Complete!",
         description: "You've successfully completed the profile page.",
@@ -149,6 +164,10 @@ export default function CreateProfile() {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
+
+  if (sessionPending) {
+    return <Spinner />;
+  }
 
   return (
     <form

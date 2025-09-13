@@ -20,33 +20,39 @@ import {
   Target
 } from "lucide-react";
 
+type UserProfile = {
+  username?: string;
+};
+
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+import useProfile from "@/hooks/useAuthProfile";
+
 const Home = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { isPending, isLoggedIn} = useSessionStatus();
+  const { signOut } = useSignOut()
+  const { user, isLoading, isError, error } = useProfile();
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const user = localStorage.getItem("userName") || "EcoWarrior";
-    
-    if (!loggedIn) {
-      navigate("/");
-      return;
-    }
-    
-    setIsLoggedIn(loggedIn);
-    setUserName(user);
-  }, [navigate]);
+  const profile = user as UserProfile | undefined;
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-    navigate("/");
+  if (isLoading) 
+    return <Spinner />;
+  if (isError) 
+    return <p>Error: {String(error)}</p>;
+
+  const handleSignOut = () => {
+    signOut();
   };
+
+  if (isPending) {
+    return <Spinner />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       {/* Hero Section */}
       <div className="relative h-80 overflow-hidden">
@@ -59,7 +65,7 @@ const Home = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
             <div className="text-white max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Welcome, {userName}! 🌱
+                Welcome, {profile?.username || "Eco Warrior"}! 🌱
               </h1>
               <p className="text-lg text-white/90 mb-6">
                 Here's what's new today

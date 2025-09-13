@@ -74,6 +74,10 @@ const preAssessmentSchema = new mongoose.Schema({
       min: 0
     }
   },
+  assessmentDone: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now

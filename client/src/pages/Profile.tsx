@@ -31,12 +31,12 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
 import { useQuery } from "@tanstack/react-query";
 import { getProfile } from "../lib/api";
-import { useMutation } from "@tanstack/react-query";
-import { logout } from "@/lib/api";
-import queryClient from "../config/queryClient";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+
 
 
 // Mock posts data
@@ -91,28 +91,9 @@ const Profile = () => {
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
   const [displayedAchievements, setDisplayedAchievements] = useState([]);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!loggedIn) {
-      navigate("/");
-      return;
-    }
-    setIsLoggedIn(true);
-  }, [navigate]);
-
-  // Logout mutation
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear();
-      navigate("/login", { replace: true });
-    },
-  });
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
 
   const { data: profile, isLoading, error } = useQuery<ProfileType>({
     queryKey: ["profile"],
@@ -172,8 +153,10 @@ const Profile = () => {
     });
   };
 
+
   // Loading & Error States
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) 
+    return <Spinner/>;
 
   if (error) {
     toast({
@@ -261,10 +244,17 @@ const Profile = () => {
     e.preventDefault();
   };
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Profile Header */}

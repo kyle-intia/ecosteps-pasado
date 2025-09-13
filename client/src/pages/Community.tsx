@@ -7,10 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navbar } from "@/components/Navbar";
 import { Heart, MessageCircle, Repeat2, Share, Camera, Users, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import queryClient from "../config/queryClient";
-import { logout } from "../lib/api";
-import useSessions from "../hooks/useSessions";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
 
 interface Post {
   id: string;
@@ -30,26 +29,16 @@ interface Post {
 }
 
 const Community = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [postContent, setPostContent] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { sessions, isPending, isError } = useSessions();
 
-  useEffect(() => {
-    if (!isPending && sessions.length > 0) {
-      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-      setIsLoggedIn(loggedIn);
-    }
-
-    if (!isPending && (isError || sessions.length === 0)) {
-      localStorage.removeItem("isLoggedIn");
-      navigate("/", { replace: true });
-    }
-  }, [isPending, isError, sessions, navigate]);
-
-
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut();
+  
+  const handleSignOut = () => {
+    signOut();
+  };
 
   useEffect(() => {
   const samplePosts: Post[] = [
@@ -174,18 +163,13 @@ const Community = () => {
     }
   };
 
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
-    },
-  });
+  if (isPending) {
+    return <Spinner />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

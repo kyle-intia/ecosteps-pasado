@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { logout } from "../lib/api";
-import queryClient from "../config/queryClient";
-import useSessions from "../hooks/useSessions";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+
 
 // Mock data for leaderboards
 const mockUsers = [
@@ -74,22 +74,9 @@ const mockUsers = [
 const Leaderboards = () => {
   const [sortBy, setSortBy] = useState("score");
   const [users] = useState(mockUsers);
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { sessions, isPending, isError } = useSessions();
-  
 
-  useEffect(() => {
-    if (!isPending && sessions.length > 0) {
-      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-      setIsLoggedIn(loggedIn);
-    }
-
-    if (!isPending && (isError || sessions.length === 0)) {
-      localStorage.removeItem("isLoggedIn");
-      navigate("/", { replace: true });
-    }
-  }, [isPending, isError, sessions, navigate]);
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
 
 
   const getRankIcon = (rank: number) => {
@@ -115,24 +102,19 @@ const Leaderboards = () => {
         return b.score - a.score;
     }
   });
-  
 
+  const handleSignOut = () => {
+    signOut();
+  };
 
-
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
-    },
-  });
-
+  if (isPending) {
+    return <Spinner />;
+  }
   
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">

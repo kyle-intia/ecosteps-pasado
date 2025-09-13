@@ -3,7 +3,7 @@ import { getSessions } from "../lib/api";
 
 export const SESSIONS = "sessions";
 
-const useSessions = (opts = {}) => {
+export const useSessions = (opts = {}) => {
   const { data: sessions = [], ...rest } = useQuery({
     queryKey: [SESSIONS],
     queryFn: getSessions,
@@ -12,4 +12,5 @@ const useSessions = (opts = {}) => {
 
   return { sessions, ...rest };
 };
+
 export default useSessions;
