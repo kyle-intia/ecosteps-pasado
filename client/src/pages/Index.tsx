@@ -62,7 +62,7 @@ const Index = () => {
                 </Link>
               </Button>
               <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/login">Log In</Link>
               </Button>
             </div>
 

@@ -146,15 +146,6 @@ export default function PreAssessment() {
     checkAssessmentStatus();
   }, [navigate]);
 
-  useEffect(() => {
-    const needsPreAssessment = localStorage.getItem("needsPreAssessment");
-    const userName = localStorage.getItem("userName");
-
-    if (needsPreAssessment === "false" && userName) {
-      navigate("/home", { replace: true });
-    }
-  }, [navigate]);
-
   const getCurrentSection = () => questions[currentSection];
   const getCurrentQuestion = () => getCurrentSection().questions[currentQuestion];
 
