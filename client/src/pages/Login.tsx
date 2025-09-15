@@ -132,7 +132,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Welcome Back"
-      description="Sign in to your EcoStep account to continue tracking your carbon footprint"
+      description="Log in to your EcoStep account to continue tracking your carbon footprint"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

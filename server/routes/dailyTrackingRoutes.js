@@ -84,6 +84,15 @@ router.post('/submit', async (req, res) => {
       existingEntry.homeEnergy = normalizedHomeEnergy;
       existingEntry.food = normalizedFood;
       existingEntry.calculatedFootprint = calculatedFootprint;
+      // Also update rawAnswers if missing
+      if (!existingEntry.rawAnswers) {
+        existingEntry.rawAnswers = {
+          transport,
+          homeEnergy: normalizedHomeEnergy,
+          food: normalizedFood,
+          timestamp: new Date()
+        };
+      }
       dailyTracking = await existingEntry.save();
     } else {
       // Create new entry
@@ -93,7 +102,13 @@ router.post('/submit', async (req, res) => {
         transport,
         homeEnergy: normalizedHomeEnergy,
         food: normalizedFood,
-        calculatedFootprint
+        calculatedFootprint,
+        rawAnswers: {
+          transport,
+          homeEnergy: normalizedHomeEnergy,
+          food: normalizedFood,
+          timestamp: new Date()
+        }
       });
       await dailyTracking.save();
     }
