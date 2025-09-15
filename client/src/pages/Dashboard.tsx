@@ -5,6 +5,16 @@ import { Navbar } from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
 import { TrendingDown, TrendingUp, Target, Award, Leaf, Zap, Car, Utensils } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+import useProfile from "@/hooks/useAuthProfile";
+
+
+type UserProfile = {
+  username?: string;
+};
+
 
 const monthlyData = [
   { month: "Jan", emissions: 2.3, savings: 0.5 },
@@ -25,41 +35,38 @@ const categoryData = [
 export default function Dashboard() {
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut();
+  const { user, isLoading, isError, error } = useProfile();
 
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      navigate("/");
-      return;
-    }
-    
-    const storedName = localStorage.getItem("userName") || "Eco Warrior";
-    setUserName(storedName);
-  }, [navigate]);
+  const profile = user as UserProfile | undefined;
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("needsPreAssessment");
-    localStorage.removeItem("initialFootprint");
-    localStorage.removeItem("assessmentAnswers");
-    navigate("/");
-  };
+  if (isLoading) 
+    return <Spinner />;
+  if (isError) 
+    return <p>Error: {String(error)}</p>;
 
   const currentEmissions = 1.3; // tons CO2/month
   const targetEmissions = 1.0;
   const reductionPercentage = ((2.3 - currentEmissions) / 2.3 * 100).toFixed(1);
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={true} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {userName}'s Dashboard! 🌱
+            {profile?.username}'s Dashboard! 🌱
           </h1>
           <p className="text-muted-foreground">
             Here's your environmental impact dashboard for this month.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+
 
 // Mock data for leaderboards
 const mockUsers = [
@@ -71,6 +75,10 @@ const Leaderboards = () => {
   const [sortBy, setSortBy] = useState("score");
   const [users] = useState(mockUsers);
 
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
+
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -95,9 +103,18 @@ const Leaderboards = () => {
     }
   });
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
+  
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">

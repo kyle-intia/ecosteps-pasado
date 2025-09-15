@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,82 +22,22 @@ import {
   Trash2,
   MapPin,
   Globe,
+  Cake,
   Trophy,
   Footprints,
   Recycle,
   Car,
   GripVertical
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { getProfile } from "../lib/api";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
 
-// Mock user data
-const currentUser = {
-  id: "current-user",
-  username: "yourUsername",
-  fullName: "Your Name",
-  email: "your.email@example.com",
-  bio: "Passionate about sustainable living and making a positive environmental impact. 🌱",
-  location: "San Francisco, CA",
-  website: "https://www.facebook.com/westley.intia/",
-  avatarUrl: null,
-  joinedDate: "March 2024",
-  stats: {
-    posts: 24,
-    reposts: 8,
-    followers: 156,
-    following: 89,
-    carbonSaved: "2.3 tons"
-  },
-  achievements: {
-    unlocked: [
-      {
-        id: "walk_the_talk",
-        name: "Walk the Talk",
-        description: "Walk 50 km in a single day",
-        icon: Footprints,
-        dateEarned: "2025-08-20"
-      },
-      {
-        id: "green_commuter",
-        name: "Green Commuter", 
-        description: "Use public transport for 30 consecutive days",
-        icon: Car,
-        dateEarned: "2025-08-15"
-      },
-      {
-        id: "recycling_champion",
-        name: "Recycling Champion",
-        description: "Recycle 100 kg of materials in a month",
-        icon: Recycle,
-        dateEarned: "2025-08-10"
-      }
-    ],
-    displayed: [
-      {
-        id: "walk_the_talk",
-        name: "Walk the Talk",
-        description: "Walk 50 km in a single day",
-        icon: Footprints,
-        dateEarned: "2025-08-20"
-      },
-      {
-        id: "green_commuter",
-        name: "Green Commuter",
-        description: "Use public transport for 30 consecutive days", 
-        icon: Car,
-        dateEarned: "2025-08-15"
-      },
-      {
-        id: "recycling_champion",
-        name: "Recycling Champion",
-        description: "Recycle 100 kg of materials in a month",
-        icon: Recycle,
-        dateEarned: "2025-08-10"
-      }
-    ]
-  }
-};
+
 
 // Mock posts data
 const mockPosts = [
@@ -134,12 +74,70 @@ const mockPosts = [
   }
 ];
 
+type ProfileType = {
+  profilePic: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  birthday: string;
+  address: string;
+  bio: string;
+  createdAt: string;
+};
+
 const Profile = () => {
+
   const [posts] = useState(mockPosts);
-  const [displayedAchievements, setDisplayedAchievements] = useState(currentUser.achievements.displayed);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
+  const [displayedAchievements, setDisplayedAchievements] = useState([]);
   const { toast } = useToast();
 
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
+
+  const { data: profile, isLoading, error } = useQuery<ProfileType>({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+  });
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const month = d.toLocaleString("en-US", { month: "short" });
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const year = d.getUTCFullYear();
+    return `${month}-${day}-${year}`;
+  };
+
+  // When profile is loaded, set displayed achievements
+  useEffect(() => {
+    if (profile) {
+      setDisplayedAchievements([
+        {
+          id: "walk_the_talk",
+          name: "Walk the Talk",
+          description: "Walk 50 km in a single day",
+          icon: Footprints,
+          dateEarned: "2025-08-20",
+        },
+        {
+          id: "green_commuter",
+          name: "Green Commuter",
+          description: "Use public transport for 30 consecutive days",
+          icon: Car,
+          dateEarned: "2025-08-15",
+        },
+        {
+          id: "recycling_champion",
+          name: "Recycling Champion",
+          description: "Recycle 100 kg of materials in a month",
+          icon: Recycle,
+          dateEarned: "2025-08-10",
+        },
+      ]);
+    }
+  }, [profile]);
+
+  // Handle Post Editing
   const handleEditPost = (postId: string) => {
     toast({
       title: "Edit Post",
@@ -151,10 +149,73 @@ const Profile = () => {
     toast({
       title: "Delete Post",
       description: "Are you sure you want to delete this post?",
-      variant: "destructive"
+      variant: "destructive",
     });
   };
 
+
+  // Loading & Error States
+  if (isLoading) 
+    return <Spinner/>;
+
+  if (error) {
+    toast({
+      title: "Failed to load profile",
+      description: "Please try again later.",
+      variant: "destructive",
+    });
+    return <p>Error loading profile.</p>;
+  }
+
+  if (!profile) return <p>No profile data found.</p>;
+
+  // Build currentUser once profile is loaded
+  const birthday = formatDate(profile.birthday);
+  const joinedDate = formatDate(profile.createdAt);
+
+  const currentUser = {
+    username: profile.username,
+    fullName: `${profile.firstName} ${profile.lastName}`,
+    bio: profile.bio,
+    location: profile.address,
+    birthday: birthday,
+    avatarUrl: profile.profilePic,
+    joinedDate: joinedDate,
+    stats: {
+      posts: 24,
+      reposts: 8,
+      followers: 156,
+      following: 89,
+      carbonSaved: "2.3 tons",
+    },
+    achievements: {
+      unlocked: [
+        {
+          id: "walk_the_talk",
+          name: "Walk the Talk",
+          description: "Walk 50 km in a single day",
+          icon: Footprints,
+          dateEarned: "2025-08-20",
+        },
+        {
+          id: "green_commuter",
+          name: "Green Commuter",
+          description: "Use public transport for 30 consecutive days",
+          icon: Car,
+          dateEarned: "2025-08-15",
+        },
+        {
+          id: "recycling_champion",
+          name: "Recycling Champion",
+          description: "Recycle 100 kg of materials in a month",
+          icon: Recycle,
+          dateEarned: "2025-08-10",
+        },
+      ],
+    },
+  };
+
+  // Drag-and-Drop Logic
   const handleAchievementDragStart = (e: React.DragEvent, achievementId: string) => {
     e.dataTransfer.setData("text/plain", achievementId);
   };
@@ -163,7 +224,7 @@ const Profile = () => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData("text/plain");
     const draggedAchievement = currentUser.achievements.unlocked.find(a => a.id === draggedId);
-    
+
     if (draggedAchievement && !displayedAchievements.find(a => a.id === draggedId)) {
       const newDisplayed = [...displayedAchievements];
       if (targetIndex < newDisplayed.length) {
@@ -183,9 +244,17 @@ const Profile = () => {
     e.preventDefault();
   };
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Profile Header */}
@@ -231,10 +300,10 @@ const Profile = () => {
                     {currentUser.location}
                   </div>
                   <div className="flex items-center">
-                    <Globe className="h-4 w-4 mr-1" />
-                    <a href={currentUser.website} className="text-primary hover:underline">
-                      Website
-                    </a>
+                    <Cake className="h-4 w-4 mr-1" />
+                  
+                     {currentUser.birthday}
+                   
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />

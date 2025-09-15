@@ -1,8 +1,9 @@
+// App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -15,34 +16,65 @@ import Profile from "./pages/Profile";
 import PreAssessment from "./pages/PreAssessment";
 import Achievements from "./pages/Achievements";
 import NotFound from "./pages/NotFound";
+import queryClient from "./config/queryClient";
+import VerifyEmail from "./pages/VerifyEmail";
+import VerifyEmailPrompt from "./pages/VerifyEmailPrompt";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import UserSession from "./pages/UserSession";
+import Settings from "./pages/Settings";
+import ProfilePage from "./pages/userprofile";
+import { useEffect } from "react";
+import { setNavigate } from "./lib/navigate";
+import PrivateRoute from "./components/PrivateRoute";
+import PrivateRoute2 from "./components/PrivateRoute2";
+import PrivateRoute3 from "./components/UserProfileRoute";
 
-const queryClient = new QueryClient();
+const App: React.FC = () => {
+  const navigate = useNavigate();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <Routes>
+          
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/track" element={<TrackCarbon />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/leaderboards" element={<Leaderboards />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/verify-email-prompt" element={<VerifyEmailPrompt />} />
+          <Route path="/email/verify/:code" element={<VerifyEmail />} />
+          <Route path="/password/forgot" element={<ForgotPassword />} />
+          <Route path="/password/reset" element={<ResetPassword />} />
           <Route path="/pre-assessment" element={<PreAssessment />} />
-          <Route path="/achievements" element={<Achievements />} />
+          <Route path="/userprofile" element={<ProfilePage />}/>
+          
+          <Route element={<PrivateRoute />}>
+            <Route element={<PrivateRoute3 />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/track" element={<TrackCarbon />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/leaderboards" element={<Leaderboards />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/sessions" element={<UserSession />} />
+              <Route path="/achievements" element={<Achievements />} />
+            </Route>
+          </Route>
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

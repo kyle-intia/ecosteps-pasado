@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard } from "lucide-react";
+import { Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
 
@@ -29,7 +30,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/home" className="flex items-center space-x-2 group">
             <div className="p-2 rounded-full group-hover:bg-accent transition-colors">
               <img src="/favicon.ico" alt="EcoStep Logo" className="h-10 w-10" />
             </div>

@@ -2,21 +2,18 @@ const express = require('express');
 const router = express.Router();
 const PreAssessment = require('../models/PreAssessment');
 const CalculationService = require('../services/calculationService');
-// Import your auth middleware (e.g., const auth = require('../middleware/auth');)
+const authenticate = require('../middleware/authenticate');
 
 /**
  * POST /api/preassessment/submit
  * Accepts user responses Q1–Q8, runs backend computation, saves inputs + results to MongoDB, and returns computed totals.
  */
-// Add auth middleware: router.post('/submit', auth, async (req, res) => {
+router.use(authenticate);
+
 router.post('/submit', async (req, res) => {
   try {
-    const { userId, responses } = req.body;
-
-    // Validate required fields
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const { responses } = req.body;
+    const userId = req.userId;
     if (!responses) {
       return res.status(400).json({ error: 'responses are required' });
     }
@@ -34,7 +31,7 @@ router.post('/submit', async (req, res) => {
     const results = CalculationService.calculateAll(responses);
 
     // Create and save new pre-assessment
-    const preAssessment = new PreAssessment({ userId, responses, results });
+    const preAssessment = new PreAssessment({ userId, responses, results, assessmentDone: true });
     await preAssessment.save();
 
     // ✅ Explicitly select data to return (Best Practice)
@@ -43,7 +40,8 @@ router.post('/submit', async (req, res) => {
       data: {
         id: preAssessment._id,
         results: preAssessment.results,
-        createdAt: preAssessment.createdAt
+        createdAt: preAssessment.createdAt,
+        assessmentDone: preAssessment.assessmentDone
       }
     });
 
@@ -68,10 +66,9 @@ router.post('/submit', async (req, res) => {
  * GET /api/preassessment/:userId
  * Fetches stored pre-assessment results for a user.
  */
-// Add auth middleware: router.get('/:userId', auth, async (req, res) => {
-router.get('/:userId', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
 
     // ❌ REMOVED: The ObjectId validation check.
     // The find query will work with any string ID and just return an empty array if none exist.
@@ -107,10 +104,9 @@ router.get('/:userId', async (req, res) => {
  * GET /api/preassessment/:userId/latest
  * Fetches the latest pre-assessment for a user, including their original responses.
  */
-// Add auth middleware: router.get('/:userId/latest', auth, async (req, res) => {
-router.get('/:userId/latest', async (req, res) => {
+router.get('/latest', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
 
     // ❌ REMOVED: The ObjectId validation check.
 
@@ -137,5 +133,26 @@ router.get('/:userId/latest', async (req, res) => {
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
+
+
+
+router.get('/user/status', async (req, res) => {
+  try {
+    const userId = req.userId; 
+    const preAssessment = await PreAssessment.findOne({ userId });
+
+    if (!preAssessment) {
+      return res.status(404).json({ error: "User Pre-assessment not found" });
+    }
+
+    res.status(200).json({
+      assessmentDone: preAssessment.assessmentDone || false,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 module.exports = router;

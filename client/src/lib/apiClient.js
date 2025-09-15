@@ -10,10 +10,10 @@ class ApiClient {
       // Accessing import.meta.env only in ESM/browser context
       // This try/catch avoids ReferenceErrors in non-browser tooling
       // eslint-disable-next-line no-undef
-      viteUrl = import.meta && import.meta.env && import.meta.env.VITE_API_URL;
+      viteUrl = 'http://localhost:4004/api';
     } catch (_) {}
     // Avoid using process.env in the browser; default to localhost if Vite var missing
-    this.baseURL = viteUrl || 'http://localhost:5000/api';
+    this.baseURL = viteUrl || 'http://localhost:4004/api';
   }
 
   async request(endpoint, options = {}) {
@@ -24,6 +24,7 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: "include",
       ...options,
     };
 
@@ -50,20 +51,20 @@ class ApiClient {
     });
   }
 
-  async getDailyTrackingHistory(userId, limit = 30, offset = 0) {
-    return this.request(`/daily-tracking/${userId}?limit=${limit}&offset=${offset}`);
+  async getDailyTrackingHistory(limit = 30, offset = 0) {
+    return this.request(`/daily-tracking?limit=${limit}&offset=${offset}`);
   }
 
-  async getTodaysTracking(userId) {
-    return this.request(`/daily-tracking/${userId}/today`);
+  async getTodaysTracking() {
+    return this.request(`/daily-tracking/today`);
   }
 
-  async getDailyTrackingStats(userId, days = 7) {
-    return this.request(`/daily-tracking/${userId}/stats?days=${days}`);
+  async getDailyTrackingStats(days = 7) {
+    return this.request(`/daily-tracking/stats?days=${days}`);
   }
 
-  async deleteDailyTracking(userId, entryId) {
-    return this.request(`/daily-tracking/${userId}/${entryId}`, {
+  async deleteDailyTracking(entryId) {
+    return this.request(`/daily-tracking/${entryId}`, {
       method: 'DELETE',
     });
   }
@@ -76,12 +77,12 @@ class ApiClient {
     });
   }
 
-  async getPreAssessmentHistory(userId) {
-    return this.request(`/preassessment/${userId}`);
+  async getPreAssessmentHistory() {
+    return this.request(`/preassessment`);
   }
 
-  async getLatestPreAssessment(userId) {
-    return this.request(`/preassessment/${userId}/latest`);
+  async getLatestPreAssessment() {
+    return this.request(`/preassessment/latest`);
   }
 }
 
