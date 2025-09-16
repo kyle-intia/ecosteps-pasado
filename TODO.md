@@ -1,3 +1,4 @@
 - [x] Add rawAnswers field to new DailyTracking creation in server/routes/dailyTrackingRoutes.js
 - [x] Optionally update rawAnswers for existing entries
 - [x] Test the server to ensure error is fixed
+- [x] Mount dashboard routes in server/index.js to fix 404 on /dashboard/summary

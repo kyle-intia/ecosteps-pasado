@@ -24,6 +24,7 @@ const profile_route_1 = __importDefault(require("./routes/profile.route"));
 const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
 const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
 const challengeRoutes = require("./routes/challengeRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
@@ -59,6 +60,10 @@ app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 // New challenge routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
 app.use("/api/challenges", authenticate_1.default, challengeRoutes);
+
+// Dashboard routes
+app.use("/dashboard", authenticate_1.default, dashboardRoutes);
+app.use("/api/dashboard", authenticate_1.default, dashboardRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);

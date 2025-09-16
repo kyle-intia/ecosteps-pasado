@@ -45,3 +45,11 @@ export const getPreAssessmentHistory = () =>
 
 export const getLatestPreAssessment = () =>
   API.get(`/preassessment/latest`);
+
+// ========== DASHBOARD ==========
+
+export const getDashboardSummary = () =>
+  API.get("/dashboard/summary");
+
+export const getDashboardTrends = (months = 6) =>
+  API.get(`/dashboard/trends?months=${months}`);
