@@ -5,21 +5,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Navbar } from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
-import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator } from "lucide-react";
+import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator, AlertTriangle, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { logout, getTodaysTracking, getDailyTrackingHistory, submitDailyTracking } from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
-// use typed API helpers instead of raw axios instance
 
+interface ResubmissionWarning {
+  isResubmission: boolean;
+  hasExistingEntry: boolean;
+  existingFootprint?: {
+    transport: number;
+    homeEnergy: number;
+    food: number;
+    total: number;
+  };
+  completedChallengesCount?: number;
+  completedChallenges?: Array<{
+    id: string;
+    title: string;
+    category: string;
+  }>;
+  warning?: {
+    title: string;
+    message: string;
+    challengesWillReset: boolean;
+  };
+}
 
 const TrackCarbon = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showResubmissionDialog, setShowResubmissionDialog] = useState(false);
+  const [resubmissionWarning, setResubmissionWarning] = useState<ResubmissionWarning | null>(null);
   const [formData, setFormData] = useState({
     // Transportation
     transportModes: [],
@@ -70,8 +103,7 @@ const TrackCarbon = () => {
         setIsLoggedIn(loggedIn);
     }
 
-// Di pa sure
-  if (!isPending && (isError || sessions.length === 0)) {
+    if (!isPending && (isError || sessions.length === 0)) {
       localStorage.removeItem("isLoggedIn");
       navigate("/", { replace: true });
     }
@@ -123,6 +155,37 @@ const TrackCarbon = () => {
 
   const handleSignOut = () => {
     signOut();
+  };
+
+  // Check for resubmission before calculating
+  const checkResubmission = async () => {
+    try {
+      const response = await fetch('/api/daily-tracking/check-resubmission', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check resubmission status');
+      }
+
+      const result = await response.json();
+      const warningData = result.data as ResubmissionWarning;
+      
+      if (warningData.isResubmission) {
+        setResubmissionWarning(warningData);
+        setShowResubmissionDialog(true);
+        return false; // Don't proceed with calculation
+      }
+      
+      return true; // Proceed with calculation
+    } catch (error) {
+      console.error('Error checking resubmission:', error);
+      return true; // Proceed anyway if check fails
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -205,8 +268,16 @@ const TrackCarbon = () => {
     }
   };
 
-  const calculateFootprint = async () => {
+  const calculateFootprint = async (confirmResubmission = false) => {
     try {
+      // Check for resubmission if not confirmed
+      if (!confirmResubmission) {
+        const shouldProceed = await checkResubmission();
+        if (!shouldProceed) {
+          return; // Dialog will handle the next step
+        }
+      }
+
       // Map UI selections to backend enums
       const modes: Array<{ id: string; distance?: number }> = [];
       const distances: Record<string, number> = {};
@@ -231,7 +302,14 @@ const TrackCarbon = () => {
 
       const flightsToday = formData.flightsToday || "none"; // long-haul | short-haul | none
 
-      const homeType = formData.homeType; // large-house | small-house | apartment
+      // Map homeType from UI to backend enum values
+      let mappedHomeType = formData.homeType;
+      if (mappedHomeType === "large-house") {
+        mappedHomeType = "large_house";
+      } else if (mappedHomeType === "small-house") {
+        mappedHomeType = "small_house";
+      }
+
       const occupants = Number(formData.houseSharing || 1) || 1;
 
       const appliances: string[] = [];
@@ -253,25 +331,39 @@ const TrackCarbon = () => {
       const payload = {
         transport: { modes, distances },
         flightsToday,
-        homeEnergy: { homeType, occupants, appliances },
+        homeEnergy: { homeType: mappedHomeType, occupants, appliances },
         food,
+        confirmResubmission: confirmResubmission
       };
 
       const result = await submitDailyTracking(payload);
     
-    toast({
-        title: "Daily tracking saved",
-        description: `Total: ${result?.data?.calculatedFootprint?.total ?? "-"} kg CO₂e`,
-    });
+      let toastMessage = `Total: ${result?.data?.calculatedFootprint?.total ?? "-"} kg CO₂e`;
+      
+      // Add reset information if available
+      if (result?.data?.resetResult?.reset) {
+        toastMessage += `. Reset ${result.data.resetResult.resetCount} completed challenges.`;
+      }
+
+      toast({
+        title: result?.data?.isUpdate ? "Daily tracking updated" : "Daily tracking saved",
+        description: toastMessage,
+      });
     
-    navigate("/dashboard");
+      navigate("/dashboard");
     } catch (error: any) {
       const message = error?.message || "Failed to submit tracking";
       toast({
         title: "Submission failed",
         description: message,
+        variant: "destructive"
       });
     }
+  };
+
+  const handleConfirmResubmission = () => {
+    setShowResubmissionDialog(false);
+    calculateFootprint(true);
   };
 
   const stepTitles = [
@@ -302,6 +394,18 @@ const TrackCarbon = () => {
             Answer these questions to calculate your current environmental impact
           </p>
         </div>
+
+        {/* Show resubmission warning if there's an existing entry */}
+        {todayEntry && (
+          <Alert className="mb-6 border-warning bg-warning/10">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Existing Entry Found</AlertTitle>
+            <AlertDescription>
+              You already have a tracking entry for today ({todayEntry.calculatedFootprint?.total || '-'} kg CO₂e). 
+              Submitting new data will update your footprint and may reset completed eco-challenges.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Progress Bar */}
         <Card className="shadow-card border-border mb-8">
@@ -470,7 +574,6 @@ const TrackCarbon = () => {
                       onChange={(e) => handleTransportModeChange("noTransport", e.target.checked)}
                     />
                     <Label htmlFor="noTransport" className="flex-1">Didn't commute today</Label>
-                    {/* Removed Input for noTransport as it's not needed */}
                   </div>
                 </div>
               </div>
@@ -602,12 +705,12 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select breakfast type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
-                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
-                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
-                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
-                    <SelectItem value="none">🚫 Skipped breakfast</SelectItem>
+                    <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">Skipped breakfast</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -619,12 +722,12 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select lunch type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
-                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
-                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
-                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
-                    <SelectItem value="none">🚫 Skipped lunch</SelectItem>
+                    <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">Skipped lunch</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -636,18 +739,75 @@ const TrackCarbon = () => {
                     <SelectValue placeholder="Select dinner type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="meat">🥩 Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                    <SelectItem value="fish">🐟 Fish-based (salmon, tuna, shrimp)</SelectItem>
-                    <SelectItem value="plant-based">🥗 Plant-based (fruits, grains)</SelectItem>
-                    <SelectItem value="dairy">🥛 Dairy (milk, yogurt, eggs)</SelectItem>
-                    <SelectItem value="mixed">🍽️ Mixed (combination of categories)</SelectItem>
-                    <SelectItem value="none">🚫 Skipped dinner</SelectItem>
+                    <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+                    <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+                    <SelectItem value="plant-based">Plant-based (fruits, grains)</SelectItem>
+                    <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+                    <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+                    <SelectItem value="none">Skipped dinner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Resubmission Warning Dialog */}
+        <AlertDialog open={showResubmissionDialog} onOpenChange={setShowResubmissionDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                {resubmissionWarning?.warning?.title || "Update Daily Tracking"}
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="space-y-3 px-6">
+              <p className="text-sm text-muted-foreground">{resubmissionWarning?.warning?.message}</p>
+
+              {resubmissionWarning?.existingFootprint && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm font-medium mb-2">Current footprint:</p>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span>Transport:</span>
+                      <span>{resubmissionWarning.existingFootprint.transport} kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Home Energy:</span>
+                      <span>{resubmissionWarning.existingFootprint.homeEnergy} kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Food:</span>
+                      <span>{resubmissionWarning.existingFootprint.food} kg</span>
+                    </div>
+                    <div className="flex justify-between font-medium pt-1 border-t">
+                      <span>Total:</span>
+                      <span>{resubmissionWarning.existingFootprint.total} kg CO₂e</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {resubmissionWarning?.warning?.challengesWillReset && (
+                <div className="p-3 bg-warning/10 rounded-lg border border-warning/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <RotateCcw className="h-4 w-4 text-warning" />
+                    <span className="text-sm font-medium">Challenges will be reset</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {resubmissionWarning.completedChallengesCount} completed eco-challenges will be reset and you'll need to complete them again.
+                  </p>
+                </div>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmResubmission}>
+                Update Tracking
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Navigation Buttons */}
         <div className="flex justify-between mt-8">
@@ -662,7 +822,7 @@ const TrackCarbon = () => {
           {currentStep < 3 ? (
             <Button onClick={nextStep}>Next Step</Button>
           ) : (
-            <Button onClick={calculateFootprint} className="flex items-center gap-2">
+            <Button onClick={() => calculateFootprint()} className="flex items-center gap-2">
               <TrendingDown className="h-4 w-4" />
               Calculate My Footprint
             </Button>

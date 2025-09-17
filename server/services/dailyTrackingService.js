@@ -8,21 +8,21 @@ const CO2_FACTORS_DAILY = {
     'walking': 0,
     'no_travel': 0
   },
-  
+
   // Flight emissions (kg CO₂e per flight)
   flights: {
     'long_haul': 250,
     'short_haul': 150,
     'no_flight': 0
   },
-  
+
   // Home energy (annual kg CO₂e)
   homeEnergy: {
     'large_house': 4500,
     'small_house': 3500,
     'apartment': 2500
   },
-  
+
   // High-energy appliances (percentage increase)
   appliances: {
     'ac_heating': 25,
@@ -30,7 +30,7 @@ const CO2_FACTORS_DAILY = {
     'laundry': 5,
     'none': 0
   },
-  
+
   // Food emissions (kg CO₂e per meal)
   food: {
     'breakfast_meat': 4.0,
@@ -53,6 +53,8 @@ const CO2_FACTORS_DAILY = {
     'dinner_skipped': 0
   }
 };
+
+const Challenge = require('../models/Challenge');
 
 class DailyTrackingService {
   /**
@@ -95,6 +97,7 @@ class DailyTrackingService {
 
     return transportTotal;
   }
+  
   
   /**
    * Calculate home energy emissions
@@ -179,6 +182,49 @@ class DailyTrackingService {
       food: Math.round(food * 100) / 100,
       total: Math.round(total * 100) / 100
     };
+  }
+  
+  /**
+   * Reset challenges on tracking update for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Result of reset operation
+   */
+  static async resetChallengesOnTrackingUpdate(userId) {
+    try {
+      // Get today's date in Philippines timezone
+      const now = new Date();
+      const phOffset = 8 * 60 * 60 * 1000;
+      const phNow = new Date(now.getTime() + phOffset);
+      const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+      // Find today's challenge document for the user
+      const challengeDoc = await Challenge.findOne({
+        userId: userId,
+        date: { $gte: today, $lt: tomorrow }
+      });
+
+      if (!challengeDoc) {
+        return { message: 'No challenge document found for today' };
+      }
+
+      // Reset completed status of dailyChallenges
+      challengeDoc.dailyChallenges.forEach(challenge => {
+        challenge.completed = false;
+        challenge.completedAt = null;
+      });
+
+      // Mark as recalculated
+      challengeDoc.isRecalculated = true;
+
+      // Save the updated document
+      await challengeDoc.save();
+
+      return { message: 'Challenges reset successfully' };
+    } catch (error) {
+      console.error('Error resetting challenges:', error);
+      throw error;
+    }
   }
  
   

@@ -24,6 +24,9 @@ export const updateProfile = (data) => API.patch("/profile/update", data);
 export const submitDailyTracking = (trackingData) =>
   API.post("/daily-tracking/submit", trackingData);
 
+export const checkResubmission = () =>
+  API.post("/daily-tracking/check-resubmission");
+
 export const getDailyTrackingHistory = (limit = 30, offset = 0) =>
   API.get(`/daily-tracking?limit=${limit}&offset=${offset}`);
 
@@ -36,6 +39,22 @@ export const getDailyTrackingStats = (days = 7) =>
 export const deleteDailyTracking = (entryId) =>
   API.delete(`/daily-tracking/${entryId}`);
 
+// ========== CHALLENGES ==========
+export const getTodaysChallenges = () =>
+  API.get("/challenges/today");
+
+export const completeChallenge = (challengeId) =>
+  API.post("/challenges/complete", { challengeId });
+
+export const getChallengeHistory = (limit = 30, offset = 0) =>
+  API.get(`/challenges/history?limit=${limit}&offset=${offset}`);
+
+export const getChallengeStats = (days = 7) =>
+  API.get(`/challenges/stats?days=${days}`);
+
+export const getChallengeLibrary = () =>
+  API.get("/challenges/library");
+
 // ========== PRE-ASSESSMENT ==========
 export const submitPreAssessment = (assessmentData) =>
   API.post("/preassessment/submit", assessmentData);
@@ -45,3 +64,10 @@ export const getPreAssessmentHistory = () =>
 
 export const getLatestPreAssessment = () =>
   API.get(`/preassessment/latest`);
+
+// ========== DASHBOARD ==========
+export const getDashboardSummary = () =>
+  API.get("/dashboard/summary");
+
+export const getDashboardTrends = (months = 6) =>
+  API.get(`/dashboard/trends?months=${months}`);

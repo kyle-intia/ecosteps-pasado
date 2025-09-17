@@ -1,32 +1,20 @@
-# TODO: Fix Email Verification Login Issue
+# TODO: Fix DailyTracking Validation Error
 
-## Issue Description
-- User registers successfully
-- Verification email is sent
-- Client attempts auto-login immediately after registration
-- Server returns 401 Unauthorized because email is not verified
-- Client incorrectly sets "isLoggedIn" to true despite failed login
+## Current Status
+- [x] Identified the issue: homeEnergy.homeType enum mismatch between frontend ("large-house") and backend ("large_house")
+- [x] Updated client/src/pages/TrackCarbon.tsx to map UI values to backend enum values
+- [x] Started server (port 4004) and client (port 8080) applications
+- [x] Fix implemented and ready for testing
 
-## Root Cause
-The Register.tsx component was setting localStorage "isLoggedIn" to true in both success and failure cases of the auto-login attempt, causing the client to think the user was logged in when they weren't.
+## Details
+The error was caused by the frontend sending "large-house" (with hyphen) while the backend model expects "large_house" (with underscore). Updated the calculateFootprint function to map these values before sending to the API.
 
-## Solution Implemented
-- ✅ Updated Register.tsx to only set "isLoggedIn" to true on successful login
-- ✅ If login fails (due to unverified email), navigate to verify-email-prompt without setting "isLoggedIn"
-- ✅ Improved user messaging to clearly indicate email verification is required
+## Next Steps
+- Log in to the application at http://localhost:8080/
+- Navigate to Track Carbon page
+- Select "Large House (3 or more bedrooms)" for home type
+- Fill out the form and submit
+- Verify no validation error occurs for homeEnergy.homeType
 
-## Changes Made
-- Modified `client/src/pages/Register.tsx` onSuccess handler in createAccount mutation
-- Split logic: successful login → set isLoggedIn + navigate to app; failed login → navigate to verify-email-prompt
-
-## Testing Steps
-- [ ] Register a new account
-- [ ] Verify that no 401 error occurs in browser console
-- [ ] Verify that user is redirected to verify-email-prompt page
-- [ ] Verify that "isLoggedIn" localStorage is not set until email is verified
-- [ ] Verify that after email verification, user can successfully log in
-
-## Follow-up
-- [ ] Test the complete email verification flow
-- [ ] Ensure VerifyEmailPrompt page works correctly
-- [ ] Verify that Login page properly handles unverified email attempts
+## Authentication Note
+The 401 Unauthorized errors are separate authentication issues and not related to the validation fix. They occur because the user needs to log in first to obtain valid access tokens.
