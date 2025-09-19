@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { register, login } from "../lib/api";
+import queryClient from "../config/queryClient";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -55,6 +56,8 @@ export default function Register() {
         // Attempt auto-login after registration
         await login({ email: variables.email, password: variables.password });
         localStorage.setItem("isLoggedIn", "true");
+        queryClient.invalidateQueries(["userProfileDetails"]);
+        queryClient.invalidateQueries(["auth"]);
         toast({
           title: "Welcome to EcoStep!",
           description: "Your account is ready and you're now logged in.",

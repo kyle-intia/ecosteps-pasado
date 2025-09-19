@@ -1,20 +1,16 @@
-# TODO: Fix DailyTracking Validation Error
+# Fix Username Display Issue After User Switch
 
-## Current Status
-- [x] Identified the issue: homeEnergy.homeType enum mismatch between frontend ("large-house") and backend ("large_house")
-- [x] Updated client/src/pages/TrackCarbon.tsx to map UI values to backend enum values
-- [x] Started server (port 4004) and client (port 8080) applications
-- [x] Fix implemented and ready for testing
+## Problem
+- Username on Home and Dashboard pages shows old user ("kyleintia123") even after logging in as new user ("charliekirk12")
+- Profile data is cached in React Query with `staleTime: Infinity`
+- Login process doesn't invalidate cached profile data
 
-## Details
-The error was caused by the frontend sending "large-house" (with hyphen) while the backend model expects "large_house" (with underscore). Updated the calculateFootprint function to map these values before sending to the API.
+## Tasks
+- [x] Edit `client/src/pages/Login.tsx` to invalidate profile and auth queries after successful login
+- [x] Edit `client/src/pages/Register.tsx` to invalidate queries after successful auto-login
+- [ ] Test login flow to verify profile updates correctly
+- [ ] Ensure no other cached data causes similar issues
 
-## Next Steps
-- Log in to the application at http://localhost:8080/
-- Navigate to Track Carbon page
-- Select "Large House (3 or more bedrooms)" for home type
-- Fill out the form and submit
-- Verify no validation error occurs for homeEnergy.homeType
-
-## Authentication Note
-The 401 Unauthorized errors are separate authentication issues and not related to the validation fix. They occur because the user needs to log in first to obtain valid access tokens.
+## Files to Edit
+- client/src/pages/Login.tsx
+- client/src/pages/Register.tsx
