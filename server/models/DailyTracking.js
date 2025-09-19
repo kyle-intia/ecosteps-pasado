@@ -17,7 +17,7 @@ const dailyTrackingSchema = new mongoose.Schema({
   // Store original user answers for recalculation
   rawAnswers: {
     type: mongoose.Schema.Types.Mixed,
-    required: true
+    required: false // Make optional since it's set in pre-save
   },
   transport: {
     modes: [{

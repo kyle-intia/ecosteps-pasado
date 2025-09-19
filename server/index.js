@@ -1,5 +1,5 @@
 // server/index.js
-// Updated server index with challenge routes integration
+// Updated server index with AI recommendation routes integration
 
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
@@ -20,11 +20,15 @@ const authenticate_1 = __importDefault(require("./middleware/authenticate"));
 const session_route_1 = __importDefault(require("./routes/session.route"));
 const profile_route_1 = __importDefault(require("./routes/profile.route"));
 
-// Bring in feature routers that were previously mounted in server.js
+// Import existing feature routers
 const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
 const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
 const challengeRoutes = require("./routes/challengeRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+
+// Import new AI recommendation routes
+const footprintRoutes = require("./routes/footprintRoutes");
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
@@ -51,19 +55,25 @@ app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
 
-// Feature routes - both legacy and /api prefixes for compatibility
+// Existing feature routes - both legacy and /api prefixes for compatibility
 app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 
-// New challenge routes
+// Challenge routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
 app.use("/api/challenges", authenticate_1.default, challengeRoutes);
 
 // Dashboard routes
 app.use("/dashboard", authenticate_1.default, dashboardRoutes);
 app.use("/api/dashboard", authenticate_1.default, dashboardRoutes);
+
+// NEW: AI Recommendation Feature Routes
+app.use("/footprint", authenticate_1.default, footprintRoutes);
+app.use("/api/footprint", authenticate_1.default, footprintRoutes);
+app.use("/recommendations", authenticate_1.default, recommendationRoutes);
+app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);
@@ -73,6 +83,8 @@ const startServer = async () => {
     app.listen(env_1.PORT, () => {
         console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
         console.log(`📊 Challenge API available at /api/challenges`);
+        console.log(`🤖 AI Recommendations API available at /api/recommendations`);
+        console.log(`📈 Footprint API available at /api/footprint`);
     });
 };
 

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "../lib/api";
+import queryClient from "../config/queryClient";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -87,6 +88,8 @@ export default function Login() {
         title: "Welcome back!",
         description: "You've successfully logged in to EcoStep.",
       });
+      queryClient.invalidateQueries(["userProfileDetails"]);
+      queryClient.invalidateQueries(["auth"]);
       checkPreAssessmentStatus();
     },
     onError: (error: any) => {
