@@ -2,7 +2,9 @@
 const DailyTracking = require('../models/DailyTracking');
 const PreAssessment = require('../models/PreAssessment');
 const Challenge = require('../models/Challenge');
+const Recommendation = require('../models/Recommendation');
 const ChallengeService = require('./challengeService');
+const AIRecommendationService = require('./aiRecommendationService');
 
 class DashboardService {
   /**
@@ -204,74 +206,157 @@ class DashboardService {
   }
   
   /**
-   * Generate personalized recommendations
+   * Generate personalized recommendations using AI
    * @param {Array} data - Current tracking data
    * @param {Object} preAssessment - Pre-assessment data
-   * @returns {Array} Recommendations
+   * @returns {Array} AI-powered recommendations
    */
-  static generateRecommendations(data, preAssessment) {
-    const recommendations = [];
-    
-    if (data.length === 0) {
+  static async generateRecommendations(data, preAssessment) {
+    try {
+      // If no tracking data, return basic recommendations
+      if (data.length === 0) {
+        return [
+          {
+            id: "no-data-rec-1",
+            title: "Start tracking your daily commute",
+            description: "Regular tracking helps identify improvement opportunities",
+            category: "transport",
+            estimatedSavings: 0.5,
+            priority: 1,
+            source: 'ai_generated',
+            actionable: true
+          },
+          {
+            id: "no-data-rec-2",
+            title: "Monitor your energy usage",
+            description: "Track home energy consumption to find savings",
+            category: "energy",
+            estimatedSavings: 0.3,
+            priority: 2,
+            source: 'ai_generated',
+            actionable: true
+          }
+        ];
+      }
+
+      // Get the most recent footprint data for AI recommendations
+      const latestFootprint = data[0]; // Already sorted by date desc
+
+      // Check if we already have recent AI recommendations for this footprint
+      const existingRecommendations = await Recommendation.findOne({
+        userId: latestFootprint.userId,
+        footprintId: latestFootprint._id,
+        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) } // Within last hour
+      });
+
+      if (existingRecommendations) {
+        console.log('Using cached AI recommendations for dashboard');
+        return existingRecommendations.recommendations.map((rec, index) => ({
+          id: `cached-rec-${index}`,
+          title: rec.title,
+          description: rec.description,
+          category: rec.category === 'home' ? 'energy' : rec.category,
+          estimatedSavings: rec.estimatedSavings || 0.5,
+          priority: index + 1,
+          source: 'ai_generated',
+          actionable: true
+        }));
+      }
+
+      // Prepare data for AI analysis
+      const footprintData = {
+        breakdown: latestFootprint.calculatedFootprint,
+        transportModes: latestFootprint.rawAnswers?.transport?.modes || [],
+        homeType: latestFootprint.rawAnswers?.homeEnergy?.homeType || latestFootprint.homeEnergy?.homeType,
+        occupants: latestFootprint.rawAnswers?.homeEnergy?.occupants || latestFootprint.homeEnergy?.occupants,
+        appliances: latestFootprint.rawAnswers?.homeEnergy?.appliances || latestFootprint.homeEnergy?.appliances,
+        meals: latestFootprint.rawAnswers?.food || {
+          breakfast: latestFootprint.food?.breakfast,
+          lunch: latestFootprint.food?.lunch,
+          dinner: latestFootprint.food?.dinner
+        }
+      };
+
+      console.log('Generating AI recommendations for dashboard with data:', {
+        totalEmissions: footprintData.breakdown.total,
+        categories: Object.keys(footprintData.breakdown)
+      });
+
+      // Generate AI recommendations
+      const aiResponse = await AIRecommendationService.generateRecommendations(footprintData);
+
+      // Save recommendations to database for caching
+      const recommendationDoc = new Recommendation({
+        userId: latestFootprint.userId,
+        footprintId: latestFootprint._id,
+        footprintSummary: {
+          total: footprintData.breakdown.total,
+          transport: footprintData.breakdown.transport,
+          homeEnergy: footprintData.breakdown.homeEnergy,
+          food: footprintData.breakdown.food,
+          date: latestFootprint.date
+        },
+        recommendations: aiResponse.recommendations,
+        aiMetadata: {
+          model: aiResponse.model,
+          processingTime: aiResponse.processingTime,
+          prompt: aiResponse.prompt,
+          rawResponse: aiResponse.rawResponse
+        }
+      });
+
+      await recommendationDoc.save();
+      console.log('AI recommendations generated and saved for dashboard:', recommendationDoc._id);
+
+      // Convert AI recommendations to dashboard format
+      return aiResponse.recommendations.map((rec, index) => ({
+        id: `dashboard-rec-${index}`,
+        title: rec.title,
+        description: rec.description,
+        category: rec.category === 'home' ? 'energy' : rec.category,
+        estimatedSavings: rec.estimatedSavings || 0.5,
+        priority: index + 1,
+        source: 'ai_generated',
+        actionable: true
+      }));
+
+    } catch (error) {
+      console.error('Error generating AI recommendations for dashboard:', error);
+
+      // Fallback to basic recommendations if AI fails
       return [
         {
-          icon: "Car",
-          title: "Start tracking your daily commute",
-          description: "Regular tracking helps identify improvement opportunities",
-          category: "transport"
+          id: "fallback-rec-1",
+          title: "Reduce transport emissions",
+          description: "Consider carpooling or using public transport to lower your carbon footprint",
+          category: "transport",
+          estimatedSavings: 0.5,
+          priority: 1,
+          source: 'ai_generated',
+          actionable: true
         },
         {
-          icon: "Zap", 
-          title: "Monitor your energy usage",
-          description: "Track home energy consumption to find savings",
-          category: "energy"
+          id: "fallback-rec-2",
+          title: "Optimize energy usage",
+          description: "Use energy-efficient appliances and turn off devices when not in use",
+          category: "energy",
+          estimatedSavings: 0.3,
+          priority: 2,
+          source: 'ai_generated',
+          actionable: true
+        },
+        {
+          id: "fallback-rec-3",
+          title: "Choose sustainable food options",
+          description: "Opt for plant-based meals and locally sourced food when possible",
+          category: "food",
+          estimatedSavings: 0.4,
+          priority: 3,
+          source: 'ai_generated',
+          actionable: true
         }
       ];
     }
-    
-    // Analyze patterns
-    const avgFootprint = data.reduce((acc, entry) => {
-      acc.transport += entry.calculatedFootprint?.transport || 0;
-      acc.homeEnergy += entry.calculatedFootprint?.homeEnergy || 0;
-      acc.food += entry.calculatedFootprint?.food || 0;
-      return acc;
-    }, { transport: 0, homeEnergy: 0, food: 0 });
-    
-    Object.keys(avgFootprint).forEach(key => {
-      avgFootprint[key] = avgFootprint[key] / data.length;
-    });
-    
-    // Transport recommendations
-    if (avgFootprint.transport > 5) { // High transport emissions
-      recommendations.push({
-        icon: "Car",
-        title: "Try carpooling 2 days per week",
-        description: `Could save up to ${Math.round(avgFootprint.transport * 0.4 * 30 / 1000 * 100) / 100} tons CO₂ monthly`,
-        category: "transport"
-      });
-    }
-    
-    // Energy recommendations
-    if (avgFootprint.homeEnergy > 3) { // High energy usage
-      recommendations.push({
-        icon: "Zap",
-        title: "Switch to LED bulbs",
-        description: "Reduce home energy consumption by 15%",
-        category: "energy"
-      });
-    }
-    
-    // Food recommendations
-    if (avgFootprint.food > 8) { // High food emissions
-      recommendations.push({
-        icon: "Utensils",
-        title: "Try meatless Mondays",
-        description: `Could save up to ${Math.round(avgFootprint.food * 0.2 * 30 / 1000 * 100) / 100} tons CO₂ monthly`,
-        category: "food"
-      });
-    }
-    
-    return recommendations.slice(0, 3); // Limit to 3 recommendations
   }
   
   /**
@@ -314,6 +399,44 @@ class DashboardService {
       emissions: worstDay.calculatedFootprint?.total || 0,
       dateString: new Date(worstDay.date).toLocaleDateString()
     };
+  }
+
+  /**
+   * Regenerate recommendations for a user
+   * @param {string} userId - User ID
+   * @returns {Object} New recommendations data
+   */
+  static async regenerateRecommendations(userId) {
+    try {
+      // Get the user's latest footprint data
+      const latestFootprint = await DailyTracking.findOne({
+        userId: userId
+      }).sort({ createdAt: -1 });
+
+      if (!latestFootprint) {
+        throw new Error('No footprint data found for user');
+      }
+
+      // Get pre-assessment for context
+      const preAssessment = await PreAssessment.findOne({ userId }).sort({ createdAt: -1 });
+
+      // Generate fresh recommendations
+      const recommendations = await this.generateRecommendations([latestFootprint], preAssessment);
+
+      return {
+        recommendations,
+        footprintData: {
+          id: latestFootprint._id,
+          footprintId: latestFootprint._id,
+          calculatedFootprint: latestFootprint.calculatedFootprint,
+          breakdown: latestFootprint.calculatedFootprint
+        },
+        message: 'Recommendations regenerated successfully'
+      };
+    } catch (error) {
+      console.error('Error regenerating recommendations:', error);
+      throw new Error(`Failed to regenerate recommendations: ${error.message}`);
+    }
   }
 }
 

@@ -2,6 +2,7 @@
 // Component to display AI-generated carbon footprint recommendations
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,8 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
   footprintData,
   onRetry
 }) => {
+  const navigate = useNavigate();
+
   // Category icons
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -307,14 +310,14 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
               </Button>
               
               <Button 
-                size="sm"
-                onClick={() => {
-                  // Navigate to challenges or dashboard
-                  window.location.href = '/dashboard';
-                }}
-              >
-                <Target className="h-4 w-4 mr-2" />
-                View Dashboard
+      size="sm"
+      onClick={() => {
+        // Navigate to dashboard using React Router
+        navigate('/dashboard');
+      }}
+    >
+      <Target className="h-4 w-4 mr-2" />
+      View Dashboard
               </Button>
             </div>
           </div>
