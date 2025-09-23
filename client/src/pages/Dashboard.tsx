@@ -13,6 +13,7 @@ import useProfile from "@/hooks/useAuthProfile";
 import { useDashboardData } from "../hooks/useDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import RecommendationView from "@/components/RecommendationView";
 
 type UserProfile = {
   username?: string;
@@ -322,37 +323,39 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Personalized Recommendations */}
-        {recommendations && recommendations && recommendations.length > 0 && (
-<Card className="shadow-card border-border">
-<CardHeader>
-<CardTitle>Personalized Recommendations</CardTitle>
-<CardDescription>Based on your current carbon footprint</CardDescription>
-</CardHeader>
-<CardContent className="space-y-4">
-{recommendations.map((rec, index) => {
-const IconComponent = rec.icon === "Car" ? Car :
-rec.icon === "Zap" ? Zap :
-rec.icon === "Utensils" ? Utensils :
-Leaf; const bgColor = rec.category === "transport" ? "bg-destructive/10" :
-                           rec.category === "energy" ? "bg-warning/10" :
-                           "bg-success/10";
-
-            return (
-              <div key={index} className={`flex items-start space-x-3 p-4 ${bgColor} rounded-lg`}>
-                <div className="p-2 bg-card rounded-lg shadow-sm">
-                  <IconComponent className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground">{rec.title}</h4>
-                  <p className="text-sm text-muted-foreground">{rec.description}</p>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-    )}
+        {/* AI-Powered Recommendations */}
+        {recommendations && recommendations.length > 0 && (
+          <div className="mb-8">
+            <RecommendationView
+              recommendations={recommendations.map((rec, index) => ({
+                id: `dashboard-rec-${index}`,
+                title: rec.title,
+                description: rec.description,
+                category: rec.category === 'energy' ? 'home' : rec.category,
+                estimatedSavings: rec.estimatedSavings || 0.5,
+                priority: index + 1,
+                source: 'ai_generated',
+                actionable: true
+              }))}
+              footprintData={null}
+              onRetry={async () => {
+                try {
+                  await refetchDashboard();
+                  toast({
+                    title: "Recommendations updated",
+                    description: "New AI-powered recommendations have been generated.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Update failed",
+                    description: "Unable to generate new recommendations. Please try again.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+            />
+          </div>
+        )}
 
     {/* Summary Stats */}
     {summary && (

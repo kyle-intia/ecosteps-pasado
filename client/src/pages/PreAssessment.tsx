@@ -9,7 +9,8 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import  useSessionStatus from "../hooks/useSessionStatus"
+import useSessionStatus from "../hooks/useSessionStatus";
+import useAuth from "../hooks/useAuth";
 
 const questions = [
   {
@@ -121,9 +122,15 @@ export default function PreAssessment() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPending } = useSessionStatus();
+  const { user } = useAuth();
 
   useEffect(() => {
     const checkAssessmentStatus = async () => {
+      // Only check assessment status if user is authenticated
+      if (!user) {
+        return;
+      }
+
       try {
         const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
           method: "GET",
@@ -144,7 +151,7 @@ export default function PreAssessment() {
     };
 
     checkAssessmentStatus();
-  }, [navigate]);
+  }, [navigate, user]);
 
   const getCurrentSection = () => questions[currentSection];
   const getCurrentQuestion = () => getCurrentSection().questions[currentQuestion];

@@ -71,3 +71,7 @@ export const getDashboardSummary = () =>
 
 export const getDashboardTrends = (months = 6) =>
   API.get(`/dashboard/trends?months=${months}`);
+
+// ========== RECOMMENDATIONS ==========
+export const regenerateRecommendations = () =>
+  API.post("/dashboard/recommendations/regenerate");

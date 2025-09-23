@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
+import useAuth from "../hooks/useAuth";
 
 const PrivateRoute = () => {
   const [loading, setLoading] = useState(true);
   const [isAssessmentComplete, setIsAssessmentComplete] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const checkUserStatus = async () => {
+      // Only check user status if user is authenticated
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         // Check if user has completed the assessment
         const assessmentResponse = await fetch("http://localhost:4004/api/preassessment/user/status", {
@@ -50,7 +58,7 @@ const PrivateRoute = () => {
     };
 
     checkUserStatus();
-  }, []);
+  }, [user]);
 
   if (loading) return <Spinner />;
 
