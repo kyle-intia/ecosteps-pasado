@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import useAuth from "@/hooks/useAuth";
 
 interface User {
   _id: string; // id to _id to match MongoDB
@@ -21,10 +22,14 @@ interface User {
 }
 
 const Leaderboards = () => {
+  const useAuthFlag = import.meta.env.VITE_USE_AUTH === 'true';
+  const { user } = useAuth() as { user: { id: string } | null };
+
   const [sortBy, setSortBy] = useState("overall");
   const [users, setUsers] = useState<User[]>([]);
   const [userRank, setUserRank] = useState<{ rank: number | null; score: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const isLoggedIn = !useAuthFlag || !!user;
 
   // Helper function to determine user tier
   const getUserTier = (score: number) => {
@@ -41,13 +46,21 @@ const Leaderboards = () => {
         
         // Build API URL with tier parameter
         const tierParam = sortBy !== 'overall' ? `?tier=${sortBy}` : '';
-        const leaderboardResponse = await axios.get(`http://localhost:5000/api/leaderboard${tierParam}`);
+        const leaderboardResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/leaderboard${tierParam}`);
         setUsers(leaderboardResponse.data);
 
-        // Fetch current user rank
-        const currentUserId = "66e9d7850431285a9a59587d"; // Replace with the actual logged-in user's ID
-        const rankResponse = await axios.get(`http://localhost:5000/api/leaderboard/rank/${currentUserId}`);
-        setUserRank(rankResponse.data);
+        // Determine current user ID based on env
+        const currentUserId = !useAuthFlag
+          ? (import.meta.env.VITE_DEFAULT_USER_ID || "6744176ad35a5b47b4fb21fe")
+          : (user?.id ?? null);
+
+        // Fetch current user rank only if we have a user id
+        if (currentUserId) {
+          const rankResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/leaderboard/rank/${currentUserId}`);
+          setUserRank(rankResponse.data);
+        } else {
+          setUserRank(null);
+        }
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -61,7 +74,7 @@ const Leaderboards = () => {
     };
 
     fetchLeaderboardAndRank();
-  }, [sortBy]); // Add sortBy to dependency array
+  }, [sortBy, useAuthFlag, user?.id]); // re-fetch when auth/user changes
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -91,15 +104,17 @@ const Leaderboards = () => {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
         <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-lg text-muted-foreground">Loading leaderboards...</p>
         </div>
       </div>
     );
   }
   
+  
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
