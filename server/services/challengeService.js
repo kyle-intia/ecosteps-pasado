@@ -330,6 +330,35 @@ class ChallengeService {
       completedCount: challengeDoc.getCompletedCount(),
       allCompleted: challengeDoc.areAllCompleted()
     };
+    
+    // In the completeChallenge method, after marking challenge as completed:
+const AchievementService = require('./achievementService');
+
+// Check for new achievements after challenge completion
+const newAchievements = await AchievementService.checkAchievements(
+  userId, 
+  'CHALLENGE_COMPLETE', 
+  {
+    dailyChallengesCompleted: challengeDoc.getCompletedCount(),
+    challengeCategory: challenge.category
+  }
+);
+
+// Update user stats based on challenge completion
+await AchievementService.updateUserStats(userId, {
+  totalChallengesCompleted: user.achievementStats.totalChallengesCompleted + 1,
+  [`${challenge.category}ChallengesCompleted`]: 
+    user.achievementStats[`${challenge.category}ChallengesCompleted`] + 1,
+  totalCO2Saved: user.achievementStats.totalCO2Saved + (challenge.savingsValue || 0)
+});
+
+return {
+  challengeDoc,
+  recalculationResult,
+  completedCount: challengeDoc.getCompletedCount(),
+  allCompleted: challengeDoc.areAllCompleted(),
+  newAchievements // Include new achievements in response
+};
   }
   
   /**

@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator, AlertTriangle, RotateCcw, Sparkles, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout, getTodaysTracking, getDailyTrackingHistory } from "../lib/api";
+import { logout, getTodaysTracking, getDailyTrackingHistory, submitDailyTracking } from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
@@ -31,6 +31,21 @@ interface Recommendation {
   priority: number;
   source: 'ai_generated' | 'rule_based' | 'hybrid';
   actionable: boolean;
+}
+
+interface Achievement {
+  achievementId: string;
+  name: string;
+  description: string;
+  category: 'daily' | 'challenge' | 'carbon' | 'transport' | 'home' | 'food';
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  icon: string;
+  targetValue: number;
+  unlocked: boolean;
+  unlockedAt?: string;
+  progress: number;
+  isEquipped: boolean;
+  profilePriority: number;
 }
 
 interface FootprintResponse {
@@ -51,7 +66,7 @@ interface FootprintResponse {
       food: number;
       total: number;
     };
-    context: any;
+    newAchievements?: Achievement[];
   };
 }
 
