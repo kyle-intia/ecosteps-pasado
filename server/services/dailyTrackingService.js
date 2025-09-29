@@ -1,3 +1,6 @@
+const User = require('../models/user.model').default;
+const AchievementService = require('./achievementService');
+
 const CO2_FACTORS_DAILY = {
   // Transport factors (kg CO₂e per km)
   transport: {
@@ -294,6 +297,54 @@ class DailyTrackingService {
       isValid: errors.length === 0,
       errors
     };
+
+  }
+
+  /**
+   * Handle achievement checking after successful tracking submission
+   * @param {string} userId - User ID
+   * @param {Object} calculatedFootprint - Calculated footprint object
+   * @param {Object} trackingData - Original tracking data
+   * @returns {Promise<Array>} Array of newly unlocked achievements
+   */
+  static async handleTrackingAchievements(userId, calculatedFootprint, trackingData) {
+    try {
+      // Calculate streak and update stats
+      const user = await User.findById(userId);
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+
+      let currentStreak = 1;
+      if (user.achievementStats.lastTrackingDate &&
+          new Date(user.achievementStats.lastTrackingDate).toDateString() === yesterday) {
+        currentStreak = user.achievementStats.currentStreak + 1;
+      }
+
+      // Update achievement stats
+      await AchievementService.updateUserStats(userId, {
+        totalTrackingDays: user.achievementStats.totalTrackingDays + 1,
+        currentStreak: currentStreak,
+        maxStreak: Math.max(user.achievementStats.maxStreak, currentStreak),
+        lastTrackingDate: new Date()
+      });
+
+      // Check for achievements
+      const newAchievements = await AchievementService.checkAchievements(
+        userId,
+        'DAILY_TRACKING_COMPLETE',
+        {
+          dailyFootprint: calculatedFootprint.total,
+          isCarFree: !trackingData.transport.modes.some(m => m.id === 'car'),
+          isPlantBased: [trackingData.food.breakfast, trackingData.food.lunch, trackingData.food.dinner]
+            .every(meal => meal === 'plant')
+        }
+      );
+
+      return newAchievements;
+    } catch (error) {
+      console.error('Error handling tracking achievements:', error);
+      return [];
+    }
   }
 }
 

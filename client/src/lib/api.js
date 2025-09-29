@@ -75,3 +75,21 @@ export const getDashboardTrends = (months = 6) =>
 // ========== RECOMMENDATIONS ==========
 export const regenerateRecommendations = () =>
   API.post("/dashboard/recommendations/regenerate");
+
+// ========== ACHIEVEMENTS ==========
+export const getUserAchievements = () => API.get("/achievements");
+
+export const equipAchievement = (achievementId) =>
+  API.post("/achievements/equip", { achievementId });
+
+export const unequipAchievement = (achievementId) =>
+  API.post("/achievements/unequip", { achievementId });
+
+export const getAchievementNotifications = (limit = 20, unreadOnly = false) =>
+  API.get(`/achievements/notifications?limit=${limit}&unreadOnly=${unreadOnly}`);
+
+export const markNotificationAsRead = (notificationId) =>
+  API.patch(`/achievements/notifications/${notificationId}/read`);
+
+export const checkAchievements = (triggerEvent, context = {}) =>
+  API.post("/achievements/check", { triggerEvent, context });

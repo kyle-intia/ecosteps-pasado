@@ -30,6 +30,9 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const footprintRoutes = require("./routes/footprintRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 
+// Import achievement routes
+const achievementRoutes = require("./routes/achievementRoutes");
+
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
 app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
@@ -74,6 +77,10 @@ app.use("/footprint", authenticate_1.default, footprintRoutes);
 app.use("/api/footprint", authenticate_1.default, footprintRoutes);
 app.use("/recommendations", authenticate_1.default, recommendationRoutes);
 app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
+
+// Achievement routes 
+app.use("/achievements", authenticate_1.default, achievementRoutes);
+app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);

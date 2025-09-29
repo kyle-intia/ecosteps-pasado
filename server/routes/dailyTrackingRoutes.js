@@ -153,12 +153,16 @@ router.post('/submit', async (req, res) => {
       // Reset challenges if this is an update
       const resetResult = await DailyTrackingService.resetChallengesOnTrackingUpdate(userId);
 
+      // Check for achievements
+      const newAchievements = await DailyTrackingService.handleTrackingAchievements(userId, calculatedFootprint, trackingData);
+
       res.json({
         success: true,
         data: {
           id: existingEntry._id,
           isUpdate: true,
           calculatedFootprint,
+          newAchievements,
           resetResult
         }
       });
@@ -175,12 +179,16 @@ router.post('/submit', async (req, res) => {
 
       await newEntry.save();
 
+      // Check for achievements
+      const newAchievements = await DailyTrackingService.handleTrackingAchievements(userId, calculatedFootprint, trackingData);
+
       res.json({
         success: true,
         data: {
           id: newEntry._id,
           isUpdate: false,
-          calculatedFootprint
+          calculatedFootprint,
+          newAchievements
         }
       });
     }
