@@ -572,14 +572,18 @@ class AchievementService {
     }
   }
 
-  static async updateUserStats(userId, statUpdates) {
+  static async updateUserStats(userId, statUpdates, increment = false) {
     try {
       const user = await User.findById(userId);
       if (!user) return;
 
       Object.keys(statUpdates).forEach(key => {
         if (user.achievementStats[key] !== undefined) {
-          user.achievementStats[key] = statUpdates[key];
+          if (increment) {
+            user.achievementStats[key] += statUpdates[key];
+          } else {
+            user.achievementStats[key] = statUpdates[key];
+          }
         }
       });
 

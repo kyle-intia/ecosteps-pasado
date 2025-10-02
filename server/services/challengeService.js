@@ -1,13 +1,13 @@
 // server/services/challengeService.js
-// Updated service with daily tracking validation and challenge reset functionality
+// Updated service with improved daily challenge selection algorithm
 
 const Challenge = require('../models/Challenge');
 const DailyTracking = require('../models/DailyTracking');
 const DailyTrackingService = require('./dailyTrackingService');
 
-// Challenge library from the implementation prompt
+// Enhanced challenge library with more options for better variety
 const CHALLENGE_LIBRARY = {
-  // Transport challenges
+  // Transport challenges (increased variety)
   car_free_commute: {
     id: "car_free_commute",
     title: "Car-Free Commuter",
@@ -48,8 +48,28 @@ const CHALLENGE_LIBRARY = {
     targetQuestion: "Q1",
     overrideValue: "no_commute"
   },
+  bike_commuter: {
+    id: "bike_commuter",
+    title: "Bike Commuter",
+    description: "Use a bicycle for your commute or errands today.",
+    category: "transport",
+    calculationType: "override",
+    savingsValue: "calculated",
+    targetQuestion: "Q1",
+    overrideValue: "bicycle"
+  },
+  carpool_captain: {
+    id: "carpool_captain",
+    title: "Carpool Captain",
+    description: "Share a ride with others for your commute today.",
+    category: "transport",
+    calculationType: "override",
+    savingsValue: "calculated",
+    targetQuestion: "Q1",
+    overrideValue: "carpool"
+  },
 
-  // Home challenges
+  // Home challenges (increased variety)
   full_house: {
     id: "full_house",
     title: "Full House",
@@ -96,8 +116,24 @@ const CHALLENGE_LIBRARY = {
     calculationType: "fixed_credit",
     savingsValue: 2.0
   },
+  led_light_leader: {
+    id: "led_light_leader",
+    title: "LED Light Leader",
+    description: "Use only LED bulbs and natural lighting today.",
+    category: "home",
+    calculationType: "fixed_credit",
+    savingsValue: 0.3
+  },
+  power_strip_pro: {
+    id: "power_strip_pro",
+    title: "Power Strip Pro",
+    description: "Use power strips and turn them off when not in use.",
+    category: "home",
+    calculationType: "fixed_credit",
+    savingsValue: 0.4
+  },
 
-  // Food challenges
+  // Food challenges (increased variety)
   meat_free_munchday: {
     id: "meat_free_munchday",
     title: "Meat-Free Munchday",
@@ -125,6 +161,30 @@ const CHALLENGE_LIBRARY = {
     category: "food",
     calculationType: "fixed_credit",
     savingsValue: 0.5
+  },
+  zero_waste_warrior: {
+    id: "zero_waste_warrior",
+    title: "Zero Waste Warrior",
+    description: "Avoid single-use plastics and packaging for all meals today.",
+    category: "food",
+    calculationType: "fixed_credit",
+    savingsValue: 0.7
+  },
+  local_food_lover: {
+    id: "local_food_lover",
+    title: "Local Food Lover",
+    description: "Eat only locally sourced ingredients for at least one meal.",
+    category: "food",
+    calculationType: "fixed_credit",
+    savingsValue: 0.6
+  },
+  water_wise: {
+    id: "water_wise",
+    title: "Water Wise",
+    description: "Choose tap water over bottled drinks today.",
+    category: "food",
+    calculationType: "fixed_credit",
+    savingsValue: 0.4
   }
 };
 
@@ -200,41 +260,92 @@ class ChallengeService {
   }
 
   /**
-   * Challenge Selection Algorithm - selects 3 unique challenges (one from each category)
+   * Improved Challenge Selection Algorithm - ensures different challenges every day
    * @param {string} userId - User identifier for consistent daily selection
-   * @returns {Array} Array of 3 selected challenges
+   * @returns {Array} Array of 3 selected challenges (one from each category)
    */
   static selectDailyChallenges(userId) {
-    const challenges = Object.values(CHALLENGE_LIBRARY);
     const categories = ['transport', 'home', 'food'];
     const selected = [];
     
-    // Create a pseudo-random seed based on user ID and current date
-    const today = new Date().toISOString().split('T')[0];
-    const seed = this.generateSeed(userId + today);
+    // Get today's date in a consistent format (Philippines timezone)
+    const now = new Date();
+    const phOffset = 8 * 60 * 60 * 1000;
+    const phNow = new Date(now.getTime() + phOffset);
+    const dateString = phNow.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Create a deterministic seed based on user ID and date
+    const seed = this.createDeterministicSeed(userId + dateString);
     
     categories.forEach(category => {
-      const categoryOptions = challenges.filter(c => c.category === category);
-      const index = Math.abs(seed * categoryOptions.length) % categoryOptions.length;
-      selected.push(categoryOptions[Math.floor(index)]);
+      const categoryChallenges = Object.values(CHALLENGE_LIBRARY)
+        .filter(c => c.category === category);
+      
+      if (categoryChallenges.length === 0) {
+        throw new Error(`No challenges found for category: ${category}`);
+      }
+      
+      // Use the seed to select a challenge for this category
+      const challengeIndex = Math.floor(seed * categoryChallenges.length) % categoryChallenges.length;
+      selected.push(categoryChallenges[challengeIndex]);
     });
     
     return selected;
   }
   
   /**
-   * Generate a consistent pseudo-random seed for challenge selection
-   * @param {string} input - Input string to generate seed from
-   * @returns {number} Pseudo-random number
+   * Create a deterministic seed that will be the same for same user+date
+   * but different for different dates
+   * @param {string} input - Combination of user ID and date
+   * @returns {number} Deterministic seed between 0 and 1
    */
-  static generateSeed(input) {
+  static createDeterministicSeed(input) {
+    // Simple hash function that's consistent across server restarts
     let hash = 0;
     for (let i = 0; i < input.length; i++) {
       const char = input.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = Math.abs(hash & hash); // Convert to 32-bit integer and ensure positive
     }
-    return Math.abs(hash) / 2147483647; // Normalize to 0-1 range
+    
+    // Normalize to 0-1 range using modulo with a large prime
+    return (hash % 999983) / 999983;
+  }
+
+  /**
+   * Alternative selection method using date-based rotation for maximum variety
+   * @param {string} userId - User identifier
+   * @returns {Array} Selected challenges
+   */
+  static selectDailyChallengesByRotation(userId) {
+    const categories = ['transport', 'home', 'food'];
+    const selected = [];
+    
+    // Get the day of year for rotation basis
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    
+    categories.forEach(category => {
+      const categoryChallenges = Object.values(CHALLENGE_LIBRARY)
+        .filter(c => c.category === category)
+        .sort((a, b) => a.id.localeCompare(b.id)); // Sort for consistent ordering
+      
+      if (categoryChallenges.length === 0) {
+        throw new Error(`No challenges found for category: ${category}`);
+      }
+      
+      // Use day of year and user ID to create a rotation index
+      const userIdHash = parseInt(userId.substring(0, 8), 16) || 0;
+      const rotationBase = userIdHash + dayOfYear;
+      const challengeIndex = (rotationBase + categories.indexOf(category) * 7) % categoryChallenges.length;
+      
+      selected.push(categoryChallenges[challengeIndex]);
+    });
+    
+    return selected;
   }
   
   /**
@@ -260,8 +371,8 @@ class ChallengeService {
     });
     
     if (!challengeDoc) {
-      // Generate new challenges for today
-      const selectedChallenges = this.selectDailyChallenges(userId);
+      // Use the rotation-based selection for maximum daily variety
+      const selectedChallenges = this.selectDailyChallengesByRotation(userId);
       
       challengeDoc = new Challenge({
         userId: userId,
@@ -296,6 +407,9 @@ class ChallengeService {
    * @returns {Object} Updated challenge document and recalculation result
    */
   static async completeChallenge(userId, challengeId) {
+    const AchievementService = require('./achievementService');
+    const User = require('../models/user.model');
+
     // Validate that user has completed daily tracking
     const hasTracking = await this.hasCompletedDailyTracking(userId);
     if (!hasTracking) {
@@ -323,42 +437,40 @@ class ChallengeService {
     
     // Save the updated challenge document
     await challengeDoc.save();
-    
+
+    // Fetch user to update stats
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update user stats based on challenge completion BEFORE checking achievements
+    const co2Saved = typeof challenge.savingsValue === 'number' ? challenge.savingsValue : 0;
+    const updatedStats = await AchievementService.updateUserStats(userId, {
+      totalChallengesCompleted: 1,
+      [`${challenge.category}ChallengesCompleted`]: 1,
+      totalCO2Saved: co2Saved
+    }, true); // Use increment flag to correctly increment stats
+
+    // Check for new achievements after challenge completion
+    const newAchievements = await AchievementService.checkAchievements(
+      userId,
+      'CHALLENGE_COMPLETE',
+      {
+        dailyChallengesCompleted: challengeDoc.getCompletedCount(),
+        challengeCategory: challenge.category,
+        // Pass updated stats explicitly to avoid stale data
+        totalChallengesCompleted: updatedStats.totalChallengesCompleted
+      }
+    );
+
     return {
       challengeDoc,
       recalculationResult,
       completedCount: challengeDoc.getCompletedCount(),
-      allCompleted: challengeDoc.areAllCompleted()
+      allCompleted: challengeDoc.areAllCompleted(),
+      newAchievements // Include new achievements in response
     };
-    
-    // In the completeChallenge method, after marking challenge as completed:
-const AchievementService = require('./achievementService');
-
-// Check for new achievements after challenge completion
-const newAchievements = await AchievementService.checkAchievements(
-  userId, 
-  'CHALLENGE_COMPLETE', 
-  {
-    dailyChallengesCompleted: challengeDoc.getCompletedCount(),
-    challengeCategory: challenge.category
-  }
-);
-
-// Update user stats based on challenge completion
-await AchievementService.updateUserStats(userId, {
-  totalChallengesCompleted: user.achievementStats.totalChallengesCompleted + 1,
-  [`${challenge.category}ChallengesCompleted`]: 
-    user.achievementStats[`${challenge.category}ChallengesCompleted`] + 1,
-  totalCO2Saved: user.achievementStats.totalCO2Saved + (challenge.savingsValue || 0)
-});
-
-return {
-  challengeDoc,
-  recalculationResult,
-  completedCount: challengeDoc.getCompletedCount(),
-  allCompleted: challengeDoc.areAllCompleted(),
-  newAchievements // Include new achievements in response
-};
   }
   
   /**
@@ -465,6 +577,10 @@ return {
           workingData.transport.modes = [{ id: 'walking', distance: 5 }];
         } else if (overrideValue === 'no_commute') {
           workingData.transport.modes = [{ id: 'no_travel', distance: 0 }];
+        } else if (overrideValue === 'bicycle') {
+          workingData.transport.modes = [{ id: 'bicycle', distance: 10 }];
+        } else if (overrideValue === 'carpool') {
+          workingData.transport.modes = [{ id: 'carpool', distance: 10 }];
         }
         break;
         
@@ -557,6 +673,20 @@ return {
       completionRate: totalChallenges > 0 ? Math.round((completedChallenges / totalChallenges) * 100) : 0,
       perfectDays,
       activeDays: challengeDocs.length
+    };
+  }
+
+  /**
+   * Get all available challenges (for admin/testing purposes)
+   * @returns {Object} All challenges grouped by category
+   */
+  static getAllChallenges() {
+    const challenges = Object.values(CHALLENGE_LIBRARY);
+    return {
+      transport: challenges.filter(c => c.category === 'transport'),
+      home: challenges.filter(c => c.category === 'home'),
+      food: challenges.filter(c => c.category === 'food'),
+      total: challenges.length
     };
   }
 }
