@@ -158,6 +158,7 @@ const Achievements = () => {
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const totalPoints = achievements.filter(a => a.unlocked).length * 100; // Mock points calculation
+  const challengeStats = stats.totalChallengesCompleted || 0;
 
   const handleEquipToggle = (achievement: Achievement) => {
     if (achievement.isEquipped) {
@@ -220,6 +221,10 @@ const Achievements = () => {
             <div className="text-center">
               <p className="text-3xl font-bold text-purple-600">{equipped.length}/3</p>
               <p className="text-sm text-muted-foreground">Equipped</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-orange-600">{challengeStats}</p>
+              <p className="text-sm text-muted-foreground">Challenges Completed</p>
             </div>
           </div>
         </div>

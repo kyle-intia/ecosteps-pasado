@@ -10,7 +10,7 @@ const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = tru
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.AudioContext) {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = new (window.AudioContext || window.AudioContext)();
       setAudioContext(ctx);
     }
   }, []);
