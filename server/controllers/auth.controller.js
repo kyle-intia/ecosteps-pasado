@@ -27,11 +27,14 @@ exports.loginHandler = (0, catchErrors_1.default)(async (req, res) => {
         ...req.body,
         userAgent: req.headers["user-agent"],
     });
-    const { accessToken, refreshToken } = await (0, auth_service_1.loginUser)(request);
+    const { accessToken, refreshToken, user} = await (0, auth_service_1.loginUser)(request);
     // set cookies
     return (0, cookies_1.setAuthCookies)({ res, accessToken, refreshToken })
         .status(http_1.OK)
-        .json({ message: "Login successful" });
+        .json({
+            message: "Login successful",
+            role: user.role,
+    });
 });
 exports.logoutHandler = (0, catchErrors_1.default)(async (req, res) => {
     const accessToken = req.cookies.accessToken;

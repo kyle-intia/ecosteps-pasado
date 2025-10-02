@@ -1,11 +1,12 @@
 "use strict";
-// profile.service.ts
+
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateProfile = exports.getProfile = exports.createProfile = void 0;
-const userprofile_model_1 = __importDefault(require("../models/userprofile.model"));
+const userprofile_model_1 = __importDefault(require("../models/userprofile.model")); 
+const NotificationService = require('../services/notificationService');
 const createProfile = async (userId, input) => {
     const existingProfile = await userprofile_model_1.default.findOne({ user: userId });
     if (existingProfile) {
@@ -16,8 +17,11 @@ const createProfile = async (userId, input) => {
         ...input,
         profilePic: input.profilePic ?? undefined,
         userProfileDone: true,
+        status: "active",
+        role: "user"
     };
     const profile = await userprofile_model_1.default.create(profileData);
+    await NotificationService.createNotification(userId, `${userId} completed his/her profile`, "user-profile");
     return profile;
 };
 exports.createProfile = createProfile;

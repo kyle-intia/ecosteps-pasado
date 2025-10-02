@@ -1,26 +1,17 @@
-// PrivateRoute.tsx
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
+import { assessmentDone } from "../lib/api";  // Import the API function
 
-const PrivateRoute = () => {
+const PreAssessmentRoute = () => {
   const [loading, setLoading] = useState(true);
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
     const checkAssessmentStatus = async () => {
       try {
-        const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data?.assessmentDone) {
+        const response = await assessmentDone(); // Use the API function here
+        if (response?.assessmentDone) {
           setIsAllowed(true);
         }
       } catch (error) {
@@ -39,4 +30,4 @@ const PrivateRoute = () => {
   return isAllowed ? <Outlet /> : <Navigate to="/pre-assessment" replace />;
 };
 
-export default PrivateRoute;
+export default PreAssessmentRoute;

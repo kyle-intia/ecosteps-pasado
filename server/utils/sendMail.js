@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendMail = void 0;
 const resend_1 = __importDefault(require("../config/resend"));
 const env_1 = require("../constants/env");
-const getFromEmail = () => env_1.NODE_ENV === "development" ? "onboarding@resend.dev" : env_1.EMAIL_SENDER;
-const getToEmail = (to) => env_1.NODE_ENV === "development" ? "delivered@resend.dev" : to;
+const getFromEmail = () =>  `"EcoSteps Support" <${env_1.EMAIL_SENDER}>`;
+const getToEmail = (to) =>  to;
 const sendMail = async ({ to, subject, text, html }) => {
     try {
         const response = await resend_1.default.emails.send({

@@ -1,60 +1,11 @@
-const CO2_FACTORS_DAILY = {
-  // Transport factors (kg CO₂e per km)
-  transport: {
-    'car': 0.25,
-    'public_transport': 0.08,
-    'motorcycle': 0.11,
-    'bicycle': 0,
-    'walking': 0,
-    'no_travel': 0
-  },
-  
-  // Flight emissions (kg CO₂e per flight)
-  flights: {
-    'long_haul': 250,
-    'short_haul': 150,
-    'no_flight': 0
-  },
-  
-  // Home energy (annual kg CO₂e)
-  homeEnergy: {
-    'large_house': 4500,
-    'small_house': 3500,
-    'apartment': 2500
-  },
-  
-  // High-energy appliances (percentage increase)
-  appliances: {
-    'ac_heating': 25,
-    'heating_only': 25,
-    'laundry': 5,
-    'none': 0
-  },
-  
-  // Food emissions (kg CO₂e per meal)
-  food: {
-    'breakfast_meat': 4.0,
-    'breakfast_fish': 2.5,
-    'breakfast_dairy': 2.0,
-    'breakfast_mixed': 3.0,
-    'breakfast_plant': 1.0,
-    'breakfast_skipped': 0,
-    'lunch_meat': 4.0,
-    'lunch_fish': 2.5,
-    'lunch_dairy': 2.0,
-    'lunch_mixed': 3.0,
-    'lunch_plant': 1.0,
-    'lunch_skipped': 0,
-    'dinner_meat': 4.0,
-    'dinner_fish': 2.5,
-    'dinner_dairy': 2.0,
-    'dinner_mixed': 3.0,
-    'dinner_plant': 1.0,
-    'dinner_skipped': 0
-  }
-};
+let CO2_FACTORS_DAILY = null;
 
 class DailyTrackingService {
+
+  static init(factors) {
+    CO2_FACTORS_DAILY = factors;
+  }
+
   /**
    * Calculate transport emissions
    * @param {Object} transportData - Transport mode selections and distances
@@ -62,6 +13,11 @@ class DailyTrackingService {
    * @returns {number} Transport CO2 in kg
    */
   static calculateTransport(transportData, flightType) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     let transportTotal = 0;
 
     const safeTransport = transportData || {};
@@ -104,6 +60,11 @@ class DailyTrackingService {
    * @returns {number} Home energy CO2 in kg per day
    */
   static calculateHomeEnergy(homeType, occupants, appliances) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const normalizedHomeType = (homeType || '').replace('-', '_');
     const annualHouseholdFootprint = CO2_FACTORS_DAILY.homeEnergy[normalizedHomeType] || 0;
 
@@ -129,6 +90,11 @@ class DailyTrackingService {
    * @returns {number} Food CO2 in kg
    */
   static calculateFood(breakfast, lunch, dinner) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const normalize = (value) => {
       const v = (value || '').replace('-', '_');
       if (v === 'none') return 'skipped';
@@ -148,6 +114,11 @@ class DailyTrackingService {
    * @returns {Object} Calculated results
    */
   static calculateDailyFootprint(responses) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const validation = this.validateDailyResponses(responses);
     if (!validation.isValid) {
       throw new Error(`Invalid responses: ${validation.errors.join(', ')}`);
@@ -183,6 +154,7 @@ class DailyTrackingService {
  
   
   static validateDailyResponses(responses) {
+    
     const errors = [];
     const safe = responses || {};
 

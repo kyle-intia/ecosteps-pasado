@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,7 @@ import { getProfile } from "../lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import  useSessionStatus from "../hooks/useSessionStatus"
 import  useSignOut from "../hooks/useLogout"
+import { updateProfile } from "../lib/api"
 
 
 
@@ -86,7 +87,7 @@ type ProfileType = {
 };
 
 const Profile = () => {
-
+  const [currentUser, setCurrentUser] = useState(null);
   const [posts] = useState(mockPosts);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
   const [displayedAchievements, setDisplayedAchievements] = useState([]);
@@ -94,21 +95,37 @@ const Profile = () => {
 
   const { isPending, isLoggedIn } = useSessionStatus();
   const { signOut } = useSignOut()
+  const fileInputRef = useRef(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const month = d.toLocaleString('en-US', { month: 'short' }); 
+    const day = String(d.getDate()).padStart(2, '0');     
+    const year = d.getFullYear();                            
+    return `${month}-${day}-${year}`;
+  };
 
   const { data: profile, isLoading, error } = useQuery<ProfileType>({
     queryKey: ["profile"],
     queryFn: getProfile,
   });
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const month = d.toLocaleString("en-US", { month: "short" });
-    const day = String(d.getUTCDate()).padStart(2, "0");
-    const year = d.getUTCFullYear();
-    return `${month}-${day}-${year}`;
-  };
-
-  // When profile is loaded, set displayed achievements
   useEffect(() => {
     if (profile) {
       setDisplayedAchievements([
@@ -137,6 +154,41 @@ const Profile = () => {
     }
   }, [profile]);
 
+  useEffect(() => {
+  if (profile) {
+    const birthday = formatDate(profile.birthday);
+    const joinedDate = formatDate(profile.createdAt);
+
+    setCurrentUser({
+      username: profile.username,
+      fullName: `${profile.firstName} ${profile.lastName}`,
+      bio: profile.bio,
+      location: profile.address,
+      birthday,
+      avatarUrl: profile.profilePic,
+      joinedDate,
+      stats: {
+        posts: 24,
+        reposts: 8,
+        followers: 156,
+        following: 89,
+        carbonSaved: "2.3 tons",
+      },
+      achievements: {
+        unlocked: [
+          {
+            id: "walk_the_talk",
+            name: "Walk the Talk",
+            description: "Walk 50 km in a single day",
+            icon: Footprints,
+            dateEarned: "2025-08-20",
+          },
+        ],
+      },
+    });
+  }
+}, [profile]);
+
   // Handle Post Editing
   const handleEditPost = (postId: string) => {
     toast({
@@ -153,11 +205,9 @@ const Profile = () => {
     });
   };
 
-
-  // Loading & Error States
-  if (isLoading) 
-    return <Spinner/>;
-
+  if (isLoading || isPending) 
+    return <Spinner />;
+  
   if (error) {
     toast({
       title: "Failed to load profile",
@@ -167,53 +217,7 @@ const Profile = () => {
     return <p>Error loading profile.</p>;
   }
 
-  if (!profile) return <p>No profile data found.</p>;
-
-  // Build currentUser once profile is loaded
-  const birthday = formatDate(profile.birthday);
-  const joinedDate = formatDate(profile.createdAt);
-
-  const currentUser = {
-    username: profile.username,
-    fullName: `${profile.firstName} ${profile.lastName}`,
-    bio: profile.bio,
-    location: profile.address,
-    birthday: birthday,
-    avatarUrl: profile.profilePic,
-    joinedDate: joinedDate,
-    stats: {
-      posts: 24,
-      reposts: 8,
-      followers: 156,
-      following: 89,
-      carbonSaved: "2.3 tons",
-    },
-    achievements: {
-      unlocked: [
-        {
-          id: "walk_the_talk",
-          name: "Walk the Talk",
-          description: "Walk 50 km in a single day",
-          icon: Footprints,
-          dateEarned: "2025-08-20",
-        },
-        {
-          id: "green_commuter",
-          name: "Green Commuter",
-          description: "Use public transport for 30 consecutive days",
-          icon: Car,
-          dateEarned: "2025-08-15",
-        },
-        {
-          id: "recycling_champion",
-          name: "Recycling Champion",
-          description: "Recycle 100 kg of materials in a month",
-          icon: Recycle,
-          dateEarned: "2025-08-10",
-        },
-      ],
-    },
-  };
+  if (!profile || !currentUser) return <p>No profile data found.</p>;
 
   // Drag-and-Drop Logic
   const handleAchievementDragStart = (e: React.DragEvent, achievementId: string) => {
@@ -248,6 +252,54 @@ const Profile = () => {
     signOut();
   };
 
+
+  const handleEditClick = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      fileInputRef.current?.click();
+    } else {
+      // Save photo
+      handleSubmit();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append('profilePic', selectedFile);
+
+    try {
+      const response = await updateProfile(formData);
+        // Assume response.newAvatarUrl has the new URL returned by the API
+
+        if (response.newAvatarUrl) {
+          setCurrentUser(prevUser => ({
+            ...prevUser,
+            avatarUrl: response.newAvatarUrl,
+          }));
+        } else {
+          setCurrentUser(prevUser => ({
+            ...prevUser,
+            avatarUrl: URL.createObjectURL(selectedFile),
+          }));
+        }
+
+      setIsEditing(false);
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Upload failed', error);
+      // Optionally: show user feedback
+    }
+  };
+
   if (isPending) {
     return <Spinner />;
   }
@@ -264,14 +316,26 @@ const Profile = () => {
               {/* Avatar Section */}
               <div className="flex flex-col items-center md:items-start">
                 <Avatar className="h-32 w-32 mb-4">
-                  <AvatarImage src={currentUser.avatarUrl || undefined} />
+                  <AvatarImage src={previewUrl || currentUser.avatarUrl || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {currentUser.fullName.split(' ').map(n => n[0]).join('')}
+                    {currentUser.fullName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}
                   </AvatarFallback>
                 </Avatar>
-                <Button variant="outline" className="w-full md:w-auto">
+                    
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                <Button variant={isEditing ? 'default' : 'outline'} className="w-full md:w-auto" onClick={handleEditClick}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Photo
+                  {isEditing ? 'Save Photo' : 'Edit Photo'}
                 </Button>
               </div>
 

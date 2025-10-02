@@ -18,7 +18,6 @@ exports.createProfileHandler = (0, catchErrors_1.default)(async (req, res) => {
     const input = profile_schemas_1.createProfileSchema.parse({
         ...req.body,
         profilePic: filePath,
-        userProfileDone: true,
     });
     const profile = await (0, profile_service_1.createProfile)(userId, input);
     return res.status(http_1.CREATED).json(profile);
@@ -52,10 +51,9 @@ exports.updateProfileHandler = (0, catchErrors_1.default)(async (req, res) => {
     return res.status(http_1.OK).json(profile);
 });
 const getProfileDone = async (req, res) => {
-    console.log(req.userId)
     try {
-        const user = req.userId;
-        const profile = await (0, profile_service_1.getProfile)(user);
+        const userId = req.userId;
+        const profile = await (0, profile_service_1.getProfile)(userId);
         if (!profile) {
             return res.status(404).json({ message: "Profile not found" });
         }
