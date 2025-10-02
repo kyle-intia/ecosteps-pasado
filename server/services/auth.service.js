@@ -15,6 +15,8 @@ const date_1 = require("../utils/date");
 const emailTemplates_1 = require("../utils/emailTemplates");
 const jwt_1 = require("../utils/jwt");
 const sendMail_1 = require("../utils/sendMail");
+const NotificationService = require('../services/notificationService');
+
 const createAccount = async (data) => {
     // verify email is not taken
     const existingUser = await user_model_1.default.findOne({ email: data.email });
@@ -35,6 +37,7 @@ const createAccount = async (data) => {
         to: user.email,
         ...(0, emailTemplates_1.getVerifyEmailTemplate)(url),
     });
+
     if (response.error) {
         console.error("Email sending failed:", response.error);
     }
@@ -53,6 +56,7 @@ const createAccount = async (data) => {
         userId,
         sessionId: session._id,
     });
+    await NotificationService.createNotification(userId, `${email} just created an account`, "authentication");
     return {
         user: user.omitPassword(),
         accessToken,
@@ -64,9 +68,14 @@ const loginUser = async ({ email, password, userAgent, }) => {
     const user = await user_model_1.default.findOne({ email });
     (0, appAssert_1.default)(user, http_1.UNAUTHORIZED, "Invalid email or password");
     (0, appAssert_1.default)(user.verified, http_1.UNAUTHORIZED, "Please verify your email before logging in.", "EmailNotVerified");
+    (0, appAssert_1.default)(user.status !== "suspended", http_1.UNAUTHORIZED, "Your account has been suspended. Please contact support.");
+
     const isValid = await user.comparePassword(password);
     (0, appAssert_1.default)(isValid, http_1.UNAUTHORIZED, "Invalid email or password");
     const userId = user._id;
+
+    await NotificationService.createNotification(userId, `${email} just logged in`, "authentication");
+
     const session = await session_model_1.default.create({
         userId,
         userAgent,
@@ -98,6 +107,7 @@ const verifyEmail = async (code) => {
     }, { new: true });
     (0, appAssert_1.default)(updatedUser, http_1.INTERNAL_SERVER_ERROR, "Failed to verify email");
     await validCode.deleteOne();
+    await NotificationService.createNotification(validCode.userId, `${updatedUser.email} just verified his/her account`, "authentication");
     return {
         user: updatedUser.omitPassword(),
     };
@@ -125,6 +135,7 @@ const refreshUserAccessToken = async (refreshToken) => {
     const accessToken = (0, jwt_1.signToken)({
         userId: session.userId,
         sessionId: session._id,
+        
     });
     return {
         accessToken,
@@ -180,6 +191,7 @@ const resetPassword = async ({ verificationCode, password, }) => {
         password: await (0, bcrypt_1.hashValue)(password),
     });
     (0, appAssert_1.default)(updatedUser, http_1.INTERNAL_SERVER_ERROR, "Failed to reset password");
+    await NotificationService.createNotification(validCode.userId, `${updatedUser.email} reset his/her password`, "authentication");
     await validCode.deleteOne();
     // delete all sessions
     await session_model_1.default.deleteMany({ userId: validCode.userId });

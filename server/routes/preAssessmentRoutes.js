@@ -3,6 +3,7 @@ const router = express.Router();
 const PreAssessment = require('../models/PreAssessment');
 const CalculationService = require('../services/calculationService');
 const authenticate = require('../middleware/authenticate');
+const NotificationService = require('../services/notificationService');
 
 /**
  * POST /api/preassessment/submit
@@ -14,6 +15,7 @@ router.post('/submit', async (req, res) => {
   try {
     const { responses } = req.body;
     const userId = req.userId;
+    const email = req.user.email;
     if (!responses) {
       return res.status(400).json({ error: 'responses are required' });
     }
@@ -33,6 +35,8 @@ router.post('/submit', async (req, res) => {
     // Create and save new pre-assessment
     const preAssessment = new PreAssessment({ userId, responses, results, assessmentDone: true });
     await preAssessment.save();
+
+    await NotificationService.createNotification(userId, `${email} logged his/her pre-assessment carbon footprint`, "pre-assessment");
 
     // ✅ Explicitly select data to return (Best Practice)
     res.status(201).json({

@@ -1,36 +1,27 @@
-// PrivateRoute.tsx
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
+import { userProfileDone } from "../lib/api";  // Import the API function
 
 const PrivateRoute3 = () => {
   const [loading, setLoading] = useState(true);
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
-    const checkAssessmentStatus = async () => {
+    const checkUserProfileStatus = async () => {
       try {
-        const response = await fetch("http://localhost:4004/profile/user/status", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data?.userProfileDone) {
+        const response = await userProfileDone(); // Use the API function here
+        if (response?.userProfileDone) {
           setIsAllowed(true);
         }
       } catch (error) {
-        console.error("Error checking assessment status:", error);
+        console.error("Error checking user profile status:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAssessmentStatus();
+    checkUserProfileStatus();
   }, []);
 
   if (loading) 

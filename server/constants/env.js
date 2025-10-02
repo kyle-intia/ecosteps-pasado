@@ -16,3 +16,5 @@ exports.JWT_SECRET = getEnv("JWT_SECRET");
 exports.JWT_REFRESH_SECRET = getEnv("JWT_REFRESH_SECRET");
 exports.EMAIL_SENDER = getEnv("EMAIL_SENDER");
 exports.RESEND_API_KEY = getEnv("RESEND_API_KEY");
+exports.VAPID_PUBLIC_KEY = getEnv("VAPID_PUBLIC_KEY");
+exports.VAPID_PRIVATE_KEY = getEnv("VAPID_PRIVATE_KEY")

@@ -45,3 +45,65 @@ export const getPreAssessmentHistory = () =>
 
 export const getLatestPreAssessment = () =>
   API.get(`/preassessment/latest`);
+
+
+
+
+// ========== ROUTES ESSENTIALS ==========
+export const getUserRole = () => API.get("/user/role/status");
+export const assessmentDone = () => API.get("api/preassessment/user/status");
+export const userProfileDone = () => API.get("/profile/user/status");
+
+
+
+// ========== ADMIN ==========
+export const listUsers = (params) => API.get("/api/admin/users", { params });
+export const searchUsers = (id) => API.get(`/api/admin/users/${id}`);
+export const createUser = (data) => API.post("/api/admin/users", data);
+export const updateUser = (id, data) => API.put(`/api/admin/users/${id}`, data);
+export const deleteUser = (id) => API.delete(`/api/admin/users/${id}`);
+export const updateStatus = (id, status) => API.patch(`/api/admin/users/${id}/status`, { status });
+export const changeRole = (id, role) => API.patch(`/api/admin/users/${id}/role`, { role });
+
+
+// ========== ADMIN DASHBOARD ==========
+export const getUserGrowthStats = () => API.get("/api/admin/dashboard/user-growth");
+export const getActivityGrowthStats = () => API.get("/api/admin/dashboard/activity-growth");
+export const getAvgFootprintGrowthStats = () => API.get("/api/admin/dashboard/avg-footprint-growth");
+
+
+export const listDailyTrackings = (params) => API.get("/api/admin/dashboard/dailytrackings", {params})
+export const getDailyTrackingByUserId = (id) => API.get(`/api/admin/dashboard/dailytrackings/user/${id}`);
+export const updateDailyTracking = (id, data) => API.patch(`/api/admin/dashboard/dailytrackings/${id}`, data);
+export const deleteDailyTrackingAdmin = (id) => API.delete(`/api/admin/dashboard/dailytrackings/${id}`);
+
+//========== ADMIN DASHBOARD STATS ==========
+export const getDailyFootprintByCategory = (date) => API.get(`/api/admin/dashboard/emission/daily/${date}`);
+export const getMonthlyFootprintByCategory = (month) => API.get(`/api/admin/dashboard/emission/monthly/${month}`);
+export const getYearlyFootprintByCategory = (year) => API.get(`/api/admin/dashboard/emission/yearly/${year}`);
+
+//========== ADMIN SETTINGS EMISSION FACTORS ==========
+
+export const createEmissionFactor = (data) => API.post("/api/admin/emissionfactor/create", data);
+export const getAllEmissionFactors = () => API.get("/api/admin/emissionfactor/");
+export const getEmissionFactorById = (id) => API.get(`/api/admin/emissionfactor/${id}`);
+export const updateEmissionFactor = (id, data) => API.patch(`/api/admin/emissionfactor/${id}`, data);
+export const deleteEmissionFactor = (id) => API.delete(`/api/admin/emissionfactor/${id}`);
+
+//======== NOTIFICATIONS ==============
+export const getAllNotification = () => API.get("/api/notifications/admin/all");
+export const markAsReadNotification = (id) => API.put(`/api/notifications/${id}/read`);
+
+export const getMaintenanceMode = () => API.get("/api/admin/maintenance");
+export const toggleMaintenance = (data) => API.post(`/api/admin/maintenance`, data);
+
+export const getPushNotificationMode = () => API.get("/api/notifications/push_notification");
+export const togglePushNotification = (data) => API.post(`/api/notifications/push_notification`, data);
+
+
+export const getUserSettings = (userId) => API.get(`/api/user-settings/notification/${userId}`);
+export const updateUserSettings = (userId, data) => API.put(`/api/user-settings/notification/${userId}`, data);
+
+
+//======== PUSH NOTIFICATIONS ==============
+export const pushSubscribe = (userId, subscription) => API.post("/api/push/subscribe", { userId, subscription });

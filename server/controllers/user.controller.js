@@ -13,3 +13,9 @@ exports.getUserHandler = (0, catchErrors_1.default)(async (req, res) => {
     (0, appAssert_1.default)(user, http_1.NOT_FOUND, "User not found");
     return res.status(http_1.OK).json(user.omitPassword());
 });
+
+exports.getUserRoleHandler = (0, catchErrors_1.default)(async (req, res) => {
+    const user = await user_model_1.default.findById(req.userId);
+    (0, appAssert_1.default)(user, http_1.NOT_FOUND, "User not found");
+    return res.status(http_1.OK).json({ role: user.role });
+});

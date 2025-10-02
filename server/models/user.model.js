@@ -9,8 +9,15 @@ const userSchema = new mongoose_1.default.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     verified: { type: Boolean, required: true, default: false },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    status: {
+      type: String,
+      enum: ['active', 'suspended'],
+      default: 'active'
+    },
+    lastActive: { type: Date, default: Date.now },
 }, {
-    timestamps: true,
+    timestamps: true, 
 });
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {

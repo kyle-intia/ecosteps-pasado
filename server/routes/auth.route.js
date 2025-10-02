@@ -3,9 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_controller_1 = require("../controllers/auth.controller");
 const authRoutes = (0, express_1.Router)();
+const checkMaintenance = require("../middleware/checkMaintenance");
 
 authRoutes.post("/register", auth_controller_1.registerHandler);
-authRoutes.post("/login", auth_controller_1.loginHandler);
+authRoutes.post("/login", checkMaintenance, auth_controller_1.loginHandler);
 authRoutes.get("/refresh", auth_controller_1.refreshHandler);
 authRoutes.post("/logout", auth_controller_1.logoutHandler);
 authRoutes.get("/email/verify/:code", auth_controller_1.verifyEmailHandler);

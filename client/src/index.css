@@ -2,128 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* EcoStep Design System - Nature-inspired carbon tracking app */
-
-@layer base {
-  :root {
-    /* Base colors */
-    --background: 120 20% 98%;
-    --foreground: 150 25% 15%;
-
-    /* Card system */
-    --card: 0 0% 100%;
-    --card-foreground: 150 25% 15%;
-
-    /* Popover system */
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 25% 15%;
-
-    /* Primary - Vibrant eco green */
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 70% 45%;
-
-    /* Secondary - Earth tone */
-    --secondary: 45 25% 88%;
-    --secondary-foreground: 150 25% 15%;
-
-    /* Muted tones */
-    --muted: 120 15% 94%;
-    --muted-foreground: 150 10% 45%;
-
-    /* Accent - Fresh lime */
-    --accent: 88 75% 68%;
-    --accent-foreground: 150 25% 15%;
-
-    /* Success green */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-
-    /* Warning - Earth orange */
-    --warning: 35 84% 62%;
-    --warning-foreground: 0 0% 100%;
-
-    /* Destructive */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Border and input */
-    --border: 120 20% 88%;
-    --input: 120 20% 88%;
-    --ring: 142 76% 36%;
-
-    --radius: 0.75rem;
-
-    /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
-
-    /* Shadows */
-    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.15);
-    --shadow-card: 0 4px 20px hsl(var(--foreground) / 0.08);
-    --shadow-elevated: 0 8px 40px hsl(var(--foreground) / 0.12);
-
-    /* Animation timings */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  .dark {
-    /* Base colors for dark mode */
-    --background: 150 20% 8%;
-    --foreground: 120 15% 88%;
-
-    /* Card system */
-    --card: 150 15% 12%;
-    --card-foreground: 120 15% 88%;
-
-    /* Popover system */
-    --popover: 150 15% 12%;
-    --popover-foreground: 120 15% 88%;
-
-    /* Primary - Brighter for dark mode */
-    --primary: 142 70% 45%;
-    --primary-foreground: 150 20% 8%;
-    --primary-glow: 142 75% 55%;
-
-    /* Secondary */
-    --secondary: 150 10% 18%;
-    --secondary-foreground: 120 15% 88%;
-
-    /* Muted */
-    --muted: 150 10% 15%;
-    --muted-foreground: 120 8% 55%;
-
-    /* Accent */
-    --accent: 88 65% 58%;
-    --accent-foreground: 150 20% 8%;
-
-    /* Success, warning, destructive */
-    --success: 142 70% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 35 84% 62%;
-    --warning-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Border and input */
-    --border: 150 10% 20%;
-    --input: 150 10% 20%;
-    --ring: 142 70% 45%;
-
-    /* Custom gradients for dark mode */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
-
-    /* Shadows for dark mode */
-    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.25);
-    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.3);
-    --shadow-elevated: 0 8px 40px hsl(0 0% 0% / 0.4);
-  }
-}
-
+/* Base tokens for all themes */
 @layer base {
   * {
     @apply border-border;
@@ -131,5 +10,157 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* === 🌱 EcoStep Theme with Admin Extensions === */
+  :root {
+    /* Eco base colors */
+    --background: 120 20% 98%;
+    --foreground: 150 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 25% 15%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 142 70% 45%;
+
+    --secondary: 45 25% 88%;
+    --secondary-foreground: 150 25% 15%;
+
+    --muted: 120 15% 94%;
+    --muted-foreground: 150 10% 45%;
+
+    --accent: 88 75% 68%;
+    --accent-foreground: 150 25% 15%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 35 84% 62%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --eco: 142 76% 36%;
+    --eco-foreground: 0 0% 98%;
+
+    --border: 120 20% 88%;
+    --input: 120 20% 88%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
+    --gradient-surface: linear-gradient(180deg, hsl(var(--admin-panel)), hsl(var(--admin-surface)));
+
+    /* Shadows */
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.15);
+    --shadow-card: 0 4px 20px hsl(var(--foreground) / 0.08);
+    --shadow-elevated: 0 8px 40px hsl(var(--foreground) / 0.12);
+    --shadow-sm: 0 1px 2px 0 hsl(222.2 84% 4.9% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222.2 84% 4.9% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(222.2 84% 4.9% / 0.1);
+
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Admin extras */
+    --admin-surface: 210 20% 98%;
+    --admin-panel: 0 0% 100%;
+    --admin-border: 220 13% 91%;
+    --admin-hover: 210 20% 95%;
+
+    /* Chart colors */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 48 96% 53%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 0 84% 60%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Eco dark mode colors */
+    --background: 150 20% 8%;
+    --foreground: 120 15% 88%;
+
+    --card: 150 15% 12%;
+    --card-foreground: 120 15% 88%;
+
+    --popover: 150 15% 12%;
+    --popover-foreground: 120 15% 88%;
+
+    --primary: 142 70% 45%;
+    --primary-foreground: 150 20% 8%;
+    --primary-glow: 142 75% 55%;
+
+    --secondary: 150 10% 18%;
+    --secondary-foreground: 120 15% 88%;
+
+    --muted: 150 10% 15%;
+    --muted-foreground: 120 8% 55%;
+
+    --accent: 88 65% 58%;
+    --accent-foreground: 150 20% 8%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 35 84% 62%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 10% 20%;
+    --input: 150 10% 20%;
+    --ring: 142 70% 45%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-eco: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--muted)), hsl(var(--background)));
+    --gradient-surface: linear-gradient(180deg, hsl(var(--admin-panel)), hsl(var(--admin-surface)));
+
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.25);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 40px hsl(0 0% 0% / 0.4);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 100% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 100% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 100% / 0.1);
+
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --admin-surface: 222.2 84% 4.9%;
+    --admin-panel: 0 0% 10%;
+    --admin-border: 217.2 32.6% 17.5%;
+    --admin-hover: 222.2 20% 10%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }

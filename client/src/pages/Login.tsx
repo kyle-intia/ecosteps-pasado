@@ -53,34 +53,43 @@ export default function Login() {
   };
 
   const {
-    mutate: signIn,
-    isPending,
-  } = useMutation({
-    mutationFn:  (data: typeof formData) => login(data),
-    onSuccess: () => {
-      localStorage.setItem("isLoggedIn", "true");
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in to EcoStep.",
-      });
+  mutate: signIn,
+  isPending,
+} = useMutation({
+  mutationFn: (data: typeof formData) => login(data),
+  onSuccess: (res: { role?: string }) => {
+    const role = res?.role;
+
+    localStorage.setItem("isLoggedIn", "true");
+
+    toast({
+      title: "Welcome back!",
+      description: "You've successfully logged in to EcoStep.",
+    });
+
+    if (role === "admin") {
+      navigate("/admin", { replace: true });
+    } else {
       navigate(redirectUrl, { replace: true });
-    },
-    onError: (error: any) => {
-      let description = "Invalid email or password. Please try again.";
+    }
+  },
+  onError: (error: any) => {
+    let description = "Invalid email or password. Please try again.";
 
-      if (error?.message?.includes("verify your email")) {
-        description = "Please verify your email before logging in. Check your inbox for the verification link.";
-      } else if (error?.message) {
-        description = error.message;
-      }
+    if (error?.message?.includes("verify your email")) {
+      description =
+        "Please verify your email before logging in. Check your inbox for the verification link.";
+    } else if (error?.message) {
+      description = error.message;
+    }
 
-      toast({
-        title: "Login failed",
-        description,
-        variant: "destructive",
-      });
-    },
-  });
+    toast({
+      title: "Login failed",
+      description,
+      variant: "destructive",
+    });
+  },
+});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +117,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Welcome Back"
-      description="Sign in to your EcoStep account to continue tracking your carbon footprint"
+      description="Sign in to your EcoSteps account to continue tracking your carbon footprint"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

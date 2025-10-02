@@ -6,6 +6,9 @@ const router = express.Router();
 const DailyTracking = require('../models/DailyTracking');
 const DailyTrackingService = require('../services/dailyTrackingService');
 const authenticate = require('../middleware/authenticate');
+const NotificationService = require('../services/notificationService');
+const EmissionFactorService = require('../services/emissionFactorService');
+
 
 // All routes below require an authenticated user; user id comes from req.userId
 router.use(authenticate);
@@ -16,10 +19,14 @@ router.use(authenticate);
  */
 router.post('/submit', async (req, res) => {
   try {
+    // 🔁 Fetch latest CO2 factors from DB
+    const co2Factors = await EmissionFactorService.getFormattedFactors();
+    DailyTrackingService.init(co2Factors);
+
     const { transport, homeEnergy, food, flightsToday } = req.body;
     const userId = req.userId;
+    const email = req.user.email;
 
-    // Prepare responses object for calculation service
     const normalizedOccupants = Math.max(1, Math.min(20, Number(homeEnergy?.occupants) || 1));
     const responses = {
       transport: transport || { modes: [], distances: {} },
@@ -32,10 +39,10 @@ router.post('/submit', async (req, res) => {
       dinner: food?.dinner || 'skipped'
     };
 
-    // Calculate footprint using the service
     const calculatedFootprint = DailyTrackingService.calculateDailyFootprint(responses);
 
-    // Normalize payload fields to match schema enums before saving
+    await NotificationService.createNotification(userId, `${email} logged his/her daily carbon footprint`, "daily-tracking");
+
     const normalizeHomeType = (t) => (t || '').replace('-', '_');
     const normalizeAppliance = (a) => {
       const key = (a || '').replace('-', '_');
@@ -60,14 +67,11 @@ router.post('/submit', async (req, res) => {
       dinner: normalizeMeal(food.dinner || 'skipped')
     } : undefined;
 
-    // Get today's date in Philippines timezone (start of day)
     const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
     const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
-    // Check if entry already exists for today
     const existingEntry = await DailyTracking.findOne({
       userId: userId,
       date: {
@@ -79,14 +83,12 @@ router.post('/submit', async (req, res) => {
     let dailyTracking;
 
     if (existingEntry) {
-      // Update existing entry
       existingEntry.transport = transport;
       existingEntry.homeEnergy = normalizedHomeEnergy;
       existingEntry.food = normalizedFood;
       existingEntry.calculatedFootprint = calculatedFootprint;
       dailyTracking = await existingEntry.save();
     } else {
-      // Create new entry
       dailyTracking = new DailyTracking({
         userId,
         date: today,
@@ -111,14 +113,12 @@ router.post('/submit', async (req, res) => {
 
   } catch (error) {
     console.error('Error in daily tracking submission:', error);
-    
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         error: 'Validation failed',
         details: Object.values(error.errors).map(err => err.message)
       });
     }
-
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -173,11 +173,18 @@ router.get('/today', async (req, res) => {
     const userId = req.userId;
     
     // Get today's date range in Philippines timezone
+    // Get current UTC time
     const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
+
+    // Get the current date/time in the Philippines (UTC+8)
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+    // Create a 'today' date at midnight in the Philippines (UTC+8)
     const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+
+    // 'Tomorrow' is 24 hours after 'today'
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
 
     const todayEntry = await DailyTracking.findOne({
       userId: userId,

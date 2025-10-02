@@ -47,7 +47,7 @@ const Community = () => {
       author: {
         name: "Sarah Green",
         username: "@sarah_eco",
-        avatar: "/placeholder.svg",
+        avatar: "/uploads/profile_pics/defaultProfile.png",
       },
       content:
         "Just switched to a plant-based diet this week! Already feeling more energized and knowing I'm reducing my carbon footprint by 0.8 tons per year feels amazing. 🌱 #PlantBased #EcoLiving",

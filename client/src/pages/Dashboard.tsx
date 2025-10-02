@@ -9,12 +9,12 @@ import { Spinner } from "@/components/ui/spinner";
 import  useSessionStatus from "../hooks/useSessionStatus"
 import  useSignOut from "../hooks/useLogout"
 import useProfile from "@/hooks/useAuthProfile";
+import { Progress } from "@/components/ui/progress";
 
 
 type UserProfile = {
   username?: string;
 };
-
 
 const monthlyData = [
   { month: "Jan", emissions: 2.3, savings: 0.5 },
@@ -32,8 +32,11 @@ const categoryData = [
   { name: "Other", value: 5, color: "hsl(var(--muted-foreground))" },
 ];
 
+const currentFootprint = 15.6 // kg CO2
+const goalFootprint = 12 // kg CO2 target
+const progressPercentage = Math.min((goalFootprint / currentFootprint) * 100, 100)
+
 export default function Dashboard() {
-  const [userName, setUserName] = useState("");
   const navigate = useNavigate();
   const { isPending, isLoggedIn } = useSessionStatus();
   const { signOut } = useSignOut();
@@ -71,6 +74,42 @@ export default function Dashboard() {
           <p className="text-muted-foreground">
             Here's your environmental impact dashboard for this month.
           </p>
+        </div>
+
+        <div className="my-4">
+          <Card className="shadow-sm border-admin-border bg-gradient-to-br from-card to-accent/5">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Target className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Average Footprint Goal</h3>
+                      <p className="text-sm text-muted-foreground">Progress towards {goalFootprint} kg CO₂ target</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">{currentFootprint} kg</p>
+                    <p className="text-xs text-muted-foreground">Current avg</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Progress value={progressPercentage} className="h-4" />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {(currentFootprint - goalFootprint).toFixed(1)} kg remaining
+                    </span>
+                    <span className="font-medium text-primary">
+                      {progressPercentage.toFixed(0)}% to goal
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Key Metrics */}
