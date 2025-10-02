@@ -1,5 +1,5 @@
 const DailyTracking = require('../models/DailyTracking');
-const UserModel = require('../models/user.model').default;
+const UserModel = require('../models/user.model');
 const Notification = require('../models/notificationModel');
 const NotificationService = require('../services/notificationService');
 const UserSettings = require('../models/userSettingsModel');

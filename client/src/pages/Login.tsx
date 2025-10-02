@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "../lib/api";
+import queryClient from "../config/queryClient";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -52,6 +53,30 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const checkPreAssessmentStatus = async () => {
+    try {
+      const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data?.assessmentDone) {
+        navigate("/home", { replace: true });
+      } else {
+        navigate("/pre-assessment", { replace: true });
+      }
+    } catch (error) {
+      console.error("Error checking assessment status:", error);
+      // Default to pre-assessment if error
+      navigate("/pre-assessment", { replace: true });
+    }
+  };
+
   const {
   mutate: signIn,
   isPending,
@@ -75,6 +100,25 @@ export default function Login() {
   },
   onError: (error: any) => {
     let description = "Invalid email or password. Please try again.";
+
+/*
+    mutate: signIn,
+    isPending,
+  } = useMutation({
+    mutationFn:  (data: typeof formData) => login(data),
+    onSuccess: () => {
+      localStorage.setItem("isLoggedIn", "true");
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully logged in to EcoStep.",
+      });
+      queryClient.invalidateQueries(["userProfileDetails"]);
+      queryClient.invalidateQueries(["auth"]);
+      checkPreAssessmentStatus();
+    },
+    onError: (error: any) => {
+      let description = "Invalid email or password. Please try again.";
+*/
 
     if (error?.message?.includes("verify your email")) {
       description =
@@ -117,7 +161,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Welcome Back"
-      description="Sign in to your EcoSteps account to continue tracking your carbon footprint"
+      description="Log in to your EcoStep account to continue tracking your carbon footprint"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

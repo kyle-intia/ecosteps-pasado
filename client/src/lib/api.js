@@ -24,6 +24,9 @@ export const updateProfile = (data) => API.patch("/profile/update", data);
 export const submitDailyTracking = (trackingData) =>
   API.post("/daily-tracking/submit", trackingData);
 
+export const checkResubmission = () =>
+  API.post("/daily-tracking/check-resubmission");
+
 export const getDailyTrackingHistory = (limit = 30, offset = 0) =>
   API.get(`/daily-tracking?limit=${limit}&offset=${offset}`);
 
@@ -36,6 +39,22 @@ export const getDailyTrackingStats = (days = 7) =>
 export const deleteDailyTracking = (entryId) =>
   API.delete(`/daily-tracking/${entryId}`);
 
+// ========== CHALLENGES ==========
+export const getTodaysChallenges = () =>
+  API.get("/challenges/today");
+
+export const completeChallenge = (challengeId) =>
+  API.post("/challenges/complete", { challengeId });
+
+export const getChallengeHistory = (limit = 30, offset = 0) =>
+  API.get(`/challenges/history?limit=${limit}&offset=${offset}`);
+
+export const getChallengeStats = (days = 7) =>
+  API.get(`/challenges/stats?days=${days}`);
+
+export const getChallengeLibrary = () =>
+  API.get("/challenges/library");
+
 // ========== PRE-ASSESSMENT ==========
 export const submitPreAssessment = (assessmentData) =>
   API.post("/preassessment/submit", assessmentData);
@@ -46,15 +65,10 @@ export const getPreAssessmentHistory = () =>
 export const getLatestPreAssessment = () =>
   API.get(`/preassessment/latest`);
 
-
-
-
 // ========== ROUTES ESSENTIALS ==========
 export const getUserRole = () => API.get("/user/role/status");
 export const assessmentDone = () => API.get("api/preassessment/user/status");
 export const userProfileDone = () => API.get("/profile/user/status");
-
-
 
 // ========== ADMIN ==========
 export const listUsers = (params) => API.get("/api/admin/users", { params });
@@ -65,12 +79,10 @@ export const deleteUser = (id) => API.delete(`/api/admin/users/${id}`);
 export const updateStatus = (id, status) => API.patch(`/api/admin/users/${id}/status`, { status });
 export const changeRole = (id, role) => API.patch(`/api/admin/users/${id}/role`, { role });
 
-
 // ========== ADMIN DASHBOARD ==========
 export const getUserGrowthStats = () => API.get("/api/admin/dashboard/user-growth");
 export const getActivityGrowthStats = () => API.get("/api/admin/dashboard/activity-growth");
 export const getAvgFootprintGrowthStats = () => API.get("/api/admin/dashboard/avg-footprint-growth");
-
 
 export const listDailyTrackings = (params) => API.get("/api/admin/dashboard/dailytrackings", {params})
 export const getDailyTrackingByUserId = (id) => API.get(`/api/admin/dashboard/dailytrackings/user/${id}`);
@@ -91,6 +103,7 @@ export const updateEmissionFactor = (id, data) => API.patch(`/api/admin/emission
 export const deleteEmissionFactor = (id) => API.delete(`/api/admin/emissionfactor/${id}`);
 
 //======== NOTIFICATIONS ==============
+
 export const getAllNotification = () => API.get("/api/notifications/admin/all");
 export const markAsReadNotification = (id) => API.put(`/api/notifications/${id}/read`);
 
@@ -104,6 +117,35 @@ export const togglePushNotification = (data) => API.post(`/api/notifications/pus
 export const getUserSettings = (userId) => API.get(`/api/user-settings/notification/${userId}`);
 export const updateUserSettings = (userId, data) => API.put(`/api/user-settings/notification/${userId}`, data);
 
-
 //======== PUSH NOTIFICATIONS ==============
 export const pushSubscribe = (userId, subscription) => API.post("/api/push/subscribe", { userId, subscription });
+
+
+// ========== DASHBOARD ==========
+export const getDashboardSummary = () =>
+  API.get("/dashboard/summary");
+
+export const getDashboardTrends = (months = 6) =>
+  API.get(`/dashboard/trends?months=${months}`);
+
+// ========== RECOMMENDATIONS ==========
+export const regenerateRecommendations = () =>
+  API.post("/dashboard/recommendations/regenerate");
+
+// ========== ACHIEVEMENTS ==========
+export const getUserAchievements = () => API.get("/achievements");
+
+export const equipAchievement = (achievementId) =>
+  API.post("/achievements/equip", { achievementId });
+
+export const unequipAchievement = (achievementId) =>
+  API.post("/achievements/unequip", { achievementId });
+
+export const getAchievementNotifications = (limit = 20, unreadOnly = false) =>
+  API.get(`/achievements/notifications?limit=${limit}&unreadOnly=${unreadOnly}`);
+
+export const markNotificationAsRead = (notificationId) =>
+  API.patch(`/achievements/notifications/${notificationId}/read`);
+
+export const checkAchievements = (triggerEvent, context = {}) =>
+  API.post("/achievements/check", { triggerEvent, context });

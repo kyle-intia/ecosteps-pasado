@@ -1,4 +1,4 @@
-const UserModel = require("../models/user.model").default;
+const UserModel = require("../models/user.model");
 const DailyTracking = require("../models/DailyTracking");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;

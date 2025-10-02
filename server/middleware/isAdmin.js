@@ -1,6 +1,6 @@
 "use strict";
 
-const UserModel = require('../models/user.model').default;
+const UserModel = require('../models/user.model');
 const { FORBIDDEN } = require('../constants/http');
 const appAssert = require('../utils/appAssert').default;
 
