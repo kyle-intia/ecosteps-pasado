@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { register, login } from "../lib/api";
+import queryClient from "../config/queryClient";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -55,9 +56,11 @@ export default function Register() {
         // Attempt auto-login after registration
         await login({ email: variables.email, password: variables.password });
         localStorage.setItem("isLoggedIn", "true");
+        queryClient.invalidateQueries(["userProfileDetails"]);
+        queryClient.invalidateQueries(["auth"]);
         toast({
           title: "Welcome to EcoStep!",
-          description: "Your account is ready and you're now signed in.",
+          description: "Your account is ready and you're now logged in.",
         });
         // Navigate to main app since login succeeded
         navigate("/pre-assessment", { replace: true });
@@ -66,7 +69,7 @@ export default function Register() {
         // Don't set isLoggedIn, navigate to verification prompt
         toast({
           title: "Account Created Successfully",
-          description: "Please check your email and verify your account before signing in.",
+          description: "Please check your email and verify your account before logging in.",
         });
         navigate("/verify-email-prompt", { replace: true });
       }
@@ -169,7 +172,7 @@ export default function Register() {
         <div className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link to="/login" className="text-primary hover:underline font-medium">
-            Sign in
+            Log in
           </Link>
         </div>
       </form>

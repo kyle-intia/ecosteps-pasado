@@ -9,6 +9,7 @@ const defaults = {
     sameSite: "strict",
     httpOnly: true,
     secure,
+    domain: "localhost",
 };
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
@@ -26,6 +27,6 @@ const setAuthCookies = ({ res, accessToken, refreshToken }) => res
     .cookie("refreshToken", refreshToken, (0, exports.getRefreshTokenCookieOptions)());
 exports.setAuthCookies = setAuthCookies;
 const clearAuthCookies = (res) => res
-    .clearCookie("accessToken")
-    .clearCookie("refreshToken", { path: exports.REFRESH_PATH });
+    .clearCookie("accessToken", { ...defaults })
+    .clearCookie("refreshToken", { ...defaults, path: exports.REFRESH_PATH });
 exports.clearAuthCookies = clearAuthCookies;

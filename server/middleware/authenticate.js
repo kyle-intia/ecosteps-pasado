@@ -1,7 +1,7 @@
 "use strict";
 
 const appAssert = require('../utils/appAssert').default;
-const UserModel = require('../models/user.model').default;
+const UserModel = require('../models/user.model');
 const { UNAUTHORIZED } = require('../constants/http');
 const { verifyToken } = require('../utils/jwt');
 
