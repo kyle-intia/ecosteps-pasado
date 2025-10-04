@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,69 +8,73 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import useAuth from "@/hooks/useAuth";
 
-// Mock data for leaderboards
-const mockUsers = [
-  {
-    id: "1",
-    username: "ecowarrior123",
-    fullName: "Alex Green",
-    avatarUrl: null,
-    score: 2840,
-    rank: 1,
-    badges: ["Carbon Neutral", "Eco Champion", "Green Leader"],
-    activity: 156,
-    posts: 89,
-  },
-  {
-    id: "2", 
-    username: "sustainablesam",
-    fullName: "Sam Rodriguez",
-    avatarUrl: null,
-    score: 2650,
-    rank: 2,
-    badges: ["Eco Champion", "Tree Planter"],
-    activity: 142,
-    posts: 76,
-  },
-  {
-    id: "3",
-    username: "greenliving",
-    fullName: "Emma Chen",
-    avatarUrl: null,
-    score: 2450,
-    rank: 3,
-    badges: ["Carbon Neutral", "Waste Warrior"],
-    activity: 128,
-    posts: 63,
-  },
-  {
-    id: "4",
-    username: "planetprotector",
-    fullName: "Jordan Taylor",
-    avatarUrl: null,
-    score: 2280,
-    rank: 4,
-    badges: ["Eco Champion"],
-    activity: 115,
-    posts: 52,
-  },
-  {
-    id: "5",
-    username: "renewablepower",
-    fullName: "Casey Park",
-    avatarUrl: null,
-    score: 2150,
-    rank: 5,
-    badges: ["Green Leader", "Solar Advocate"],
-    activity: 98,
-    posts: 41,
-  },
-];
+interface User {
+  _id: string; // id to _id to match MongoDB
+  username: string;
+  fullName: string;
+  avatarUrl: string | null;
+  score: number;
+  badges: string[];
+  activity: number;
+  posts: number;
+}
 
 const Leaderboards = () => {
-  const [sortBy, setSortBy] = useState("score");
-  const [users] = useState(mockUsers);
+  const useAuthFlag = import.meta.env.VITE_USE_AUTH === 'true';
+  const { user } = useAuth() as { user: { id: string } | null };
+
+  const [sortBy, setSortBy] = useState("overall");
+  const [users, setUsers] = useState<User[]>([]);
+  const [userRank, setUserRank] = useState<{ rank: number | null; score: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const isLoggedIn = !useAuthFlag || !!user;
+
+  // Helper function to determine user tier
+  const getUserTier = (score: number) => {
+    if (score >= 8000 && score <= 10000) return { tier: 'Gold', icon: '🥇', color: 'text-yellow-500' };
+    if (score >= 5000 && score <= 7999) return { tier: 'Silver', icon: '🥈', color: 'text-gray-400' };
+    if (score >= 2000 && score <= 4999) return { tier: 'Bronze', icon: '🥉', color: 'text-orange-600' };
+    return { tier: 'Unranked', icon: '', color: 'text-gray-500' };
+  };
+
+  useEffect(() => {
+    const fetchLeaderboardAndRank = async () => {
+      try {
+        setLoading(true);
+        
+        // Build API URL with tier parameter
+        const tierParam = sortBy !== 'overall' ? `?tier=${sortBy}` : '';
+        const leaderboardResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/leaderboard${tierParam}`);
+        setUsers(leaderboardResponse.data);
+
+        // Determine current user ID based on env
+        const currentUserId = !useAuthFlag
+          ? (import.meta.env.VITE_DEFAULT_USER_ID || "6744176ad35a5b47b4fb21fe")
+          : (user?.id ?? null);
+
+        // Fetch current user rank only if we have a user id
+        if (currentUserId) {
+          const rankResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/leaderboard/rank/${currentUserId}`);
+          setUserRank(rankResponse.data);
+        } else {
+          setUserRank(null);
+        }
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        // if the user rank might not be found
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          setUserRank(null); // user not found or no score
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboardAndRank();
+  }, [sortBy, useAuthFlag, user?.id]); // re-fetch when auth/user changes
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -95,35 +100,48 @@ const Leaderboards = () => {
     }
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-lg text-muted-foreground">Loading leaderboards...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            EcoStep Leaderboards
+            EcoSteps Leaderboards
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover the top eco-warriors in our community and see how your environmental impact compares.
           </p>
         </div>
 
-        {/* Filter Controls */}
+        
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             <span className="text-lg font-semibold text-foreground">Top Performers</span>
           </div>
-          
+        {/* Filter Controls */}  
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Sort by..." />
+            <SelectTrigger className="w-48">Tier:
+              <SelectValue placeholder="Filter by tier..." />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="score">Total Score</SelectItem>
-              <SelectItem value="activity">Activity Level</SelectItem>
-              <SelectItem value="posts">Posts Count</SelectItem>
+            <SelectContent> 
+              <SelectItem value="overall">Overall Ranking</SelectItem>
+              <SelectItem value="gold">🥇 Gold (8,000-10,000)</SelectItem>
+              <SelectItem value="silver">🥈 Silver (5,000-7,999)</SelectItem>
+              <SelectItem value="bronze">🥉 Bronze (2,000-4,999)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -131,61 +149,66 @@ const Leaderboards = () => {
         {/* Leaderboard Cards */}
         <div className="space-y-4">
           {sortedUsers.map((user, index) => (
-            <Card key={user.id} className="hover:shadow-elevated transition-smooth">
+            <Card key={user._id} className="hover:shadow-elevated transition-all duration-300 ease-out">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="grid grid-cols-12 items-center gap-4">
+                  {/* Left section - Rank, Avatar, User Info */}
+                  <div className="col-span-6 flex items-center space-x-4 min-w-0">
                     {/* Rank */}
                     <div className="flex-shrink-0 w-12 flex justify-center">
                       {getRankIcon(index + 1)}
                     </div>
 
                     {/* Avatar */}
-                    <Avatar className="h-12 w-12">
+                    <Avatar className="h-12 w-12 flex-shrink-0">
                       <AvatarImage src={user.avatarUrl || undefined} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user.fullName.split(' ').map(n => n[0]).join('')}
+                        {user.fullName ? user.fullName.split(' ').map(n => n[0]).join('') : 'U'}
                       </AvatarFallback>
                     </Avatar>
 
                     {/* User Info */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Link 
-                        to={`/profile/${user.id}`}
+                        to={`/profile/${user._id}`}
                         className="block hover:text-primary transition-smooth"
                       >
-                        <h3 className="text-lg font-semibold text-foreground">
+                        <h3 className="text-lg font-semibold text-foreground truncate">
                           {user.fullName}
                         </h3>
-                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                        <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
                       </Link>
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">{user.score}</p>
-                      <p className="text-xs text-muted-foreground">Score</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">{user.activity}</p>
-                      <p className="text-xs text-muted-foreground">Activity</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">{user.posts}</p>
-                      <p className="text-xs text-muted-foreground">Posts</p>
+                  {/* Center section - Stats (Fixed position) */}
+                  <div className="col-span-4 flex items-center justify-center">
+                    <div className="flex items-center space-x-8">
+                      <div className="text-center w-16">
+                        <p className="text-2xl font-bold text-primary">{user.score}</p>
+                        <p className="text-xs text-muted-foreground">Score</p>
+                      </div>
+                      <div className="text-center w-16">
+                        <p className="text-lg font-semibold text-foreground">{user.activity}</p>
+                        <p className="text-xs text-muted-foreground">Activity</p>
+                      </div>
+                      <div className="text-center w-16">
+                        <p className="text-lg font-semibold text-foreground">{user.posts}</p>
+                        <p className="text-xs text-muted-foreground">Posts</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-1 max-w-xs">
-                    {user.badges.map((badge, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        <Star className="h-3 w-3 mr-1" />
-                        {badge}
-                      </Badge>
-                    ))}
+                  {/* Right section - Badges */}
+                  <div className="col-span-2 flex justify-end">
+                    <div className="flex flex-wrap gap-1 justify-end max-w-xs">
+                      {user.badges.map((badge, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          <Star className="h-3 w-3 mr-1" />
+                          {badge}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -199,11 +222,35 @@ const Leaderboards = () => {
             <CardTitle className="text-center text-foreground">Your Current Rank</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <div className="text-3xl font-bold text-primary mb-2">#42</div>
-            <p className="text-muted-foreground mb-4">Keep up the great work to climb higher!</p>
-            <Button variant="hero" asChild>
-              <Link to="/track">Start Tracking Carbon</Link>
-            </Button>
+            {userRank && userRank.rank ? (
+              <>
+                <div className="text-3xl font-bold text-primary mb-2">#{userRank.rank}</div>
+                <p className="text-muted-foreground mb-4">
+                  You have a score of {userRank.score}. Keep up the great work to climb higher!
+                </p>
+                <Button variant="hero" asChild>
+                  <Link
+                    className="transition-all duration-300 ease-out" 
+                    to="/track">
+                      Track More
+                  </Link>
+                </Button>
+              </>
+            ) : 
+            (
+              <>
+                <p className="text-muted-foreground mb-4">
+                  Your rank will be available after you track your carbon footprint.
+                </p>
+                <Button asChild>
+                  <Link 
+                    className="transition-all duration-300 ease-out" 
+                    to="/track">
+                      Start Tracking Carbon Footprint
+                  </Link>
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
