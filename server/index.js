@@ -32,7 +32,8 @@ const notificationRoutes = require('./routes/notificationRoute');
 const userSettingsRoute = require('./routes/userSettingsRoute');
 const pushNotificationRoutes = require("./routes/pushNotificationRoute")
 const NotificationService = require('./services/notificationService');
-
+const badgeAchievementRoutes = require("./routes/badgeAchievementRoute");
+const ecoChallengeRoutes = require("./routes/ecoChallengeRoute")
 const challengeRoutes = require("./routes/challengeRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 
@@ -48,6 +49,8 @@ const path_1 = __importDefault(require("path"));
 const socketIo = require('socket.io');
 const cron = require('node-cron');
 const sendDailyTrackingReminders = require('./controllers/dailyReminder');
+
+const seedAchievements = require('./utils/seedAchievement');
 
 app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
 app.use(express_1.default.json());
@@ -83,29 +86,14 @@ app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 
+// ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
 app.use('/api/admin/emissionfactor', authenticate_1.default, isAdmin, emissionFactorRoute);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user-settings', userSettingsRoute);
 app.use('/api/push', pushNotificationRoutes);
-
-app.use(errorHandler_1.default);
-
-cron.schedule('10 0 * * *', () => {
-  sendDailyTrackingReminders()
-    .then(() => console.log('Daily tracking reminders sent at 8:00 AM.'))
-    .catch((err) => console.error('Failed to send daily reminders:', err));
-}, {
-  timezone: 'Asia/Manila' 
-});
- 
-const now = new Date();
-if (now.getHours() >= 20) {
-  sendDailyTrackingReminders()
-    .then(() => console.log('Reminder sent on server start (after 8 PM).'))
-    .catch((err) => console.error('Failed to send reminder on server start:', err));
-}
-
+app.use("/api/admin/achievements", badgeAchievementRoutes);
+app.use('/api/admin/eco-challenges', ecoChallengeRoutes);
 
 // Challenge routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
@@ -128,15 +116,38 @@ app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 // Error handling middleware
 app.use(errorHandler_1.default);
 
+cron.schedule('10 0 * * *', () => {
+  sendDailyTrackingReminders()
+    .then(() => console.log('Daily tracking reminders sent at 8:00 AM.'))
+    .catch((err) => console.error('Failed to send daily reminders:', err));
+}, {
+  timezone: 'Asia/Manila' 
+});
+ 
+const now = new Date();
+if (now.getHours() >= 20) {
+  sendDailyTrackingReminders()
+    .then(() => console.log('Reminder sent on server start (after 8 PM).'))
+    .catch((err) => console.error('Failed to send reminder on server start:', err));
+}
+
 const startServer = async () => {
-    await (0, db_1.default)();
+  try {
+    await (0, db_1.default)();  // DB connection
+    
+    await seedAchievements();  
+
     app.listen(env_1.PORT, '0.0.0.0', () => {
-        console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
-        console.log(`📊 Challenge API available at /api/challenges`);
-        console.log(`🤖 AI Recommendations API available at /api/recommendations`);
-        console.log(`📈 Footprint API available at /api/footprint`);
+      console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
+      console.log(`📊 Challenge API available at /api/challenges`);
+      console.log(`🤖 AI Recommendations API available at /api/recommendations`);
+      console.log(`📈 Footprint API available at /api/footprint`);
     });
+  } catch (error) {
+    console.error("Error during server startup:", error);
+  }
 };
+
 
 startServer().catch((err) => {
     console.error("❌ Failed to start server:", err);

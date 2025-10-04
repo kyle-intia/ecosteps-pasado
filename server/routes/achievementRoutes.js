@@ -105,7 +105,7 @@ router.get('/notifications', async (req, res) => {
       success: false,
       error: 'Internal server error'
     });
-  }
+  } 
 });
 
 // Mark notification as read

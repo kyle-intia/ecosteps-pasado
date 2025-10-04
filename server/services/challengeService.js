@@ -4,191 +4,24 @@
 const Challenge = require('../models/Challenge');
 const DailyTracking = require('../models/DailyTracking');
 const DailyTrackingService = require('./dailyTrackingService');
+const EcoChallengeService = require('../services/ecoChallengeService');
 
 // Enhanced challenge library with more options for better variety
-const CHALLENGE_LIBRARY = {
-  // Transport challenges (increased variety)
-  car_free_commute: {
-    id: "car_free_commute",
-    title: "Car-Free Commuter",
-    description: "Use public transport, bike, or walk for your entire commute today. Every mile counts!",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q1",
-    overrideValue: "public_transport"
-  },
-  flight_free_day: {
-    id: "flight_free_day",
-    title: "Flight-Free Day",
-    description: "Keep your feet on the ground! Avoid taking any flights today.",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: 150,
-    targetQuestion: "Q2",
-    overrideValue: "no"
-  },
-  walking_warrior: {
-    id: "walking_warrior",
-    title: "Walking Warrior",
-    description: "Walk for at least 5 km for your errands or commute today. Your body and planet will thank you!",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q1",
-    overrideValue: "walking_5km"
-  },
-  telecommute_champion: {
-    id: "telecommute_champion",
-    title: "Telecommute Champion",
-    description: "Work from home and avoid travelling today.",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q1",
-    overrideValue: "no_commute"
-  },
-  bike_commuter: {
-    id: "bike_commuter",
-    title: "Bike Commuter",
-    description: "Use a bicycle for your commute or errands today.",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q1",
-    overrideValue: "bicycle"
-  },
-  carpool_captain: {
-    id: "carpool_captain",
-    title: "Carpool Captain",
-    description: "Share a ride with others for your commute today.",
-    category: "transport",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q1",
-    overrideValue: "carpool"
-  },
-
-  // Home challenges (increased variety)
-  full_house: {
-    id: "full_house",
-    title: "Full House",
-    description: "Share your home with 5+ people to reduce per-person energy use.",
-    category: "home",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q4",
-    overrideValue: "5_occupants"
-  },
-  unplugged_day: {
-    id: "unplugged_day",
-    title: "Unplugged Day",
-    description: "Avoid using high-energy appliances (AC, heater, laundry) today.",
-    category: "home",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q5",
-    overrideValue: "none"
-  },
-  thermostat_titan: {
-    id: "thermostat_titan",
-    title: "Thermostat Titan",
-    description: "Set AC to 26°C/heater to 18°C for the whole day.",
-    category: "home",
-    calculationType: "override",
-    savingsValue: "calculated",
-    targetQuestion: "Q5",
-    overrideValue: "no_ac_heater"
-  },
-  natural_power_hour: {
-    id: "natural_power_hour",
-    title: "Natural Power Hour",
-    description: "Turn off non-essential electronics during peak hours (7-8 PM).",
-    category: "home",
-    calculationType: "fixed_credit",
-    savingsValue: 0.5
-  },
-  air_dry_ambassador: {
-    id: "air_dry_ambassador",
-    title: "Air Dry Ambassador",
-    description: "Hang clothes to dry instead of using the dryer.",
-    category: "home",
-    calculationType: "fixed_credit",
-    savingsValue: 2.0
-  },
-  led_light_leader: {
-    id: "led_light_leader",
-    title: "LED Light Leader",
-    description: "Use only LED bulbs and natural lighting today.",
-    category: "home",
-    calculationType: "fixed_credit",
-    savingsValue: 0.3
-  },
-  power_strip_pro: {
-    id: "power_strip_pro",
-    title: "Power Strip Pro",
-    description: "Use power strips and turn them off when not in use.",
-    category: "home",
-    calculationType: "fixed_credit",
-    savingsValue: 0.4
-  },
-
-  // Food challenges (increased variety)
-  meat_free_munchday: {
-    id: "meat_free_munchday",
-    title: "Meat-Free Munchday",
-    description: "Go fully plant-based for all meals today.",
-    category: "food",
-    calculationType: "override",
-    savingsValue: 6.0,
-    targetQuestion: "Q6,Q7,Q8",
-    overrideValue: "plant_based"
-  },
-  leftover_legend: {
-    id: "leftover_legend",
-    title: "Leftover Legend",
-    description: "Fight food waste! Eat leftovers for at least one meal today.",
-    category: "food",
-    calculationType: "override",
-    savingsValue: 2.0,
-    targetQuestion: "Q7",
-    overrideValue: "plant_based"
-  },
-  palengke_patron: {
-    id: "palengke_patron",
-    title: "Palengke Patron",
-    description: "Buy fresh produce from the palengke or talipapa instead of imported goods. Support local farmers.",
-    category: "food",
-    calculationType: "fixed_credit",
-    savingsValue: 0.5
-  },
-  zero_waste_warrior: {
-    id: "zero_waste_warrior",
-    title: "Zero Waste Warrior",
-    description: "Avoid single-use plastics and packaging for all meals today.",
-    category: "food",
-    calculationType: "fixed_credit",
-    savingsValue: 0.7
-  },
-  local_food_lover: {
-    id: "local_food_lover",
-    title: "Local Food Lover",
-    description: "Eat only locally sourced ingredients for at least one meal.",
-    category: "food",
-    calculationType: "fixed_credit",
-    savingsValue: 0.6
-  },
-  water_wise: {
-    id: "water_wise",
-    title: "Water Wise",
-    description: "Choose tap water over bottled drinks today.",
-    category: "food",
-    calculationType: "fixed_credit",
-    savingsValue: 0.4
-  }
-};
 
 class ChallengeService {
+
+  static async loadChallengeLibrary() {
+    const challengesArray = await EcoChallengeService.getAllChallenges();
+  
+    // Convert to object keyed by ID
+    const challengeLibrary = challengesArray.reduce((acc, challenge) => {
+      acc[challenge.id] = challenge.toObject ? challenge.toObject() : challenge;
+      return acc;
+    }, {});
+  
+    return challengeLibrary;
+  }
+
   /**
    * Check if user has completed daily tracking for today
    * @param {string} userId - User identifier
@@ -264,7 +97,8 @@ class ChallengeService {
    * @param {string} userId - User identifier for consistent daily selection
    * @returns {Array} Array of 3 selected challenges (one from each category)
    */
-  static selectDailyChallenges(userId) {
+  static async selectDailyChallenges(userId) {
+    const challengeLibrary = await this.loadChallengeLibrary();
     const categories = ['transport', 'home', 'food'];
     const selected = [];
     
@@ -278,7 +112,7 @@ class ChallengeService {
     const seed = this.createDeterministicSeed(userId + dateString);
     
     categories.forEach(category => {
-      const categoryChallenges = Object.values(CHALLENGE_LIBRARY)
+      const categoryChallenges = Object.values(challengeLibrary)
         .filter(c => c.category === category);
       
       if (categoryChallenges.length === 0) {
@@ -317,7 +151,8 @@ class ChallengeService {
    * @param {string} userId - User identifier
    * @returns {Array} Selected challenges
    */
-  static selectDailyChallengesByRotation(userId) {
+  static async selectDailyChallengesByRotation(userId) {
+    const challengeLibrary = await this.loadChallengeLibrary();
     const categories = ['transport', 'home', 'food'];
     const selected = [];
     
@@ -329,7 +164,7 @@ class ChallengeService {
     const dayOfYear = Math.floor(diff / oneDay);
     
     categories.forEach(category => {
-      const categoryChallenges = Object.values(CHALLENGE_LIBRARY)
+      const categoryChallenges = Object.values(challengeLibrary)
         .filter(c => c.category === category)
         .sort((a, b) => a.id.localeCompare(b.id)); // Sort for consistent ordering
       
@@ -680,8 +515,9 @@ class ChallengeService {
    * Get all available challenges (for admin/testing purposes)
    * @returns {Object} All challenges grouped by category
    */
-  static getAllChallenges() {
-    const challenges = Object.values(CHALLENGE_LIBRARY);
+  static async getAllChallenges() {
+    const challengeLibrary = await this.loadChallengeLibrary();
+    const challenges = Object.values(challengeLibrary);
     return {
       transport: challenges.filter(c => c.category === 'transport'),
       home: challenges.filter(c => c.category === 'home'),

@@ -102,6 +102,18 @@ export const getEmissionFactorById = (id) => API.get(`/api/admin/emissionfactor/
 export const updateEmissionFactor = (id, data) => API.patch(`/api/admin/emissionfactor/${id}`, data);
 export const deleteEmissionFactor = (id) => API.delete(`/api/admin/emissionfactor/${id}`);
 
+export const createAchievements = (data) => API.post("/api/admin/achievements/create", data);
+export const getAchievements = () => API.get("/api/admin/achievements/");
+export const getAchievementsId = (id) => API.get(`/api/admin/achievements/${id}`);
+export const updateAchievements = (id, data) => API.patch(`/api/admin/achievements/${id}`, data);
+export const deleteAchievements = (id) => API.delete(`/api/admin/achievements/${id}`);
+
+export const createChallenge = (data) => API.post("/api/admin/eco-challenges/create", data);
+export const getChallenge = () => API.get("/api/admin/eco-challenges/");
+export const getChallengeId= (id) => API.get(`/api/admin/eco-challenges/${id}`);
+export const updateChallenge = (id, data) => API.patch(`/api/admin/eco-challenges/${id}`, data);
+export const deleteChallenge = (id) => API.delete(`/api/admin/eco-challenges/${id}`);
+
 //======== NOTIFICATIONS ==============
 
 export const getAllNotification = () => API.get("/api/notifications/admin/all");

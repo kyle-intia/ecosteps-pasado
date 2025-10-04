@@ -44,13 +44,6 @@ import {
 } from "lucide-react"
 import { listUsers, createEmissionFactor, getAllEmissionFactors, getEmissionFactorById, updateEmissionFactor, deleteEmissionFactor, getMaintenanceMode, toggleMaintenance, getPushNotificationMode, togglePushNotification} from "../lib/api"
 
-
-const adminUsers = [
-  { id: "ADM001", name: "John Admin", email: "john@admin.com", role: "Super Admin", lastActive: "2024-01-20" },
-  { id: "ADM002", name: "Sarah Manager", email: "sarah@admin.com", role: "Manager", lastActive: "2024-01-19" },
-  { id: "ADM003", name: "Mike Support", email: "mike@admin.com", role: "Support", lastActive: "2024-01-18" }
-]
-
 const AdminSettings = () => {
   const [emissionFactors, setEmissionFactors] = useState([])
   const [aiModel, setAiModel] = useState("gpt-4")
@@ -248,7 +241,8 @@ const AdminSettings = () => {
     }
   };
 
-  if (loading) return <p>Loading maintenance status...</p>;
+  if (loading) 
+    return <p>Loading maintenance status...</p>;
 
 
   const getDaysAgo = (dateString) => {
