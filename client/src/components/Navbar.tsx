@@ -16,7 +16,6 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { name: "Home", href: "/home", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },

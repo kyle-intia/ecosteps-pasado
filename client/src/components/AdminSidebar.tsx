@@ -4,7 +4,9 @@ import {
   FileText, 
   Leaf, 
   Settings,
-  LogOut
+  LogOut,
+  Award,
+  Target
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -28,9 +30,11 @@ import { ConfirmDialog } from "./ui/confirm-dialog"
 
 const navigationItems = [
   { title: "Dashboard", url: "/admin", icon: BarChart3 },
+  { title: "Footprint Summary", url: "/admin/footprint", icon: Leaf },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Activity Logs", url: "/admin/logs", icon: FileText },
-  { title: "Footprint Summary", url: "/admin/footprint", icon: Leaf },
+  { title: "Badge Achievements", url: "/admin/badges", icon: Award },
+  { title: "Eco Challenges", url: "/admin/eco-challenges", icon: Target },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ]
 

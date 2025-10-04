@@ -430,7 +430,7 @@ const Users = () => {
                       <TableHead className="hidden sm:table-cell">Joined Date</TableHead>
                       <TableHead className="hidden md:table-cell">Last Active</TableHead>
                       <TableHead className="hidden lg:table-cell">Total Logs</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden sm:table-cell">Status</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead className="sticky right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 w-[50px]">Actions</TableHead>
                     </TableRow>
@@ -456,7 +456,7 @@ const Users = () => {
                           {getDaysAgo(user.lastActive)}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{user.totalLogs || 0}</TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge variant={getStatusVariant(user.status)}>
                             {user.status}
                           </Badge>

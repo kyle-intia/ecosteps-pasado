@@ -35,6 +35,8 @@ import AdminDashboard from "./ecosteps-admin/AdminDashboard";
 import FootprintSummary from "./ecosteps-admin/FootprintSummary";
 import AdminSettings from "./ecosteps-admin/AdminSettings";
 import { AdminLayout } from "./components/AdminLayout";
+import BadgeAchievements from "./ecosteps-admin/BadgeAchievement";
+import EcoChallenges from "./ecosteps-admin/EcoChallenge";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -86,6 +88,8 @@ const App: React.FC = () => {
             <Route index element={<AdminDashboard />} />
             <Route path="/admin/users" element={<Users />} />
             <Route path="/admin/logs" element={<ActivityLogs />} />
+            <Route path="/admin/badges" element={<BadgeAchievements />} />
+            <Route path="/admin/eco-challenges" element={<EcoChallenges />} />
             <Route path="/admin/footprint" element={<FootprintSummary />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="*" element={<NotFound />} />

@@ -126,9 +126,14 @@ router.post('/submit', async (req, res) => {
 
     // Get today's date in Philippines timezone
     const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
+
+    // Get the current date/time in the Philippines (UTC+8)
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+    // Create a 'today' date at midnight in the Philippines (UTC+8)
     const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+
+    // 'Tomorrow' is 24 hours after 'today'
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     // Check if entry already exists
@@ -235,9 +240,14 @@ router.post('/check-resubmission', async (req, res) => {
 
     // Get today's date in Philippines timezone
     const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
+
+    // Get the current date/time in the Philippines (UTC+8)
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+    // Create a 'today' date at midnight in the Philippines (UTC+8)
     const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+
+    // 'Tomorrow' is 24 hours after 'today'
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     const existingEntry = await DailyTracking.findOne({

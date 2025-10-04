@@ -70,6 +70,19 @@ const Achievements = () => {
     staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
+  const { achievements = [], equipped = [], stats = {} } = achievementData || {};
+
+  const achievementsWithEquipped = useMemo(() => achievements.map(a => ({ ...a, isEquipped: equipped.some(e => e.achievementId === a.achievementId) })), [achievements, equipped]);
+
+  const categories = ["All", ...new Set(achievements.map(a => a.category))];
+
+  const filteredAchievements = useMemo(() => achievementsWithEquipped.filter(achievement => {
+    const matchesSearch = achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         achievement.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || achievement.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  }), [achievementsWithEquipped, searchQuery, selectedCategory]);
+
   const equipMutation = useMutation({
     mutationFn: (achievementId: string) => equipAchievement(achievementId),
     onSuccess: () => {
@@ -142,19 +155,6 @@ const Achievements = () => {
       </div>
     );
   }
-
-  const { achievements = [], equipped = [], stats = {} } = achievementData || {};
-
-  const achievementsWithEquipped = useMemo(() => achievements.map(a => ({ ...a, isEquipped: equipped.some(e => e.achievementId === a.achievementId) })), [achievements, equipped]);
-
-  const categories = ["All", ...new Set(achievements.map(a => a.category))];
-
-  const filteredAchievements = useMemo(() => achievementsWithEquipped.filter(achievement => {
-    const matchesSearch = achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         achievement.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || achievement.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  }), [achievementsWithEquipped, searchQuery, selectedCategory]);
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const totalPoints = achievements.filter(a => a.unlocked).length * 100; // Mock points calculation

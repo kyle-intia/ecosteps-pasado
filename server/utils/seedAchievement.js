@@ -1,4 +1,4 @@
-// server/scripts/seedAchievements.js - Put in server/scripts/
+// server/scripts/seedAchievements.js
 const mongoose = require('mongoose');
 const path = require('path');
 const AchievementService = require('../services/achievementService');
@@ -8,56 +8,58 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 async function seedAchievements() {
   try {
-    await mongoose.connect(process.env.MONGO_URI, { dbName: 'auth_db' });
-    console.log('Connected to MongoDB');
+    // Ensure MongoDB connection
+    await mongoose.connect(process.env.MONGO_URI, { dbName: 'ecosteps_db' });
 
+    // Seed achievements
     await AchievementService.seedAchievements();
     console.log('Achievement seeding completed');
 
     // Update stats for existing users based on their tracking history
     console.log('Updating achievement stats for existing users...');
     const users = await User.find({});
-    let statsUpdated = 0;
-
-    for (const user of users) {
-      try {
-        const trackingCount = await DailyTracking.countDocuments({ userId: user._id });
-        if (trackingCount > 0 && user.achievementStats.totalTrackingDays === 0) {
-          await AchievementService.updateUserStats(user._id, {
-            totalTrackingDays: trackingCount
-          });
-          statsUpdated++;
-          console.log(`Updated stats for user ${user.email}: totalTrackingDays = ${trackingCount}`);
-        }
-      } catch (error) {
-        console.error(`Error updating stats for user ${user.email}:`, error);
+    
+    const updateUserStats = async (user) => {
+      const trackingCount = await DailyTracking.countDocuments({ userId: user._id });
+      if (trackingCount > 0 && user.achievementStats.totalTrackingDays === 0) {
+        await AchievementService.updateUserStats(user._id, { totalTrackingDays: trackingCount });
+        return { email: user.email, trackingCount };
       }
-    }
+      return null;
+    };
+
+    // Run user stats update concurrently using Promise.all
+    const results = await Promise.all(users.map(updateUserStats));
+
+    // Filter out users whose stats weren't updated and log them
+    const statsUpdated = results.filter(result => result !== null).length;
+    results.forEach(result => {
+      if (result) {
+        console.log(`Updated stats for user ${result.email}: totalTrackingDays = ${result.trackingCount}`);
+      }
+    });
 
     console.log(`Stats updated for ${statsUpdated} users`);
 
-    // Check achievements for all existing users
+    // Check achievements for existing users
     console.log('Checking achievements for existing users...');
     let totalNewAchievements = 0;
 
-    for (const user of users) {
+    const checkUserAchievements = async (user) => {
       try {
-        // Provide dummy context values to prevent ReferenceError in eval
         const dummyContext = {
-          dailyFootprint: 0, // Default value for carbon-based conditions
-          dailyChallengesCompleted: 0, // Default for challenge completion
-          isCarFree: false, // Default transport condition
-          isPlantBased: false // Default food condition
+          dailyFootprint: 0,
+          dailyChallengesCompleted: 0,
+          isCarFree: false,
+          isPlantBased: false
         };
 
-        // Check for daily tracking achievements
         const dailyAchievements = await AchievementService.checkAchievements(
           user._id,
           'DAILY_TRACKING_COMPLETE',
           dummyContext
         );
 
-        // Check for challenge achievements
         const challengeAchievements = await AchievementService.checkAchievements(
           user._id,
           'CHALLENGE_COMPLETE',
@@ -72,15 +74,17 @@ async function seedAchievements() {
       } catch (error) {
         console.error(`Error checking achievements for user ${user.email}:`, error);
       }
-    }
+    };
+
+    // Run achievement checking concurrently using Promise.all
+    await Promise.all(users.map(checkUserAchievements));
 
     console.log(`Retroactive achievement check completed. Total new achievements unlocked: ${totalNewAchievements}`);
 
-    process.exit(0);
   } catch (error) {
     console.error('Error seeding achievements:', error);
-    process.exit(1);
+    process.exit(1);  // Ensure the process exits if there’s an error
   }
 }
 
-seedAchievements();
+module.exports = seedAchievements;

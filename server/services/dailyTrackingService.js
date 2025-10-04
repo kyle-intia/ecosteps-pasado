@@ -166,11 +166,16 @@ class DailyTrackingService {
   static async resetChallengesOnTrackingUpdate(userId) {
     try {
       // Get today's date in Philippines timezone
-      const now = new Date();
-      const phOffset = 8 * 60 * 60 * 1000;
-      const phNow = new Date(now.getTime() + phOffset);
-      const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
-      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const now = new Date();
+
+    // Get the current date/time in the Philippines (UTC+8)
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+    // Create a 'today' date at midnight in the Philippines (UTC+8)
+    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+
+    // 'Tomorrow' is 24 hours after 'today'
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
       // Find today's challenge document for the user
       const challengeDoc = await Challenge.findOne({
