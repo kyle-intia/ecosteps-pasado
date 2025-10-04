@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
+
 
 // Mock data for leaderboards
 const mockUsers = [
@@ -71,6 +75,10 @@ const Leaderboards = () => {
   const [sortBy, setSortBy] = useState("score");
   const [users] = useState(mockUsers);
 
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut()
+
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -95,9 +103,18 @@ const Leaderboards = () => {
     }
   });
 
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  if (isPending) {
+    return <Spinner />;
+  }
+  
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={true} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
@@ -133,53 +150,53 @@ const Leaderboards = () => {
           {sortedUsers.map((user, index) => (
             <Card key={user.id} className="hover:shadow-elevated transition-smooth">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Rank */}
-                    <div className="flex-shrink-0 w-12 flex justify-center">
-                      {getRankIcon(index + 1)}
-                    </div>
-
-                    {/* Avatar */}
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatarUrl || undefined} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user.fullName.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    {/* User Info */}
-                    <div className="flex-1">
-                      <Link 
-                        to={`/profile/${user.id}`}
-                        className="block hover:text-primary transition-smooth"
-                      >
-                        <h3 className="text-lg font-semibold text-foreground">
-                          {user.fullName}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">@{user.username}</p>
-                      </Link>
-                    </div>
+                <div className="grid items-center grid-cols-[48px,48px,1fr,128px,112px,112px,minmax(160px,1fr)] gap-4">
+                  {/* Rank */}
+                  <div className="flex justify-center">
+                    {getRankIcon(index + 1)}
                   </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">{user.score}</p>
-                      <p className="text-xs text-muted-foreground">Score</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">{user.activity}</p>
-                      <p className="text-xs text-muted-foreground">Activity</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">{user.posts}</p>
-                      <p className="text-xs text-muted-foreground">Posts</p>
-                    </div>
+                  {/* Avatar */}
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.avatarUrl || undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user.fullName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* User Info */}
+                  <div className="min-w-0">
+                    <Link 
+                      to={`/profile/${user.id}`}
+                      className="block hover:text-primary transition-smooth truncate"
+                    >
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {user.fullName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">@{user.username}</p>
+                    </Link>
+                  </div>
+
+                  {/* Score */}
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary">{user.score}</p>
+                    <p className="text-xs text-muted-foreground">Score</p>
+                  </div>
+
+                  {/* Activity */}
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-foreground">{user.activity}</p>
+                    <p className="text-xs text-muted-foreground">Activity</p>
+                  </div>
+
+                  {/* Posts */}
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-foreground">{user.posts}</p>
+                    <p className="text-xs text-muted-foreground">Posts</p>
                   </div>
 
                   {/* Badges */}
-                  <div className="flex flex-wrap gap-1 max-w-xs">
+                  <div className="flex flex-wrap gap-1">
                     {user.badges.map((badge, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs">
                         <Star className="h-3 w-3 mr-1" />

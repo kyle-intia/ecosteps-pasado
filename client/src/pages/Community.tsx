@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navbar } from "@/components/Navbar";
 import { Heart, MessageCircle, Repeat2, Share, Camera, Users, Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui/spinner";
+import  useSessionStatus from "../hooks/useSessionStatus"
+import  useSignOut from "../hooks/useLogout"
 
 interface Post {
   id: string;
@@ -26,76 +29,72 @@ interface Post {
 }
 
 const Community = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [postContent, setPostContent] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const { toast } = useToast();
-  const navigate = useNavigate();
+
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut();
+  
+  const handleSignOut = () => {
+    signOut();
+  };
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!loggedIn) {
-      navigate("/");
-      return;
-    }
-    setIsLoggedIn(true);
-    
-    // Initialize with some sample posts
-    const samplePosts: Post[] = [
-      {
-        id: "1",
-        author: {
-          name: "Sarah Green",
-          username: "@sarah_eco",
-          avatar: "/placeholder.svg"
-        },
-        content: "Just switched to a plant-based diet this week! Already feeling more energized and knowing I'm reducing my carbon footprint by 0.8 tons per year feels amazing. 🌱 #PlantBased #EcoLiving",
-        likes: 24,
-        comments: 8,
-        reposts: 3,
-        timestamp: "2 hours ago",
-        isLiked: false,
-        isReposted: false
+  const samplePosts: Post[] = [
+    {
+      id: "1",
+      author: {
+        name: "Sarah Green",
+        username: "@sarah_eco",
+        avatar: "/uploads/profile_pics/defaultProfile.png",
       },
-      {
-        id: "2",
-        author: {
-          name: "Mike Chen",
-          username: "@mike_sustain",
-          avatar: "/placeholder.svg"
-        },
-        content: "Cycled to work all week instead of driving! 50km total distance and saved about 12kg of CO₂. Small changes, big impact! 🚴‍♂️",
-        likes: 31,
-        comments: 12,
-        reposts: 7,
-        timestamp: "4 hours ago",
-        isLiked: true,
-        isReposted: false
+      content:
+        "Just switched to a plant-based diet this week! Already feeling more energized and knowing I'm reducing my carbon footprint by 0.8 tons per year feels amazing. 🌱 #PlantBased #EcoLiving",
+      likes: 24,
+      comments: 8,
+      reposts: 3,
+      timestamp: "2 hours ago",
+      isLiked: false,
+      isReposted: false,
+    },
+    {
+      id: "2",
+      author: {
+        name: "Mike Chen",
+        username: "@mike_sustain",
+        avatar: "/placeholder.svg",
       },
-      {
-        id: "3",
-        author: {
-          name: "Eco Warriors",
-          username: "@ecowarriors",
-          avatar: "/placeholder.svg"
-        },
-        content: "Did you know that reducing food waste by just 25% can cut your household carbon footprint by 1-2%? Every bit counts! Start meal planning today 📝✨",
-        likes: 56,
-        comments: 15,
-        reposts: 23,
-        timestamp: "6 hours ago",
-        isLiked: false,
-        isReposted: true
-      }
-    ];
-    
-    setPosts(samplePosts);
-  }, [navigate]);
+      content:
+        "Cycled to work all week instead of driving! 50km total distance and saved about 12kg of CO₂. Small changes, big impact! 🚴‍♂️",
+      likes: 31,
+      comments: 12,
+      reposts: 7,
+      timestamp: "4 hours ago",
+      isLiked: true,
+      isReposted: false,
+    },
+    {
+      id: "3",
+      author: {
+        name: "Eco Warriors",
+        username: "@ecowarriors",
+        avatar: "/placeholder.svg",
+      },
+      content:
+        "Did you know that reducing food waste by just 25% can cut your household carbon footprint by 1-2%? Every bit counts! Start meal planning today 📝✨",
+      likes: 56,
+      comments: 15,
+      reposts: 23,
+      timestamp: "6 hours ago",
+      isLiked: false,
+      isReposted: true,
+    },
+  ];
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+    setPosts(samplePosts);
+  }, []);
+
 
   const handlePost = () => {
     if (!postContent.trim()) {
@@ -164,9 +163,13 @@ const Community = () => {
     }
   };
 
+  if (isPending) {
+    return <Spinner />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
