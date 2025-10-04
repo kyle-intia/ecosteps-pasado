@@ -12,18 +12,16 @@ interface AuthLayoutProps {
 export const AuthLayout = ({ children, title, description }: AuthLayoutProps) => {
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gradient-subtle">
         <div className="w-full max-w-md space-y-6">
-          {/* Logo */}
+
           <div className="flex items-center justify-center space-x-2">
             <div className="p-3 bg-gradient-primary rounded-xl shadow-glow">
-              <Leaf className="h-8 w-8 text-primary-foreground" />
+              <img src="/favicon.ico" alt="EcoSteps Logo" className="h-10 w-10" />
             </div>
-            <span className="text-2xl font-bold text-foreground">EcoStep</span>
+            <span className="text-2xl font-bold text-foreground">EcoSteps</span>
           </div>
 
-          {/* Form Card */}
           <Card className="shadow-elevated border-border">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold text-foreground">{title}</CardTitle>
@@ -34,11 +32,10 @@ export const AuthLayout = ({ children, title, description }: AuthLayoutProps) =>
         </div>
       </div>
 
-      {/* Right side - Hero Image */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden">
         <img
           src={heroImage}
-          alt="EcoStep Carbon Tracking"
+          alt="EcoSteps Carbon Tracking"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20" />

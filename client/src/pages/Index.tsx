@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
-import { TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
+import { Leaf,TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
 import heroImage from "@/assets/hero-eco.jpg";
 import { useMutation } from "@tanstack/react-query";
 import { logout } from "@/lib/api";
@@ -26,18 +26,9 @@ const Index = () => {
     }
   }, [navigate]);
 
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
-    },
-  });
-
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
+      <Navbar isLoggedIn={isLoggedIn}  />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -71,7 +62,7 @@ const Index = () => {
                 </Link>
               </Button>
               <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/login">Log In</Link>
               </Button>
             </div>
 

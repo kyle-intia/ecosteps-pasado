@@ -9,12 +9,12 @@ import {
   AtSign,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { createProfile } from "../lib/api";
+import { createProfile, userProfileDone } from "../lib/api";
+import { Spinner } from "@/components/ui/spinner";
+import useSessionStatus from "../hooks/useSessionStatus";
+import BirthdayDropdown from "@/components/BirthdayDropdown";
 
 type FormData = {
   firstName: string;
@@ -39,19 +39,47 @@ export default function CreateProfile() {
     bio: "",
   });
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const redirectUrl = location.state?.redirectUrl || "/";
-
+  const { isPending: sessionPending } = useSessionStatus();
 
   useEffect(() => {
-      const isLoggedIn = localStorage.getItem("isLoggedIn");
-      if (!isLoggedIn) {
-        navigate("/");
+    const checkAssessmentStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:4004/profile/user/status", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data?.userProfileDone) {
+          navigate("/home", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking assessment status:", error);
       }
-    }, [navigate]);
+    };
+
+    checkAssessmentStatus();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (formData.profilePic) {
+      const url = URL.createObjectURL(formData.profilePic);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [formData.profilePic]);
 
   const validateForm = () => {
     const newErrors: Errors = {};
@@ -74,10 +102,6 @@ export default function CreateProfile() {
       newErrors.birthday = "Birthday is required.";
     } else if (!/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/.test(formData.birthday.trim())) {
       newErrors.birthday = "Enter a valid date in MM-DD-YYYY format.";
-    }
-
-    if (!(formData.profilePic instanceof File)) {
-      newErrors.profilePic = "Invalid profile picture.";
     }
 
     if (!formData.address.trim()) {
@@ -150,150 +174,198 @@ export default function CreateProfile() {
     }
   };
 
+  if (sessionPending) {
+    return <Spinner />;
+  }
+
   return (
+    
+  
     <form
       onSubmit={handleSubmit}
-      className="max-w-md mx-auto p-4 space-y-6"
+      className="max-w-3xl mx-auto p-6 bg-white shadow-sm rounded-2xl"
       autoComplete="off"
     >
-      {/* First Name */}
-      <div>
-        <Label htmlFor="firstName" className="flex items-center gap-2 font-semibold">
-          <User size={20} /> First Name
-        </Label>
-        <Input
-          id="firstName"
-          name="firstName"
-          value={formData.firstName}
-          onChange={handleInputChange}
-          className={`w-full p-2 ${errors.firstName ? "border-red-500" : ""}`}
-          placeholder="John"
-        />
-        {errors.firstName && (
-          <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>
-        )}
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
+        <p className="text-muted-foreground">Manage your personal information and preferences.</p>
       </div>
+      <div className="flex flex-col md:grid md:grid-cols-10 gap-10">
+        <div className="col-span-4 space-y-4 flex flex-col items-center">
+          <div className="flex justify-center">
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="Profile preview"
+                className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
+                <Image size={32} className="text-gray-400" />
+              </div>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="profilePic"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <Image size={16} /> Profile Picture
+            </label>
+            <input
+              id="profilePic"
+              type="file"
+              name="profilePic"
+              onChange={handleInputChange}
+              className="mt-1 w-full p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {errors.profilePic && (
+              <p className="text-red-500 text-xs mt-1">{errors.profilePic}</p>
+            )}
+          </div>
+        </div>
 
-      {/* Last Name */}
-      <div>
-        <Label htmlFor="lastName" className="flex items-center gap-2 font-semibold">
-          <UserCheck size={20} /> Last Name
-        </Label>
-        <Input
-          id="lastName"
-          name="lastName"
-          value={formData.lastName}
-          onChange={handleInputChange}
-          placeholder="Doe"
-          className={`w-full p-2 ${errors.lastName ? "border-red-500" : ""}`}
-        />
-        {errors.lastName && (
-          <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>
-        )}
-      </div>
-
-      {/* Username */}
-      <div>
-        <Label htmlFor="username" className="flex items-center gap-2 font-semibold">
-          <AtSign size={20} /> Username
-        </Label>
-        <Input
-          id="username"
-          name="username"
-          value={formData.username}
-          onChange={handleInputChange}
-          placeholder="johndoe123"
-          className={`w-full p-2 ${errors.username ? "border-red-500" : ""}`}
-        />
-        {errors.username && (
-          <p className="text-red-600 text-sm mt-1">{errors.username}</p>
-        )}
-      </div>
-
-      {/* Birthday */}
-      <div>
-        <Label htmlFor="birthday" className="flex items-center gap-2 font-semibold">
-          <Calendar size={20} /> Birthday (MM-DD-YYYY)
-        </Label>
-        <Input
-          id="birthday"
+        <div className=" col-span-6 space-y-4">
+          {/* First Name */}
+          <div>
+            <label
+              htmlFor="firstName"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <User size={16} /> First Name
+            </label>
+            <input
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleInputChange}
+              className={`mt-1 w-full p-2 rounded-lg border ${errors.firstName ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 placeholder-gray-400`}
+              placeholder="John"
+            />
+            {errors.firstName && (
+              <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+            )}
+          </div>
           
-          name="birthday"
-          value={formData.birthday}
-          onChange={handleInputChange}
-          placeholder="MM-DD-YYYY"
-          className={`w-full p-2 ${errors.birthday ? "border-red-500" : ""}`}
-        />
-        {errors.birthday && (
-          <p className="text-red-600 text-sm mt-1">{errors.birthday}</p>
-        )}
+          {/* Last Name */}
+          <div>
+            <label
+              htmlFor="lastName"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <UserCheck size={16} /> Last Name
+            </label>
+            <input
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleInputChange}
+              className={`mt-1 w-full p-2 rounded-lg border ${errors.lastName ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 placeholder-gray-400`}
+              placeholder="Doe"
+            />
+            {errors.lastName && (
+              <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+            )}
+          </div>
+          
+          {/* Username */}
+          <div>
+            <label
+              htmlFor="username"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <AtSign size={16} /> Username
+            </label>
+            <input
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              className={`mt-1 w-full p-2 rounded-lg border ${errors.username ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 placeholder-gray-400`}
+              placeholder="johndoe123"
+            />
+            {errors.username && (
+              <p className="text-red-500 text-xs mt-1">{errors.username}</p>
+            )}
+          </div>
+          
+          {/* Birthday */}
+          <div>
+            <label
+              htmlFor="birthday"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <Calendar size={16} /> Birthday (MM-DD-YYYY)
+            </label>
+            <BirthdayDropdown
+              value={formData.birthday}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, birthday: value }))
+              }
+              error={errors.birthday}
+            />
+            {errors.birthday && (
+              <p className="text-red-500 text-xs mt-1">{errors.birthday}</p>
+            )}
+          </div>
+          
+          {/* Address */}
+          <div>
+            <label
+              htmlFor="address"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <MapPin size={16} /> Address
+            </label>
+            <input
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              className={`mt-1 w-full p-2 rounded-lg border ${errors.address ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 placeholder-gray-400`}
+              placeholder="123 Main St, City, Country"
+            />
+            {errors.address && (
+              <p className="text-red-500 text-xs mt-1">{errors.address}</p>
+            )}
+          </div>
+          
+          {/* Bio (textarea) */}
+          <div>
+            <label
+              htmlFor="bio"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+            >
+              <FileText size={16} /> Bio
+            </label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              placeholder="Tell us about yourself..."
+              maxLength={200}
+              rows={3}
+              className={`mt-1 w-full p-2 rounded-lg border ${errors.bio ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm text-gray-900 placeholder-gray-400 resize-none`}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.bio.length}/200 characters
+            </p>
+            {errors.bio && (
+              <p className="text-red-500 text-xs mt-1">{errors.bio}</p>
+            )}
+          </div>
+          
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="w-full py-2 px-3 bg-green-600 text-white rounded-lg font-medium text-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isPending}
+          >
+            {isPending ? "Saving profile..." : "Save Profile"}
+          </button>
+        </div>
       </div>
-
-      {/* Profile Picture */}
-      <div>
-        <Label htmlFor="profilePic" className="flex items-center gap-2 font-semibold">
-          <Image size={20} /> Profile Picture URL
-        </Label>
-        <Input
-          id="profilePic"
-          type="file"
-          name="profilePic"
-          onChange={handleInputChange}
-          placeholder="asdasda"
-          className={`w-full p-2 ${errors.profilePic ? "border-red-500" : ""}`}
-        />
-        {errors.profilePic && (
-          <p className="text-red-600 text-sm mt-1">{errors.profilePic}</p>
-        )}
-      </div>
-
-      {/* Address */}
-      <div>
-        <Label htmlFor="address" className="flex items-center gap-2 font-semibold">
-          <MapPin size={20} /> Address
-        </Label>
-        <Input
-          id="address"
-          name="address"
-          value={formData.address}
-          onChange={handleInputChange}
-          placeholder="123 Main St, City, Country"
-          className={`w-full p-2 ${errors.address ? "border-red-500" : ""}`}
-        />
-        {errors.address && (
-          <p className="text-red-600 text-sm mt-1">{errors.address}</p>
-        )}
-      </div>
-
-      {/* Bio (textarea) */}
-      <div>
-        <Label htmlFor="bio" className="flex items-center gap-2 font-semibold">
-          <FileText size={20} /> Bio
-        </Label>
-        <textarea
-          id="bio"
-          name="bio"
-          value={formData.bio}
-          onChange={handleInputChange}
-          placeholder="Tell us about yourself..."
-          maxLength={200}
-          rows={4}
-          className={`w-full p-2 rounded border resize-none ${
-            errors.bio ? "border-red-500" : "border-gray-300"
-          }`}
-        />
-        <p className="text-sm text-gray-500">
-          {formData.bio.length}/200 characters
-        </p>
-        {errors.bio && (
-          <p className="text-red-600 text-sm mt-1">{errors.bio}</p>
-        )}
-      </div>
-
-      {/* Submit Button */}
-      <Button type="submit" variant="hero" className="w-full" disabled={isPending}>
-        {isPending ? "Saving profile..." : "Save Profile"}
-      </Button>
     </form>
   );
 }

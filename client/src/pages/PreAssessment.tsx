@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft } from "lucide-react";
-import useSessions from "../hooks/useSessions";
+import { Spinner } from "@/components/ui/spinner";
+import useSessionStatus from "../hooks/useSessionStatus";
+import useAuth from "../hooks/useAuth";
 
 const questions = [
   {
@@ -119,18 +121,37 @@ export default function PreAssessment() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { sessions, isPending, isError } = useSessions();
+  const { isPending } = useSessionStatus();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!isPending && sessions.length > 0) {
-      localStorage.setItem("isLoggedIn", "true");
-    }
+    const checkAssessmentStatus = async () => {
+      // Only check assessment status if user is authenticated
+      if (!user) {
+        return;
+      }
 
-    if (!isPending && (isError || sessions.length === 0)) {
-      localStorage.removeItem("isLoggedIn");
-      navigate("/", { replace: true });
-    }
-  }, [isPending, isError, sessions, navigate]);
+      try {
+        const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data?.assessmentDone) {
+          navigate("/home", { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking assessment status:", error);
+      }
+    };
+
+    checkAssessmentStatus();
+  }, [navigate, user]);
 
   const getCurrentSection = () => questions[currentSection];
   const getCurrentQuestion = () => getCurrentSection().questions[currentQuestion];
@@ -237,26 +258,15 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
     setIsLoading(true);
     
     try {
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        toast({
-          title: "Error",
-          description: "User not logged in. Please log in again.",
-          variant: "destructive",
-        });
-        navigate("/");
-        return;
-      }
-
       const responses = transformAnswersForBackend(answers);
       
-      const response = await fetch("http://localhost:5000/api/preassessment/submit", {
+      const response = await fetch("http://localhost:4004/api/preassessment/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
-          userId,
           responses
         }),
       });
@@ -304,6 +314,11 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
   const section = getCurrentSection();
   const question = getCurrentQuestion();
   const Icon = section.icon;
+
+  if (isPending) {
+    return <Spinner />;
+  }
+  
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

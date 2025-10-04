@@ -1,12 +1,3 @@
-# TrackCarbon "None" Checkbox Implementation
-
-## Steps to Complete:
-1. [x] Add state variables for high-energy appliances and "none" selection
-2. [x] Implement checkbox handler functions
-3. [x] Update the UI with proper state management and disabled attributes
-4. [ ] Test the functionality
-
-## Implementation Details:
-- When "none" is checked: disable all other checkboxes and uncheck them
-- When "none" is unchecked: enable all other checkboxes  
-- When any other checkbox is checked: automatically uncheck "none"
+- [x] Fix environment variable name in seedAchievement.js: Change process.env.MONGODB_URI to process.env.MONGO_URI
+- [x] Modify seedAchievement to drop the collection before seeding to avoid index issues
+- [x] Fix "Challenge Newbie" achievement unlock criteria by updating challengeService.js to use increment flag and adding challenge stats display in Achievements.tsx

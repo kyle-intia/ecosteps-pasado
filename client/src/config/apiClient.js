@@ -1,7 +1,7 @@
 import axios from "axios";
 import queryClient from "./queryClient";
 import { UNAUTHORIZED } from "../constant/http.mjs"
-import { navigate } from "@/lib/navigate";
+import { navigate } from "../lib/navigate";
 
 const options = {
   baseURL: import.meta.env.VITE_API_URL,

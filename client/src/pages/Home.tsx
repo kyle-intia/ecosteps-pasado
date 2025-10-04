@@ -1,8 +1,12 @@
+// client/src/pages/Home.tsx
+// Updated Home page with integrated Eco-Challenge section
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
+import EcoChallengeSection from "@/components/EcoChallengeSection";
 import heroImage from "@/assets/hero-eco.jpg";
 import { 
   ChevronRight,
@@ -12,7 +16,6 @@ import {
   Award,
   Plus,
   Lightbulb,
-  Leaf,
   Activity,
   Coffee,
   MapPin,
@@ -20,33 +23,39 @@ import {
   Target
 } from "lucide-react";
 
+type UserProfile = {
+  username?: string;
+};
+
+import { Spinner } from "@/components/ui/spinner";
+import useSessionStatus from "../hooks/useSessionStatus"
+import useSignOut from "../hooks/useLogout"
+import useProfile from "@/hooks/useAuthProfile";
+
 const Home = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
   const navigate = useNavigate();
+  const { isPending, isLoggedIn} = useSessionStatus();
+  const { signOut } = useSignOut()
+  const { user, isLoading, isError, error } = useProfile();
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const user = localStorage.getItem("userName") || "EcoWarrior";
-    
-    if (!loggedIn) {
-      navigate("/");
-      return;
-    }
-    
-    setIsLoggedIn(loggedIn);
-    setUserName(user);
-  }, [navigate]);
+  const profile = user as UserProfile | undefined;
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-    navigate("/");
+  if (isLoading) 
+    return <Spinner />;
+  if (isError) 
+    return <p>Error: {String(error)}</p>;
+
+  const handleSignOut = () => {
+    signOut();
   };
+
+  if (isPending) {
+    return <Spinner />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       {/* Hero Section */}
       <div className="relative h-80 overflow-hidden">
@@ -59,7 +68,7 @@ const Home = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
             <div className="text-white max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Welcome, {userName}! 🌱
+                Welcome, {profile?.username || "Eco Warrior"}! 🌱
               </h1>
               <p className="text-lg text-white/90 mb-6">
                 Here's what's new today
@@ -77,26 +86,8 @@ const Home = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Today's Highlight */}
-        <Card className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 shadow-card">
-          <CardContent className="p-8">
-            <div className="flex items-start space-x-4">
-              <div className="p-3 bg-primary rounded-full">
-                <Target className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-foreground mb-2">Eco-Challenge Of The Day</h2>
-                <p className="text-muted-foreground text-lg">
-                  Take the stairs instead of the elevator – small steps reduce big CO₂! 
-                  <span className="font-medium text-primary"> Each flight saves ~0.3kg CO₂.</span>
-                </p>
-              </div>
-              <Button variant="ghost" size="sm">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Eco-Challenge Section - Primary above the fold placement */}
+        <EcoChallengeSection />
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -160,8 +151,8 @@ const Home = () => {
                     <Activity className="h-4 w-4 text-success-foreground" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Logged 2km walk</p>
-                    <p className="text-xs text-muted-foreground">0.5kg CO₂ saved • 2 hours ago</p>
+                    <p className="text-sm font-medium text-foreground">Completed eco-challenge</p>
+                    <p className="text-xs text-muted-foreground">Walking Warrior challenge • 1 hour ago</p>
                   </div>
                 </div>
                 
@@ -203,7 +194,7 @@ const Home = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-foreground">
-                      <strong>@sarah_green</strong> planted 5 trees and earned the Forest Guardian badge! 🌳
+                      <strong>@sarah_green</strong> completed all 3 eco-challenges and earned the Daily Champion badge! 🌟
                     </p>
                     <p className="text-xs text-muted-foreground">2 hours ago</p>
                   </div>
@@ -215,7 +206,7 @@ const Home = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-foreground">
-                      <strong>@mike_eco</strong> completed a 30-day zero-waste challenge! ♻️
+                      <strong>@mike_eco</strong> completed the Car-Free Commuter challenge for 30 days straight! 🚴‍♂️
                     </p>
                     <p className="text-xs text-muted-foreground">5 hours ago</p>
                   </div>
@@ -242,18 +233,57 @@ const Home = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-success">2.1kg</div>
+                  <div className="text-3xl font-bold text-success">3.8kg</div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
+                  <div className="text-xs text-green-600 mt-1">+1.7kg from challenges!</div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <div className="text-xl font-semibold text-primary">847</div>
+                    <div className="text-xl font-semibold text-primary">1,047</div>
                     <div className="text-xs text-muted-foreground">Eco Score</div>
                   </div>
                   <div>
-                    <div className="text-xl font-semibold text-warning">#42</div>
+                    <div className="text-xl font-semibold text-warning">#28</div>
                     <div className="text-xs text-muted-foreground">Global Rank</div>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t border-border">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-accent">2/3</div>
+                    <div className="text-xs text-muted-foreground">Challenges Today</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Challenge Progress Card */}
+            <Card className="shadow-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  <span>Challenge Progress</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>This Week</span>
+                    <span className="font-medium">15/21</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full" style={{ width: '71%' }}></div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Perfect Days</span>
+                    <span className="font-medium">3</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Days with all 3 challenges completed
                   </div>
                 </div>
               </CardContent>

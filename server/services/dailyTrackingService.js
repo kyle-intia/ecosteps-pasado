@@ -1,60 +1,16 @@
-const CO2_FACTORS_DAILY = {
-  // Transport factors (kg CO₂e per km)
-  transport: {
-    'car': 0.25,
-    'public_transport': 0.08,
-    'motorcycle': 0.11,
-    'bicycle': 0,
-    'walking': 0,
-    'no_travel': 0
-  },
-  
-  // Flight emissions (kg CO₂e per flight)
-  flights: {
-    'long_haul': 250,
-    'short_haul': 150,
-    'no_flight': 0
-  },
-  
-  // Home energy (annual kg CO₂e)
-  homeEnergy: {
-    'large_house': 4500,
-    'small_house': 3500,
-    'apartment': 2500
-  },
-  
-  // High-energy appliances (percentage increase)
-  appliances: {
-    'ac_heating': 25,
-    'heating_only': 25,
-    'laundry': 5,
-    'none': 0
-  },
-  
-  // Food emissions (kg CO₂e per meal)
-  food: {
-    'breakfast_meat': 4.0,
-    'breakfast_fish': 2.5,
-    'breakfast_dairy': 2.0,
-    'breakfast_mixed': 3.0,
-    'breakfast_plant': 1.0,
-    'breakfast_skipped': 0,
-    'lunch_meat': 4.0,
-    'lunch_fish': 2.5,
-    'lunch_dairy': 2.0,
-    'lunch_mixed': 3.0,
-    'lunch_plant': 1.0,
-    'lunch_skipped': 0,
-    'dinner_meat': 4.0,
-    'dinner_fish': 2.5,
-    'dinner_dairy': 2.0,
-    'dinner_mixed': 3.0,
-    'dinner_plant': 1.0,
-    'dinner_skipped': 0
-  }
-};
+const User = require('../models/user.model').default;
+const AchievementService = require('./achievementService');
+
+const Challenge = require('../models/Challenge');
+
+let CO2_FACTORS_DAILY = null;
 
 class DailyTrackingService {
+
+  static init(factors) {
+    CO2_FACTORS_DAILY = factors;
+  }
+
   /**
    * Calculate transport emissions
    * @param {Object} transportData - Transport mode selections and distances
@@ -62,6 +18,11 @@ class DailyTrackingService {
    * @returns {number} Transport CO2 in kg
    */
   static calculateTransport(transportData, flightType) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     let transportTotal = 0;
 
     const safeTransport = transportData || {};
@@ -96,6 +57,7 @@ class DailyTrackingService {
     return transportTotal;
   }
   
+  
   /**
    * Calculate home energy emissions
    * @param {string} homeType - Type of home
@@ -104,6 +66,11 @@ class DailyTrackingService {
    * @returns {number} Home energy CO2 in kg per day
    */
   static calculateHomeEnergy(homeType, occupants, appliances) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const normalizedHomeType = (homeType || '').replace('-', '_');
     const annualHouseholdFootprint = CO2_FACTORS_DAILY.homeEnergy[normalizedHomeType] || 0;
 
@@ -129,6 +96,11 @@ class DailyTrackingService {
    * @returns {number} Food CO2 in kg
    */
   static calculateFood(breakfast, lunch, dinner) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const normalize = (value) => {
       const v = (value || '').replace('-', '_');
       if (v === 'none') return 'skipped';
@@ -148,6 +120,11 @@ class DailyTrackingService {
    * @returns {Object} Calculated results
    */
   static calculateDailyFootprint(responses) {
+
+    if (!CO2_FACTORS_DAILY) {
+      throw new Error("CO2 factors not initialized");
+    }
+
     const validation = this.validateDailyResponses(responses);
     if (!validation.isValid) {
       throw new Error(`Invalid responses: ${validation.errors.join(', ')}`);
@@ -180,9 +157,58 @@ class DailyTrackingService {
       total: Math.round(total * 100) / 100
     };
   }
+  
+  /**
+   * Reset challenges on tracking update for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Result of reset operation
+   */
+  static async resetChallengesOnTrackingUpdate(userId) {
+    try {
+      // Get today's date in Philippines timezone
+    const now = new Date();
+
+    // Get the current date/time in the Philippines (UTC+8)
+    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+
+    // Create a 'today' date at midnight in the Philippines (UTC+8)
+    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+
+    // 'Tomorrow' is 24 hours after 'today'
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+      // Find today's challenge document for the user
+      const challengeDoc = await Challenge.findOne({
+        userId: userId,
+        date: { $gte: today, $lt: tomorrow }
+      });
+
+      if (!challengeDoc) {
+        return { message: 'No challenge document found for today' };
+      }
+
+      // Reset completed status of dailyChallenges
+      challengeDoc.dailyChallenges.forEach(challenge => {
+        challenge.completed = false;
+        challenge.completedAt = null;
+      });
+
+      // Mark as recalculated
+      challengeDoc.isRecalculated = true;
+
+      // Save the updated document
+      await challengeDoc.save();
+
+      return { message: 'Challenges reset successfully' };
+    } catch (error) {
+      console.error('Error resetting challenges:', error);
+      throw error;
+    }
+  }
  
   
   static validateDailyResponses(responses) {
+    
     const errors = [];
     const safe = responses || {};
 
@@ -248,6 +274,54 @@ class DailyTrackingService {
       isValid: errors.length === 0,
       errors
     };
+
+  }
+
+  /**
+   * Handle achievement checking after successful tracking submission
+   * @param {string} userId - User ID
+   * @param {Object} calculatedFootprint - Calculated footprint object
+   * @param {Object} trackingData - Original tracking data
+   * @returns {Promise<Array>} Array of newly unlocked achievements
+   */
+  static async handleTrackingAchievements(userId, calculatedFootprint, trackingData) {
+    try {
+      // Calculate streak and update stats
+      const user = await User.findById(userId);
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+
+      let currentStreak = 1;
+      if (user.achievementStats.lastTrackingDate &&
+          new Date(user.achievementStats.lastTrackingDate).toDateString() === yesterday) {
+        currentStreak = user.achievementStats.currentStreak + 1;
+      }
+
+      // Update achievement stats
+      await AchievementService.updateUserStats(userId, {
+        totalTrackingDays: user.achievementStats.totalTrackingDays + 1,
+        currentStreak: currentStreak,
+        maxStreak: Math.max(user.achievementStats.maxStreak, currentStreak),
+        lastTrackingDate: new Date()
+      });
+
+      // Check for achievements
+      const newAchievements = await AchievementService.checkAchievements(
+        userId,
+        'DAILY_TRACKING_COMPLETE',
+        {
+          dailyFootprint: calculatedFootprint.total,
+          isCarFree: !trackingData.transport.modes.some(m => m.id === 'car'),
+          isPlantBased: [trackingData.food.breakfast, trackingData.food.lunch, trackingData.food.dinner]
+            .every(meal => meal === 'plant')
+        }
+      );
+
+      return newAchievements;
+    } catch (error) {
+      console.error('Error handling tracking achievements:', error);
+      return [];
+    }
   }
 }
 
