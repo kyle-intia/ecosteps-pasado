@@ -1,0 +1,3 @@
+- [x] Fix environment variable name in seedAchievement.js: Change process.env.MONGODB_URI to process.env.MONGO_URI
+- [x] Modify seedAchievement to drop the collection before seeding to avoid index issues
+- [x] Fix "Challenge Newbie" achievement unlock criteria by updating challengeService.js to use increment flag and adding challenge stats display in Achievements.tsx

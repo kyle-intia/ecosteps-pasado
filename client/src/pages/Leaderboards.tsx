@@ -7,8 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Medal, Award, Star, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
 import useAuth from "@/hooks/useAuth";
+import { Link, useNavigate } from "react-router-dom";
+import { Spinner } from "@/components/ui/spinner";
+import  useSignOut from "../hooks/useLogout"
+
 
 interface User {
   _id: string; // id to _id to match MongoDB
@@ -76,6 +79,9 @@ const Leaderboards = () => {
     fetchLeaderboardAndRank();
   }, [sortBy, useAuthFlag, user?.id]); // re-fetch when auth/user changes
 
+  const { signOut } = useSignOut()
+
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -100,6 +106,7 @@ const Leaderboards = () => {
     }
   });
 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
@@ -110,12 +117,14 @@ const Leaderboards = () => {
       </div>
     );
   }
-  
-  
+
+  const handleSignOut = () => {
+    signOut();
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} />
-      
+    <div className="min-h-screen bg-background">
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-4">

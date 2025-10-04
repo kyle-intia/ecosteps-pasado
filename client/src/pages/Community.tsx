@@ -27,6 +27,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import useAuth from "@/hooks/useAuth";
 import axios from "axios";
+import useSessionStatus from "../hooks/useSessionStatus";
+import useSignOut from "../hooks/useLogout";
 
 interface User {
   id: string;
@@ -236,11 +238,6 @@ const Community = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -619,11 +616,17 @@ const Community = () => {
     setEditingComment(commentId);
     setEditCommentContent(currentContent);
   };
-//==================================================
+
+  const { signOut } = useSignOut();
+  
+  const handleSignOut = () => {
+    signOut();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle">
-        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -634,9 +637,11 @@ const Community = () => {
     );
   }
 
+
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
-import { Leaf, TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
+import { TrendingDown, Users, Award, ArrowRight, CheckCircle } from "lucide-react";
 import homeImage from "@/assets/home_bg2.png";
 
 const Index = () => {
@@ -14,24 +14,15 @@ const Index = () => {
     const loggedIn = localStorage.getItem("isLoggedIn") === "true";
     setIsLoggedIn(loggedIn);
     
+    // Redirect logged-in users to home page
     if (loggedIn) {
-      const needsPreAssessment = localStorage.getItem("needsPreAssessment") === "true";
-      if (needsPreAssessment) {
-        navigate("/pre-assessment");
-      }
+      navigate("/home");
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-  };
-
-  // Remove the automatic redirect so Home page can be accessed when logged in
-
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn}  />
       
       {/* Home Section */}
       <section className="relative overflow-hidden">
@@ -64,8 +55,8 @@ const Index = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20 transition-all duration-300 ease-out" asChild>
-                <Link to="/login">Sign In</Link>
+              <Button variant="outline" size="xl" className="bg-card/10 border-primary-foreground/30 text-primary-foreground hover:bg-card/20" asChild>
+                <Link to="/login">Log In</Link>
               </Button>
             </div>
 
@@ -243,3 +234,4 @@ const Index = () => {
 };
 
 export default Index;
+

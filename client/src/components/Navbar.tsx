@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Home, BarChart3, Users, LayoutDashboard, Trophy } from "lucide-react";
+import { Menu, X, Home, BarChart3, Users, LayoutDashboard, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
 
@@ -15,7 +15,6 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { name: "Home", href: "/", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },
@@ -29,12 +28,10 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
-            <img 
-              src="/ecosteps.svg"
-              alt="EcoSteps Logo"
-              className="h-9 w-9 rounded"
-            />
+          <Link to="/home" className="flex items-center space-x-2 group">
+            <div className="p-2 rounded-full group-hover:bg-accent transition-colors">
+              <img src="/favicon.ico" alt="EcoStep Logo" className="h-10 w-10" />
+            </div>
             <span className="text-xl font-bold text-foreground">EcoSteps</span>
           </Link>
 

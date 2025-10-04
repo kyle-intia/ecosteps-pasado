@@ -1,0 +1,508 @@
+import { useEffect, useRef, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Tooltip, Legend } from "recharts"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import { Users, Activity, Leaf, Brain, TrendingUp, TrendingDown, Eye, Car, UtensilsCrossed, Home } from "lucide-react"
+import { getUserGrowthStats, getActivityGrowthStats, getAvgFootprintGrowthStats, getMonthlyFootprintByCategory, listDailyTrackings, listUsers} from "../lib/api"
+import { Spinner } from "@/components/ui/spinner"
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+type EmissionCategory = {
+  name: string;
+  value: number;
+  color: string;
+};
+
+type CategoryCountsResponse = {
+  transportCount: number;
+  foodCount: number;
+  homeEnergyCount: number;
+};
+
+const AdminDashboard = () => {
+  const [selectedActivity, setSelectedActivity] = useState<any>(null)
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false);
+  const [kpiData, setKpiData] = useState([
+    {
+      title: "Total Users",
+      value: "—",
+      change: "—",
+      trend: "up", 
+      icon: Users,
+    },
+   
+  ]);
+
+  const handleActivityClick = (activity: any) => {
+    setSelectedActivity(activity)
+  }
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'transport': return Car
+      case 'food': return UtensilsCrossed
+      case 'home': return Home
+      default: return Brain
+    }
+  }
+
+  const getDaysAgo = (dateString) => {
+    if (!dateString) return "N/A";
+
+    const date = new Date(dateString);
+    const now = new Date();
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      if (diffHours === 0) {
+        if (diffMinutes === 0) return "Just now";
+        if (diffMinutes === 1) return "1 minute ago";
+        return `${diffMinutes} minutes ago`;
+      }
+      if (diffHours === 1) return "1 hour ago";
+      return `${diffHours} hours ago`;
+    }
+
+    if (diffDays === 1) return "1 day ago";
+    return `${diffDays} days ago`;
+  };
+
+  useEffect(() => {
+    const fetchKpis = async () => {
+      try {
+        setLoading(true);
+      
+        const [userRes, activityRes, footprintRes] = await Promise.all([
+          getUserGrowthStats(),
+          getActivityGrowthStats(),
+          getAvgFootprintGrowthStats(),
+        ]);
+      
+        const { currentTotal: userCurrent, percentageIncrease: userPercent, previousTotal: userPrevious } = userRes;
+        const { currentTotal: activityCurrent, percentageIncrease: activityPercent } = activityRes;
+        const { currentAvg, percentageIncrease: footprintPercent } = footprintRes;
+      
+        setKpiData([
+          {
+            title: "Total Users",
+            value: (userCurrent + userPrevious).toLocaleString(),
+            change: `${userPercent >= 0 ? "+" : "-"}${Math.abs(userPercent)}%`,
+            trend: userPercent >= 0 ? "up" : "down",
+            icon: Users,
+          },
+          {
+            title: "Activity Logs",
+            value: activityCurrent.toLocaleString(),
+            change: `${activityPercent >= 0 ? "+" : "-"}${Math.abs(activityPercent)}%`,
+            trend: activityPercent >= 0 ? "up" : "down",
+            icon: Activity,
+          },
+          {
+            title: "Avg Footprint",
+            value: `${currentAvg.toFixed(2)} kg CO2e`,
+            change: `${footprintPercent >= 0 ? "+" : "-"}${Math.abs(footprintPercent)}%`,
+            trend: footprintPercent >= 0 ? "up" : "down",
+            icon: Leaf,
+          },
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch KPI data:", error);
+        toast({ title: "Error", description: "Failed to load dashboard data." });
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchKpis();
+  }, []);
+
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+
+        const months = Array.from({ length: 12 }, (_, i) => {
+          const date = new Date(currentYear, i, 1); 
+          return date.toISOString().slice(0, 7); 
+        });
+
+        const promises = months.map(m => getMonthlyFootprintByCategory(m));
+        const results = await Promise.all(promises);
+
+        const formattedData = results.map((res, index) => ({
+          date: months[index],
+          transport: res?.transport ?? 0,
+          food: res?.food ?? 0,           
+          home: res?.homeEnergy ?? 0,     
+        }));
+        setChartData(formattedData);
+      } catch (error) {
+        console.error("Failed to fetch chart data:", error);
+        toast({ title: "Error", description: "Failed to load chart data." });
+
+      }
+    };
+
+    fetchChartData();
+  }, []);
+
+
+  const [emissionData, setEmissionData] = useState<EmissionCategory[]>([]);
+
+  useEffect(() => {
+    const calculateBreakdown = () => {
+      const totalTransport = chartData.reduce((sum, entry) => sum + entry.transport, 0);
+      const totalFood = chartData.reduce((sum, entry) => sum + entry.food, 0);
+      const totalHome = chartData.reduce((sum, entry) => sum + entry.home, 0);
+      const totalEmissions = totalTransport + totalFood + totalHome;
+      if (totalEmissions === 0) {
+        setEmissionData([]);
+        return;
+      }
+      const breakdown = [
+        { name: "Transport", value: parseFloat(((totalTransport / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-1))" },
+        { name: "Food", value: parseFloat(((totalFood / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-2))" },
+        { name: "Home Energy", value: parseFloat(((totalHome / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-3))" },
+      ];
+      setEmissionData(breakdown);
+    }
+    calculateBreakdown();
+  }, [chartData]);
+
+
+  const [activityData, setActivityData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      try {
+        const res = await listDailyTrackings({ limit: 5, sortBy: 'createdAt', order: 'desc' });
+        setActivityData(res.data || []);
+      } catch (error) {
+        console.error("Failed to fetch activity data:", error);
+        toast({ title: "Error", description: "Failed to load recent activity." });
+      }
+    };
+
+    fetchActivityData();
+  }, []);
+
+  const barChartRef = useRef();
+  const emissionChartRef = useRef();
+
+  const handleExportImage = () => {
+    // Capture both charts into a single canvas image
+    const chart1 = html2canvas(barChartRef .current);
+    const chart2 = html2canvas(emissionChartRef.current);
+
+    Promise.all([chart1, chart2]).then(([canvas1, canvas2]) => {
+
+      // Create a canvas to combine the two images
+      const combinedCanvas = document.createElement('canvas');
+      const ctx = combinedCanvas.getContext('2d');
+
+      // Set the combined canvas size (adjust width/height as needed)
+      const combinedWidth = canvas1.width + canvas2.width + 20; // Add some space between images
+      const combinedHeight = Math.max(canvas1.height, canvas2.height);
+
+      combinedCanvas.width = combinedWidth;
+      combinedCanvas.height = combinedHeight;
+
+      // Draw the first chart on the left side
+      ctx.drawImage(canvas1, 0, 0);
+
+      // Draw the second chart on the right side (or below if stacked vertically)
+      ctx.drawImage(canvas2, canvas1.width + 10, 0); // Adjust position (10px space between charts)
+
+      const combinedImgData = combinedCanvas.toDataURL('image/png');
+
+      // Create a link and trigger the download
+      const link = document.createElement('a');
+      link.href = combinedImgData;
+      link.download = 'combined_chart.png';
+      link.click();
+    });
+  };
+
+  const handleExportPDF = () => {
+    const currentDate = new Date().toLocaleDateString(); // Get the current date in the format "MM/DD/YYYY"
+
+    // Capture both charts into a single canvas for PDF export
+    const chart1 = html2canvas(barChartRef.current, { scale: 2 });
+    const chart2 = html2canvas(emissionChartRef.current, { scale: 2 });
+
+    Promise.all([chart1, chart2]).then(([canvas1, canvas2]) => {
+
+      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation, A4 size
+
+      // Add title and date text
+      pdf.setFontSize(16);
+      pdf.text('Carbon Footprint Trend: Monthly', 10, 10); // Add title at the top-left
+      pdf.text(`Exported on Date: ${currentDate}`, 10, 20); // Add current date below the title
+
+      // Combine the charts into a single image (side by side or stacked)
+      const combinedCanvas = document.createElement('canvas');
+      const ctx = combinedCanvas.getContext('2d');
+
+      // Set the combined canvas size
+      const combinedWidth = canvas1.width + canvas2.width + 20; // Add some space between images
+      const combinedHeight = Math.max(canvas1.height, canvas2.height);
+
+      combinedCanvas.width = combinedWidth;
+      combinedCanvas.height = combinedHeight;
+
+      // Draw the first chart on the left side
+      ctx.drawImage(canvas1, 0, 0);
+
+      // Draw the second chart on the right side (or below if stacked vertically)
+      ctx.drawImage(canvas2, canvas1.width + 10, 0); // Adjust position (10px space between charts)
+
+      const combinedImgData = combinedCanvas.toDataURL('image/png');
+
+      // Add the combined image to the PDF
+      const imageWidth = 180; // Image width for the PDF (adjust as needed)
+      const imageHeight = (combinedCanvas.height * imageWidth) / combinedCanvas.width; // Maintain aspect ratio
+      pdf.addImage(combinedImgData, 'PNG', 10, 30, imageWidth, imageHeight);
+
+      // Save the PDF
+      pdf.save(`Footprint_Trends_${currentDate.replace(/\//g, '-')}.pdf`);
+    });
+  };
+
+
+
+
+
+  if (loading) return <Spinner />
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+          <p className="text-muted-foreground">Monitor your carbon footprint tracking platform</p>
+        </div>
+      </div>
+
+        <div className="flex justify-end gap-2">
+          <Button onClick={handleExportImage} variant="outline">
+            Export as Image
+          </Button>
+          <Button onClick={handleExportPDF} variant="outline">
+            Export as PDF
+          </Button>
+        </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {kpiData.map((kpi) => (
+          <Card key={kpi.title} className="shadow-sm border-admin-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <kpi.icon className="h-4 w-4" />
+                {kpi.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{kpi.value}</div>
+                <div className={`flex items-center gap-1 text-sm ${
+                  kpi.trend === 'up' ? 'text-eco' : 'text-primary'
+                }`}>
+                  {kpi.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {kpi.change}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Carbon Footprint Trend */}
+        <Card className="shadow-sm border-admin-border" ref={barChartRef}>
+          <CardHeader>
+            <CardTitle className="text-lg">Carbon Footprint Trend</CardTitle>
+            <p className="text-sm text-muted-foreground">Monthly emissions by category</p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px hsl(0 0% 0% / 0.1)'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Bar dataKey="transport" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="food" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="home" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+
+                <Legend 
+                  verticalAlign="top"      // Position the legend at the top
+                  align="center"           // Center-align the legend
+                  iconSize={10}            // Size of the legend icon
+                  iconType="square"        // Shape of the legend icon (square or line)
+                  wrapperStyle={{ paddingTop: 10 }}  // Add some spacing at the top
+                />
+              </BarChart>
+                
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Emissions Breakdown */}
+        <Card className="shadow-sm border-admin-border" ref={emissionChartRef}>
+          <CardHeader>
+            <CardTitle className="text-lg">Emissions Breakdown</CardTitle>
+            <p className="text-sm text-muted-foreground">Distribution by category</p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={emissionData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={120}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {emissionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px hsl(0 0% 0% / 0.1)'
+                  }}
+                  formatter={(value, name) => [`${value}%`, name]}
+                />
+              </PieChart>
+
+            </ResponsiveContainer>
+            <div className="mt-4 flex flex-wrap gap-4 justify-center">
+              {emissionData.map((entry) => (
+                <div key={entry.name} className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-sm text-muted-foreground">{entry.name}</span>
+                  <span className="text-sm font-medium">{entry.value}%</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card className="shadow-sm border-admin-border">
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <p className="text-sm text-muted-foreground">Latest user submissions</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {activityData.map((activity, index) => (
+              <div 
+                key={index} 
+                className="flex items-center justify-between py-2 border-b border-admin-border last:border-0 cursor-pointer hover:bg-admin-hover rounded-sm px-2 transition-colors"
+                onClick={() => handleActivityClick(activity)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.type === 'transport' ? 'bg-chart-1' :
+                    activity.type === 'food' ? 'bg-chart-2' :
+                    activity.type === 'home' ? 'bg-chart-3' :
+                    'bg-chart-4'
+                  }`} />
+                  <div>
+                    <p className="font-medium text-sm">{activity.email}</p>
+                    <p className="text-xs text-muted-foreground">Logged Daily Trackings</p>
+                    <p>
+                      <span className="text-xs text-muted-foreground">CO₂e: </span>
+                      <span className="text-xs font-medium">{activity.total.toFixed(2)} kg</span>
+
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{getDaysAgo(activity.createdAt)}</span>
+                  <Eye className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity Detail Dialog */}
+      <Dialog open={!!selectedActivity} onOpenChange={(open) => !open && setSelectedActivity(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Activity Details
+            </DialogTitle>
+            <DialogDescription>
+              Recent user activity information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedActivity && (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">User</p>
+                  <p className="text-sm text-muted-foreground ml-2">{selectedActivity.email}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Total:</p>
+                  <p className="text-sm font-medium ml-2">{selectedActivity.total.toFixed(2)} kg CO₂e</p>
+                  <p className="text-sm text-muted-foreground ml-4">Transport: {selectedActivity.transport}</p>
+                  <p className="text-sm text-muted-foreground ml-4">Food: {selectedActivity.food}</p>
+                  <p className="text-sm text-muted-foreground ml-4">Home Energy: {selectedActivity.homeEnergy}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Time</p>
+                  <p className="text-sm text-muted-foreground ml-2">{new Date(selectedActivity.createdAt).toISOString().slice(0, 10)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+export default AdminDashboard

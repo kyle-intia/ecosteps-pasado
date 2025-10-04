@@ -1,50 +1,45 @@
-const jwt = require('jsonwebtoken');
-
-// Get JWT secrets from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret-key';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-fallback-refresh-secret';
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.verifyToken = exports.signToken = exports.refreshTokenSignOptions = void 0;
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const env_1 = require("../constants/env");
 const defaults = {
-  audience: ["User"],
+    audience: ["User" /* Audience.User */],
 };
-
 const accessTokenSignOptions = {
-  expiresIn: "15m",
-  secret: JWT_SECRET,
+    expiresIn: "15m",
+    secret: env_1.JWT_SECRET,
 };
-
-const refreshTokenSignOptions = {
-  expiresIn: "30d",
-  secret: JWT_REFRESH_SECRET,
+exports.refreshTokenSignOptions = {
+    expiresIn: "30d",
+    secret: env_1.JWT_REFRESH_SECRET,
 };
-
 const signToken = (payload, options) => {
-  const { secret, ...signOpts } = options || accessTokenSignOptions;
-  return jwt.sign(payload, secret, {
-    ...defaults,
-    ...signOpts,
-  });
-};
-
-const verifyToken = (token, options) => {
-  const { secret = JWT_SECRET, audience, ...verifyOpts } = options || {};
-  try {
-    const payload = jwt.verify(token, secret, {
-      ...(audience ? { audience } : {}),
-      ...verifyOpts,
+    const { secret, ...signOpts } = options || accessTokenSignOptions;
+    return jsonwebtoken_1.default.sign(payload, secret, {
+        ...defaults,
+        ...signOpts,
     });
-    return {
-      payload,
-    };
-  } catch (error) {
-    return {
-      error: error.message,
-    };
-  }
 };
-
-module.exports = {
-  signToken,
-  verifyToken,
-  refreshTokenSignOptions,
+exports.signToken = signToken;
+const verifyToken = (token, options) => {
+    const { secret = env_1.JWT_SECRET, audience, ...verifyOpts } = options || {};
+    try {
+        const payload = jsonwebtoken_1.default.verify(token, secret, {
+            ...(audience ? { audience } : {}),
+            ...verifyOpts,
+        });
+        return {
+            payload,
+        };
+    }
+    catch (error) {
+        return {
+            error: error.message,
+        };
+    }
 };
+exports.verifyToken = verifyToken;

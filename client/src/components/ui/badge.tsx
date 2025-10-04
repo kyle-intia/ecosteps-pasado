@@ -1,3 +1,6 @@
+// client/src/components/ui/badge.tsx
+// Badge component for displaying status indicators and labels
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 

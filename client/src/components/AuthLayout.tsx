@@ -11,20 +11,16 @@ interface AuthLayoutProps {
 export const AuthLayout = ({ children, title, description }: AuthLayoutProps) => {
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gradient-subtle">
         <div className="w-full max-w-md space-y-6">
-          {/* Logo */}
+
           <div className="flex items-center justify-center space-x-2">
-            <img 
-              src="/ecosteps.svg"
-              alt="EcoSteps Logo"
-              className="h-9 w-9 rounded"
-            />
+            <div className="p-3 bg-gradient-primary rounded-xl shadow-glow">
+              <img src="/favicon.ico" alt="EcoSteps Logo" className="h-10 w-10" />
+            </div>
             <span className="text-2xl font-bold text-foreground">EcoSteps</span>
           </div>
 
-          {/* Form Card */}
           <Card className="shadow-elevated border-border">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold text-foreground">{title}</CardTitle>
