@@ -56,7 +56,7 @@ const createAccount = async (data) => {
         userId,
         sessionId: session._id,
     });
-    await NotificationService.createNotification(userId, `${email} just created an account`, "authentication");
+    await NotificationService.createNotification(userId, `${data.email} just created an account`, "authentication");
     return {
         user: user.omitPassword(),
         accessToken,
