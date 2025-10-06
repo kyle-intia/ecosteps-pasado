@@ -4,8 +4,8 @@
 require('dotenv').config();
 
 class AIRecommendationService {
-  static API_URL = 'https://api-inference.huggingface.co/models/distilgpt2';
-  static API_TOKEN = process.env.HF_API_KEY || process.env.HUGGING_FACE_API_TOKEN;
+  static API_URL = 'https://api.openai.com/v1/chat/completions';
+  static API_TOKEN = process.env.OPEN_AI_KEY;;
   static MAX_RETRIES = 3;
   static RETRY_DELAY = 2000; // 2 seconds
 
@@ -20,20 +20,20 @@ class AIRecommendationService {
     try {
       // Validate API token
       if (!this.API_TOKEN) {
-        throw new Error('Hugging Face API token not configured. Please set HUGGING_FACE_API_TOKEN in your .env file');
+        throw new Error('OpenAI API key not configured. Please set OPEN_AI_KEY in your .env file');
       }
 
       // Build the prompt for AI generation
       const prompt = this.buildRecommendationPrompt(footprintData);
       console.log('Generated AI prompt:', prompt.substring(0, 200) + '...');
 
-      // Call Hugging Face API with retry logic
+      // Call OpenAI API with retry logic
       let aiResponse;
       let attempt = 1;
 
       while (attempt <= this.MAX_RETRIES) {
         try {
-          aiResponse = await this.callHuggingFaceAPI(prompt);
+          aiResponse = await this.callOpenAIAPI(prompt);
           break; // Success, exit retry loop
         } catch (error) {
           console.log(`AI API attempt ${attempt} failed:`, error.message);
@@ -56,7 +56,7 @@ class AIRecommendationService {
 
       return {
         recommendations,
-        model: 'distilgpt2',
+        model: 'gpt-4o-mini',
         processingTime,
         prompt,
         rawResponse: aiResponse
@@ -121,11 +121,11 @@ Recommendations:
   }
 
   /**
-   * Call Hugging Face Inference API
+   * Call OpenAI Chat Completions API
    * @param {string} prompt - The prompt to send to AI
    * @returns {Promise<string>} AI generated text
    */
-  static async callHuggingFaceAPI(prompt) {
+  static async callOpenAIAPI(prompt) {
     const response = await fetch(this.API_URL, {
       headers: {
         Authorization: `Bearer ${this.API_TOKEN}`,
@@ -133,34 +133,26 @@ Recommendations:
       },
       method: 'POST',
       body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.7,
-          top_p: 0.9,
-          do_sample: true,
-          return_full_text: false
-      }}),
-      options: {
-        wait_for_model: true,
-        use_cache: false
-      }
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9
+      })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Hugging Face API error (${response.status}): ${errorText}`);
+      throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
     }
 
     const result = await response.json();
-    
-    // Handle different response formats
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      return result[0].generated_text;
-    } else if (result.generated_text) {
-      return result.generated_text;
+
+    // Handle OpenAI response format
+    if (result.choices && result.choices[0]?.message?.content) {
+      return result.choices[0].message.content;
     } else {
-      throw new Error('Unexpected API response format');
+      throw new Error('Unexpected OpenAI API response format');
     }
   }
 
@@ -450,14 +442,14 @@ Recommendations:
    * @returns {Object} API status information
    */
   static getStatus() {
-    return {
-      configured: this.isConfigured(),
-      apiUrl: this.API_URL,
-      model: 'distilgpt2',
-      hasToken: !!this.API_TOKEN,
-      maxRetries: this.MAX_RETRIES,
-      retryDelay: this.RETRY_DELAY
-    };
+      return {
+        configured: this.isConfigured(),
+        apiUrl: this.API_URL,
+        model: 'gpt-4o-mini',
+        hasToken: !!this.API_TOKEN,
+        maxRetries: this.MAX_RETRIES,
+        retryDelay: this.RETRY_DELAY
+      };
   }
 }
 

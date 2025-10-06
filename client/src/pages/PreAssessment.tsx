@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft } from "lucide-react";
+import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft, Shield } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import useSessionStatus from "../hooks/useSessionStatus";
 import useAuth from "../hooks/useAuth";
@@ -119,6 +119,8 @@ export default function PreAssessment() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPending } = useSessionStatus();
@@ -164,15 +166,17 @@ export default function PreAssessment() {
   const canProceed = () => {
     const questionId = getCurrentQuestion().id;
     const question = getCurrentQuestion();
-    
+
     // Basic UI validation - only check if input is provided
     // Server-side validation will handle detailed validation
     if (question.type === "checkbox") {
       const currentAnswers = answers[questionId];
       return currentAnswers && Array.isArray(currentAnswers) && currentAnswers.length > 0;
     }
-    
-    return answers[questionId] !== undefined && answers[questionId] !== null;
+
+    const hasAnswer = answers[questionId] !== undefined && answers[questionId] !== null;
+
+    return hasAnswer;
   };
 
   const handleNext = () => {
@@ -185,12 +189,16 @@ export default function PreAssessment() {
       setCurrentSection(prev => prev + 1);
       setCurrentQuestion(0);
     } else {
-      handleSubmit();
+      // This is the last question - show terms and conditions screen
+      setShowTerms(true);
     }
   };
 
   const handlePrevious = () => {
-    if (currentQuestion > 0) {
+    if (showTerms) {
+      // If we're on the terms screen, go back to the last question
+      setShowTerms(false);
+    } else if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
     } else if (currentSection > 0) {
       setCurrentSection(prev => prev - 1);
@@ -198,63 +206,72 @@ export default function PreAssessment() {
     }
   };
 
-const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
-  // This function maps the frontend's answer format to the exact format expected by the backend API.
-  return {
-    // ✅ FIXED: Send a single primary mode, not an array.
-    Q1_primaryMode: (() => {
-      const mapping: Record<string, string> = {
-        car_alone: "Personal Car",
-        motorcycle: "Motorcycle",
-        public_transport: "Public Transport", 
-        bike_walk: "Bicycle/E-bike", // Matches backend enum
-        remote: "Work from Home"
-      };
-      return mapping[frontendAnswers.commute_method] || "Personal Car";
-    })(),
+  const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
+    // This function maps the frontend's answer format to the exact format expected by the backend API.
+    return {
+      // ✅ FIXED: Send a single primary mode, not an array.
+      Q1_primaryMode: (() => {
+        const mapping: Record<string, string> = {
+          car_alone: "Personal Car",
+          motorcycle: "Motorcycle",
+          public_transport: "Public Transport", 
+          bike_walk: "Bicycle/E-bike", // Matches backend enum
+          remote: "Work from Home"
+        };
+        return mapping[frontendAnswers.commute_method] || "Personal Car";
+      })(),
 
-    Q2_kmPerDay: frontendAnswers.commute_distance || 0,
-    Q3_flightsPerYear: frontendAnswers.flights_year || 0,
+      Q2_kmPerDay: frontendAnswers.commute_distance || 0,
+      Q3_flightsPerYear: frontendAnswers.flights_year || 0,
 
-    Q4_homeType: (() => {
-      const mapping: Record<string, string> = {
-        house_large: "Large House",
-        house_small: "Small House",
-        apartment: "Apartment" // Matches backend enum
-      };
-      return mapping[frontendAnswers.home_type] || "Apartment";
-    })(),
+      Q4_homeType: (() => {
+        const mapping: Record<string, string> = {
+          house_large: "Large House",
+          house_small: "Small House",
+          apartment: "Apartment" // Matches backend enum
+        };
+        return mapping[frontendAnswers.home_type] || "Apartment";
+      })(),
 
-    Q5_residents: frontendAnswers.house_size || 1,
+      Q5_residents: frontendAnswers.house_size || 1,
 
-    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum'
-    Q6_billRange: (() => {
-      const mapping: Record<string, string> = {
-        cheap_bill: "Below ₱7,500 / month", // Must match backend enum exactly
-        less_expensive_bill: "₱7,501 – ₱12,000 / month",
-        expensive_bill: "₱12,001 – ₱25,000 / month",
-        more_expensive_bill: "Above ₱25,000 / month"
-      };
-      return mapping[frontendAnswers.electricity_bill] || "Below ₱7,500 / month";
-    })(),
+      // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum'
+      Q6_billRange: (() => {
+        const mapping: Record<string, string> = {
+          cheap_bill: "Below ₱7,500 / month", // Must match backend enum exactly
+          less_expensive_bill: "₱7,501 – ₱12,000 / month",
+          expensive_bill: "₱12,001 – ₱25,000 / month",
+          more_expensive_bill: "Above ₱25,000 / month"
+        };
+        return mapping[frontendAnswers.electricity_bill] || "Below ₱7,500 / month";
+      })(),
 
-    Q7_hasRenewables: frontendAnswers.renewable_energy === "fully",
+      Q7_hasRenewables: frontendAnswers.renewable_energy === "fully",
 
-    // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum' and CO2_FACTORS key
-    Q8_dietType: (() => {
-      const mapping: Record<string, string> = {
-        high_meat: "High meat intake (more than 3 times a week)",
-        medium_meat: "Moderate meat intake (2–3 times a week)",
-        low_meat: "Low meat intake (about once a week)",
-        pescetarian: "Pescetarian (fish but no meat)", // Note: Spelling must match ('Pescetarian', not 'Pescatarian')
-        vegetarian: "Vegetarian or Vegan (no meat or fish)"
-      };
-      return mapping[frontendAnswers.diet_type] || "Moderate meat intake (2–3 times a week)";
-    })()
+      // ✅ FIXED: Use the FULL descriptive string that matches the backend's 'enum' and CO2_FACTORS key
+      Q8_dietType: (() => {
+        const mapping: Record<string, string> = {
+          high_meat: "High meat intake (more than 3 times a week)",
+          medium_meat: "Moderate meat intake (2–3 times a week)",
+          low_meat: "Low meat intake (about once a week)",
+          pescetarian: "Pescetarian (fish but no meat)", // Note: Spelling must match ('Pescetarian', not 'Pescatarian')
+          vegetarian: "Vegetarian or Vegan (no meat or fish)"
+        };
+        return mapping[frontendAnswers.diet_type] || "Moderate meat intake (2–3 times a week)";
+      })()
+    };
   };
-};
 
   const handleSubmit = async () => {
+    if (!termsAccepted) {
+      toast({
+        title: "Accept Terms Required",
+        description: "Please accept the terms and conditions to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -309,7 +326,7 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
 
   const totalQuestions = questions.reduce((total, section) => total + section.questions.length, 0);
   const currentQuestionNumber = questions.slice(0, currentSection).reduce((total, section) => total + section.questions.length, 0) + currentQuestion + 1;
-  const progress = (currentQuestionNumber / totalQuestions) * 100;
+  const progress = showTerms ? 100 : (currentQuestionNumber / totalQuestions) * 100;
 
   const section = getCurrentSection();
   const question = getCurrentQuestion();
@@ -318,8 +335,103 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
   if (isPending) {
     return <Spinner />;
   }
-  
 
+  // Terms and Conditions Screen
+  if (showTerms) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle">
+        {/* Header */}
+        <div className="bg-card shadow-card border-b border-border">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-gradient-primary rounded-lg">
+                <Shield className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Terms and Conditions</h1>
+                <p className="text-muted-foreground">Please review and accept to complete your assessment</p>
+              </div>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Complete</span>
+                <span>100% complete</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
+                  style={{ width: `100%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Terms and Conditions Content */}
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="shadow-elevated border-border">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl">Data Usage Agreement</CardTitle>
+              <CardDescription>
+                How we use your assessment data
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <div className="space-y-4 p-4 bg-muted rounded-lg border border-border">
+                <h3 className="text-lg font-semibold">Privacy & Data Usage</h3>
+                <div className="text-sm text-muted-foreground space-y-3">
+                  <p>
+                    Your responses will be used to calculate your carbon footprint and provide personalized eco-friendly recommendations. 
+                  </p>
+                  <p>
+                    We assure you that your data is kept private and secure, and will not be shared with third parties without your explicit consent.
+                  </p>
+                  <p>
+                    The carbon footprint calculation is based on standard environmental impact factors and is intended for educational and awareness purposes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                />
+                <Label htmlFor="terms" className="text-sm">
+                  I agree to the terms and conditions and understand how my data will be used
+                </Label>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Questions
+                </Button>
+                
+                <Button
+                  variant="hero"
+                  onClick={handleSubmit}
+                  disabled={!termsAccepted || isLoading}
+                >
+                  {isLoading ? "Submitting..." : "Submit Assessment"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular Question Screen
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
@@ -452,14 +564,8 @@ const transformAnswersForBackend = (frontendAnswers: Record<string, any>) => {
                 onClick={handleNext}
                 disabled={!canProceed() || isLoading}
               >
-                {currentSection === questions.length - 1 && currentQuestion === getCurrentSection().questions.length - 1 ? (
-                  isLoading ? "Calculating..." : "Complete Assessment"
-                ) : (
-                  <>
-                    Next
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           </CardContent>
