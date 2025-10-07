@@ -149,6 +149,8 @@ static async getUserGrowthStats() {
   const twoWeeksAgo = new Date(now);
   twoWeeksAgo.setDate(now.getDate() - 14);
 
+  const totalUser = await UserModel.countDocuments();
+
   // Count new users in the last 7 days
   const currentTotal = await UserModel.countDocuments({
     createdAt: { $gte: oneWeekAgo, $lte: now }
@@ -166,6 +168,7 @@ static async getUserGrowthStats() {
     : ((increase / previousTotal) * 100).toFixed(2);
 
   return {
+    totalUser,
     currentTotal,
     previousTotal,
     percentageIncrease: parseFloat(percentageIncrease)

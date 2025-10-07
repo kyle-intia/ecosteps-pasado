@@ -34,7 +34,7 @@ export function AdminLayout() {
         }));
 
         setNotifications(formatted);
-        setUnreadCount(formatted.filter((n) => n.unread && n.type !== "daily-tracking-reminder" && n.role !== "admin").length);
+        setUnreadCount(formatted.filter((n) => n.unread && n.type !== "daily-tracking-reminder" && n.type !== "community" && n.role !== "admin").length);
       } catch (err: any) {
         console.error("Failed to fetch all notifications", err?.response ?? err);
       }
@@ -134,7 +134,7 @@ export function AdminLayout() {
                         <p className="text-sm text-muted-foreground">No notifications</p>
                       ) : (
                         notifications
-                          .filter((notification) => notification.type !== "daily-tracking-reminder" && notification.role !== "admin")
+                          .filter((notification) => notification.type !== "community" && notification.type !== "daily-tracking-reminder" && notification.role !== "admin")
                           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                           .map((notification) =>(
                           <div

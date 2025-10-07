@@ -36,6 +36,8 @@ const badgeAchievementRoutes = require("./routes/badgeAchievementRoute");
 const ecoChallengeRoutes = require("./routes/ecoChallengeRoute")
 const challengeRoutes = require("./routes/challengeRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const communityRoutes = require("./routes/communityRoute");
+const leaderboardRoutes = require("./routes/leaderboardsRoutes");
 
 // Import new AI recommendation routes
 const footprintRoutes = require("./routes/footprintRoutes");
@@ -112,6 +114,8 @@ app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
 // Achievement routes 
 app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);

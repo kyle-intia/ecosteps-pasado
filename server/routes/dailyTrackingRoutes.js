@@ -6,6 +6,7 @@ const DailyTracking = require('../models/DailyTracking');
 const authenticate = require('../middleware/authenticate');
 const NotificationService = require('../services/notificationService');
 const EmissionFactorService = require('../services/emissionFactorService');
+const LeaderboardService = require('../services/leaderboardService')
 
 // All routes require authentication
 router.use(authenticate);
@@ -128,10 +129,10 @@ router.post('/submit', async (req, res) => {
     const now = new Date();
 
     // Get the current date/time in the Philippines (UTC+8)
-    const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    const phNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
 
     // Create a 'today' date at midnight in the Philippines (UTC+8)
-    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
+    const today = new Date(phNow.getFullYear(), phNow.getMonth(), phNow.getDate());
 
     // 'Tomorrow' is 24 hours after 'today'
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
@@ -157,6 +158,8 @@ router.post('/submit', async (req, res) => {
     });
 
     await NotificationService.createNotification(userId, `${email} logged his/her daily carbon footprint`, "daily-tracking");
+    
+    await LeaderboardService.addPoints(userId, 100, 'Completed a daily challenge');
 
     if (existingEntry) {
       // Update existing entry
@@ -185,6 +188,7 @@ router.post('/submit', async (req, res) => {
         }
       });
     } else {
+      
       // Create new entry
       const newEntry = new DailyTracking({
         userId: userId,
@@ -199,6 +203,8 @@ router.post('/submit', async (req, res) => {
 
       // Check for achievements
       const newAchievements = await DailyTrackingService.handleTrackingAchievements(userId, calculatedFootprint, trackingData);
+
+      await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
 
       res.json({
         success: true,

@@ -93,14 +93,14 @@ const AdminDashboard = () => {
           getAvgFootprintGrowthStats(),
         ]);
       
-        const { currentTotal: userCurrent, percentageIncrease: userPercent, previousTotal: userPrevious } = userRes;
+        const { totalUser: totalUser, currentTotal: userCurrent, percentageIncrease: userPercent, previousTotal: userPrevious } = userRes;
         const { currentTotal: activityCurrent, percentageIncrease: activityPercent } = activityRes;
         const { currentAvg, percentageIncrease: footprintPercent } = footprintRes;
-      
+
         setKpiData([
           {
             title: "Total Users",
-            value: (userCurrent + userPrevious).toLocaleString(),
+            value: totalUser,
             change: `${userPercent >= 0 ? "+" : "-"}${Math.abs(userPercent)}%`,
             trend: userPercent >= 0 ? "up" : "down",
             icon: Users,

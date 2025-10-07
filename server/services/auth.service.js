@@ -56,7 +56,6 @@ const createAccount = async (data) => {
         userId,
         sessionId: session._id,
     });
-    await NotificationService.createNotification(userId, `${email} just created an account`, "authentication");
     return {
         user: user.omitPassword(),
         accessToken,
@@ -73,8 +72,6 @@ const loginUser = async ({ email, password, userAgent, }) => {
     const isValid = await user.comparePassword(password);
     (0, appAssert_1.default)(isValid, http_1.UNAUTHORIZED, "Invalid email or password");
     const userId = user._id;
-
-    await NotificationService.createNotification(userId, `${email} just logged in`, "authentication");
 
     const session = await session_model_1.default.create({
         userId,

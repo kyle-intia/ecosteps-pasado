@@ -26,17 +26,17 @@ import {
   GripVertical,
   CheckCircle,
   X,
-  Loader2
+  Loader2,
+  Trash
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfile, getUserAchievements, equipAchievement, unequipAchievement } from "../lib/api";
+import { getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost} from "../lib/api";
 import { Spinner } from "@/components/ui/spinner";
 import  useSessionStatus from "../hooks/useSessionStatus"
 import  useSignOut from "../hooks/useLogout"
-import { updateProfile } from "../lib/api"
-
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Achievement = {
   achievementId: string;
@@ -63,42 +63,8 @@ type AchievementData = {
   stats: { totalCO2Saved?: number };
 };
 
-// Mock posts data
-const mockPosts = [
-  {
-    id: "1",
-    type: "post",
-    content: "Just switched to solar panels for my home! The installation process was smoother than expected. Excited to reduce my carbon footprint even further.",
-    timestamp: "2 hours ago",
-    likes: 12,
-    comments: 3,
-    reposts: 2,
-    isRepost: false
-  },
-  {
-    id: "2", 
-    type: "repost",
-    content: "Great tips for reducing plastic waste in your daily routine!",
-    originalAuthor: "EcoTipsDaily",
-    timestamp: "1 day ago",
-    likes: 8,
-    comments: 1,
-    reposts: 5,
-    isRepost: true
-  },
-  {
-    id: "3",
-    type: "post", 
-    content: "Completed my first month of biking to work instead of driving. Saved 45kg of CO2 emissions and feeling healthier than ever! Who else is joining the bike-to-work challenge?",
-    timestamp: "3 days ago",
-    likes: 28,
-    comments: 7,
-    reposts: 4,
-    isRepost: false
-  }
-];
-
 type ProfileType = {
+  userId?: string;
   profilePic: string;
   firstName: string;
   lastName: string;
@@ -111,7 +77,7 @@ type ProfileType = {
 
 const Profile = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [posts] = useState(mockPosts);
+  const [posts, setPosts] = useState<any[]>([]);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
   const [draggedAchievement, setDraggedAchievement] = useState<Achievement | null>(null);
   const { toast } = useToast();
@@ -150,58 +116,71 @@ const Profile = () => {
     queryFn: getProfile,
   });
 
-  /*
   useEffect(() => {
     if (profile) {
-      setDisplayedAchievements([
-        {
-          id: "walk_the_talk",
-          name: "Walk the Talk",
-          description: "Walk 50 km in a single day",
-          icon: Footprints,
-          dateEarned: "2025-08-20",
-        },
-        {
-          id: "green_commuter",
-          name: "Green Commuter",
-          description: "Use public transport for 30 consecutive days",
-          icon: Car,
-          dateEarned: "2025-08-15",
-        },
-        {
-          id: "recycling_champion",
-          name: "Recycling Champion",
-          description: "Recycle 100 kg of materials in a month",
-          icon: Recycle,
-          dateEarned: "2025-08-10",
-        },
-      ]);
+      const birthday = formatDate(profile.birthday);
+      const joinedDate = formatDate(profile.createdAt);
+
+      setCurrentUser({
+        userId: profile.userId,
+        username: profile.username,
+        fullName: `${profile.firstName} ${profile.lastName}`,
+        bio: profile.bio,
+        location: profile.address,
+        birthday,
+        avatarUrl: profile.profilePic,
+        joinedDate,
+        stats: {
+          posts: 24,
+          reposts: 8,
+          followers: 156,
+          following: 89,
+          carbonSaved: "2.3 tons",
+        }
+      });
     }
-  }, [profile]); */
+  }, [profile]);
 
   useEffect(() => {
-  if (profile) {
-    const birthday = formatDate(profile.birthday);
-    const joinedDate = formatDate(profile.createdAt);
-
-    setCurrentUser({
-      username: profile.username,
-      fullName: `${profile.firstName} ${profile.lastName}`,
-      bio: profile.bio,
-      location: profile.address,
-      birthday,
-      avatarUrl: profile.profilePic,
-      joinedDate,
-      stats: {
-        posts: 24,
-        reposts: 8,
-        followers: 156,
-        following: 89,
-        carbonSaved: "2.3 tons",
+    const fetchUserPosts = async () => {
+    
+      if (!currentUser?.userId) return;
+    
+      try {
+        const response = await getUserCommunityPosts();
+      
+        const formatted = response.map((post: any) => {
+          const userReposted = post.repostsDetails?.some(
+            (repost: any) => repost.repostedBy.userId === currentUser.userId
+          );
+        
+          const isOriginalPost = post.author?.userId === currentUser.userId;
+        
+          return {
+            id: post._id,
+            content: post.content,
+            image: post.image,
+            timestamp: formatDate(post.createdAt),
+            likes: post.likesCount,
+            reposts: post.repostsCount,
+            comments: post.comments?.length || 0,
+            isOriginalPost,
+            isRepost: userReposted,
+            originalAuthor: {
+              name: `${post.author?.firstName} ${post.author?.lastName}` || "Unknown",
+              avatarUrl: post.author?.profilePic || null,
+              username: post.author?.username || "",
+            },
+          };
+        });
+        setPosts(formatted);
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
       }
-    });
-  }
-}, [profile]);
+    };
+  
+    fetchUserPosts();
+  }, [currentUser]); 
 
   // Handle Post Editing
   const { data: achievementData, isLoading: achievementsLoading } = useQuery<AchievementData>({
@@ -246,19 +225,24 @@ const Profile = () => {
     }
   });
 
-  const handleEditPost = (postId: string) => {
-    toast({
-      title: "Edit Post",
-      description: "Post editing functionality coming soon!",
-    });
-  };
-
-  const handleDeletePost = (postId: string) => {
-    toast({
-      title: "Delete Post",
-      description: "Are you sure you want to delete this post?",
-      variant: "destructive",
-    });
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await deletePost(postId);
+    
+      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+    
+      toast({
+        title: "Post Deleted",
+        description: "Your post has been successfully deleted.",
+      });
+    
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the post.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Drag-and-Drop Logic
@@ -672,7 +656,7 @@ const Profile = () => {
           </TabsList>
           
           <TabsContent value="posts" className="space-y-4 mt-6">
-            {posts.filter(post => !post.isRepost).map((post) => (
+            {posts.filter(post => post.isOriginalPost).map(post => (
               <Card key={post.id} className="hover:shadow-elevated transition-smooth">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -696,22 +680,36 @@ const Profile = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditPost(post.id)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Post
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeletePost(post.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Post
-                        </DropdownMenuItem>
+                          <ConfirmDialog
+                            trigger={
+                              <DropdownMenuItem
+                                className="gap-2 text-destructive"
+                                onSelect={(e) => e.preventDefault()} // Prevents the dropdown from closing prematurely
+                              >
+                                <Trash className="h-4 w-4" />
+                                Delete Post
+                              </DropdownMenuItem>
+                            }
+                            title="Delete Post"
+                            description="Are you sure you want to delete this post? This action cannot be undone."
+                            confirmText="Delete"
+                            variant="destructive"
+                            onConfirm={() => handleDeletePost(post.id)}
+                          />
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
 
-                  <p className="text-foreground mb-4">{post.content}</p>
+                  <div className="mb-4">
+                    <p className="text-foreground leading-relaxed">{post.content}</p>
+                    {post.image && (
+                      <img
+                        src={post.image}
+                        alt="Post content"
+                        className="mt-3 rounded-lg max-w-full h-auto"
+                      />
+                    )}
+                  </div>
 
                   <div className="flex items-center space-x-6 text-muted-foreground">
                     <Button variant="ghost" size="sm" className="p-0 h-auto">
@@ -744,19 +742,29 @@ const Profile = () => {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-muted">
-                          {post.originalAuthor?.split(' ').map(n => n[0]).join('') || 'U'}
+                        <AvatarImage src={post.originalAuthor.avatarUrl || undefined} />
+                        <AvatarFallback>
+                          {post.originalAuthor.name.split(' ').map((n) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-foreground">{post.originalAuthor}</p>
-                        <p className="text-sm text-muted-foreground">{post.timestamp}</p>
+                        <p className="font-semibold text-foreground">{post.originalAuthor.name}</p>
+                        <p className="text-sm text-muted-foreground">@{post.originalAuthor.username} · {post.timestamp}</p>
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-foreground mb-4">{post.content}</p>
-
+                  <div className="mb-4">
+                    <p className="text-foreground leading-relaxed">{post.content}</p>
+                    {post.image && (
+                      <img
+                        src={post.image}
+                        alt="Post content"
+                        className="mt-3 rounded-lg max-w-full h-auto"
+                      />
+                    )}
+                  </div>
+                  
                   <div className="flex items-center space-x-6 text-muted-foreground">
                     <Button variant="ghost" size="sm" className="p-0 h-auto">
                       <MessageSquare className="h-4 w-4 mr-1" />
