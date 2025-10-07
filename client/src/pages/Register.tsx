@@ -109,7 +109,7 @@ export default function Register() {
 
   return (
     <AuthLayout
-      title="Join EcoStep"
+      title="Join EcoSteps"
       description="Create your account and start making a positive environmental impact today"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -165,7 +165,7 @@ export default function Register() {
           />
         </div>
 
-        <Button type="submit" variant="hero" className="w-full" disabled={isPending || !isFormValid}>
+        <Button type="submit" variant="hero" className="w-full transition-all duration-300 ease-out" disabled={isPending || !isFormValid}>
           {isPending ? "Creating Account..." : "Create Account"}
         </Button>
 

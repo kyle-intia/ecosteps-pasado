@@ -298,7 +298,7 @@ const EcoChallengeSection: React.FC = () => {
             <Button 
               size="sm" 
               onClick={() => navigate('/track')}
-              className="ml-4"
+              className="ml-4 transition-all duration-300 ease-out"
             >
               Track Now
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -365,7 +365,7 @@ const EcoChallengeSection: React.FC = () => {
               </p>
               <Button 
                 onClick={() => navigate('/track')}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 transition-all duration-300 ease-out"
                 size="lg"
               >
                 Start Daily Tracking

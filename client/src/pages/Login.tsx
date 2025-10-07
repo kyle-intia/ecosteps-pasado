@@ -203,7 +203,7 @@ export default function Login() {
               variant="ghost"
               size="icon"
               tabIndex={-1}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+              className="absolute transition-all duration-300 ease-out right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -225,7 +225,7 @@ export default function Login() {
         <Button
           type="submit"
           variant="hero"
-          className="w-full"
+          className="w-full transition-all duration-300 ease-out"
           disabled={!isFormValid || isPending}
         >
           {isPending ? "Signing In..." : "Sign In"}
