@@ -297,7 +297,7 @@ const Leaderboards = () => {
         </div>
 
         {/* Your Rank Section */}
-        <Card className="mt-8 bg-gradient-subtle border-primary/20">
+        <Card className="mt-8 border-primary/20">
           <CardHeader>
             <CardTitle className="text-center text-foreground">Your Current Statistics</CardTitle>
           </CardHeader>

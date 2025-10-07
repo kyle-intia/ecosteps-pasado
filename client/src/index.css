@@ -15,7 +15,7 @@
   /* === 🌱 EcoStep Theme with Admin Extensions === */
   :root {
     /* Eco base colors */
-    --background: 120 20% 98%;
+    --background: 33 55% 88%; /*- beige bg           120 20% 98%; - white bg   */
     --foreground: 150 25% 15%;
 
     --card: 0 0% 100%;
