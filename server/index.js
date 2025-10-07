@@ -53,7 +53,6 @@ const cron = require('node-cron');
 const sendDailyTrackingReminders = require('./controllers/dailyReminder');
 
 const seedAchievements = require('./utils/seedAchievement');
-const updateAchievementConditions = require('./utils/updateAchievementConditions');
 
 app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
 app.use(express_1.default.json());
@@ -112,6 +111,7 @@ app.use("/api/footprint", authenticate_1.default, footprintRoutes);
 app.use("/recommendations", authenticate_1.default, recommendationRoutes);
 app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
 
+
 // Achievement routes 
 app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
@@ -139,11 +139,8 @@ if (now.getHours() >= 20) {
 const startServer = async () => {
   try {
     await (0, db_1.default)();  // DB connection
-
-    await seedAchievements();
-
-    // Update achievement unlock conditions
-    await updateAchievementConditions();
+    
+    await seedAchievements();  
 
     app.listen(env_1.PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
