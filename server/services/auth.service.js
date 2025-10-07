@@ -56,6 +56,7 @@ const createAccount = async (data) => {
         userId,
         sessionId: session._id,
     });
+
     return {
         user: user.omitPassword(),
         accessToken,
