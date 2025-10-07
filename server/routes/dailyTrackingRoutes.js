@@ -192,7 +192,7 @@ router.post('/submit', async (req, res) => {
       // Create new entry
       const newEntry = new DailyTracking({
         userId: userId,
-        date: today,
+        date: now,
         transport: trackingData.transport,
         homeEnergy: trackingData.homeEnergy,
         food: trackingData.food,
