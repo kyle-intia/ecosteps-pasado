@@ -56,7 +56,7 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
         }));
 
         setNotifications(formatted);
-        setUnreadCount(formatted.filter((n) => n.unread && n.userId === user?._id && n.type === "daily-tracking-reminder" ).length);
+        setUnreadCount(formatted.filter((n) => n.unread && n.userId === user?._id && n.type !== "authentication" && n.type !== "user-profile" && n.type !== "pre-assessment").length);
       } catch (err: any) {
         console.error("Failed to fetch all notifications", err?.response ?? err);
       }
@@ -141,7 +141,7 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
                 <p className="text-sm text-muted-foreground">No notifications</p>
               ) : (
                 notifications
-                  .filter((notification) => notification.type === "daily-tracking-reminder" && notification.userId === user?._id)
+                  .filter((notification) => notification.type === "community" ||  notification.type === "daily-tracking-reminder" && notification.userId === user?._id)
                   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                   .map((notification) =>(
                   <div

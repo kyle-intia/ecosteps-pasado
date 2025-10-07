@@ -5,6 +5,7 @@ const Challenge = require('../models/Challenge');
 const Recommendation = require('../models/Recommendation');
 const ChallengeService = require('./challengeService');
 const AIRecommendationService = require('./aiRecommendationService');
+const LeaderboardService = require('./leaderboardService')
 
 class DashboardService {
   /**
@@ -43,6 +44,9 @@ class DashboardService {
       
       // Calculate metrics
       const metrics = this.calculateMetrics(currentMonthData, lastMonthData, preAssessment);
+
+      LeaderboardService.updateUserPointsFromEcoScore(userId, metrics.ecoScore)
+        .catch(err => console.error('Leaderboard update failed:', err));
       
       // Get chart data
       const monthlyTrend = await this.getMonthlyTrends(userId, 6);

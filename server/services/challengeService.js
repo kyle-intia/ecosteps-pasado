@@ -207,7 +207,7 @@ class ChallengeService {
     
     if (!challengeDoc) {
       // Use the rotation-based selection for maximum daily variety
-      const selectedChallenges = this.selectDailyChallengesByRotation(userId);
+      const selectedChallenges = await this.selectDailyChallengesByRotation(userId);
       
       challengeDoc = new Challenge({
         userId: userId,
