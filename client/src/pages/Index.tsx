@@ -48,13 +48,13 @@ const Index = () => {
                 Track Your Carbon <br />
                 <span className="text-accent">Footprint</span>
               </h1>
-              <p className="text-xl lg:text-2xl text-primary-foreground/90 max-w-3xl mx-auto">
+              <p className="text-xl lg:text-2xl text-primary-foreground/90 max-w-3xl mx-auto pt-8">
                 Join thousands of eco-warriors making a positive impact on our planet. 
                 Monitor, reduce, and offset your carbon emissions with EcoSteps.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-10 pb-8">
               <Button variant="hero" size="xl" asChild className="transition-all duration-300 ease-out">
                 <Link to="/register">
                   Start Your Eco Journey
@@ -66,7 +66,7 @@ const Index = () => {
               </Button>
             </div>
 
-            <div className="flex items-center justify-center space-x-8 text-primary-foreground/90 pt-8">
+            {/* <div className="flex items-center justify-center space-x-8 text-primary-foreground/90 pt-8">
               <div className="text-center">
                 <div className="text-3xl font-bold">10K+</div>
                 <div className="text-sm">Active Users</div>
@@ -79,7 +79,7 @@ const Index = () => {
                 <div className="text-3xl font-bold">95%</div>
                 <div className="text-sm">Goal Success</div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>

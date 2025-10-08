@@ -128,7 +128,7 @@ export default function Dashboard() {
               Here's your environmental impact dashboard for this month.
             </p>
           </div>
-          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2 transition-all duration-300 ease-out">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -339,15 +339,15 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-card border-border hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/track")}>
+          <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/track")}>
             <CardHeader className="text-center">
-              <Car className="h-12 w-12 text-primary mx-auto mb-2" />
+              <Car className="h-12 w-12 text-primary mx-auto mb-2 " />
               <CardTitle>Log Today's Activity</CardTitle>
               <CardDescription>Track your daily carbon footprint</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="shadow-card border-border hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/challenges")}>
+          <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/challenges")}>
             <CardHeader className="text-center">
               <Target className="h-12 w-12 text-warning mx-auto mb-2" />
               <CardTitle>Daily Challenges</CardTitle>
@@ -355,7 +355,7 @@ export default function Dashboard() {
             </CardHeader>
           </Card>
 
-          <Card className="shadow-card border-border hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/profile")}>
+          <Card className="shadow-card border-border transition-all duration-300 ease-out hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/profile")}>
             <CardHeader className="text-center">
               <Award className="h-12 w-12 text-success mx-auto mb-2" />
               <CardTitle>View Progress</CardTitle>

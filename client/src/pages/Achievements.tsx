@@ -192,7 +192,7 @@ const Achievements = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -248,7 +248,7 @@ const Achievements = () => {
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
-                className="capitalize"
+                className="capitalize transition-all duration-300 ease-out"
               >
                 {category}
               </Button>
@@ -314,7 +314,7 @@ const Achievements = () => {
                           variant={achievement.isEquipped ? "default" : "outline"}
                           onClick={() => handleEquipToggle(achievement)}
                           disabled={equipMutation.isPending || unequipMutation.isPending}
-                          className="text-xs"
+                          className="text-xs transition-all duration-300 ease-out"
                         >
                           {achievement.isEquipped ? (
                             <>
@@ -422,7 +422,7 @@ const Achievements = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleEquipToggle(achievement)}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 transition-all duration-300 ease-out"
                       >
                         <X className="h-4 w-4" />
                       </Button>
