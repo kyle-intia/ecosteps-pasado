@@ -672,7 +672,7 @@ const handlePushToggle = async (checked: boolean) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Profile Visibility</Label>
                 <Select 
                   value={privacy.profileVisibility} 
@@ -687,9 +687,9 @@ const handlePushToggle = async (checked: boolean) => {
                     <SelectItem value="private">Private</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Show Email Address</Label>
                   <p className="text-sm text-muted-foreground">
@@ -702,9 +702,9 @@ const handlePushToggle = async (checked: boolean) => {
                     setPrivacy({...privacy, showEmail: checked})
                   }
                 />
-              </div>
+              </div> */}
 
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Show Location</Label>
                   <p className="text-sm text-muted-foreground">
@@ -717,7 +717,7 @@ const handlePushToggle = async (checked: boolean) => {
                     setPrivacy({...privacy, showLocation: checked})
                   }
                 />
-              </div>
+              </div> */}
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">

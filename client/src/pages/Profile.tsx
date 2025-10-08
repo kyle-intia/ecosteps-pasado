@@ -462,14 +462,6 @@ const Profile = () => {
                     <p className="text-sm text-muted-foreground">Reposts</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{currentUser.stats.followers}</p>
-                    <p className="text-sm text-muted-foreground">Followers</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{currentUser.stats.following}</p>
-                    <p className="text-sm text-muted-foreground">Following</p>
-                  </div>
-                  <div className="text-center">
                     <p className="text-2xl font-bold text-success">{currentUser.stats.carbonSaved}</p>
                     <p className="text-sm text-muted-foreground">CO₂ Saved</p>
                   </div>
