@@ -134,7 +134,7 @@ export default function PreAssessment() {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preassessment/user/status`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/preassessment/user/status`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -277,7 +277,7 @@ export default function PreAssessment() {
     try {
       const responses = transformAnswersForBackend(answers);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preassessment/submit`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/preassessment/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
