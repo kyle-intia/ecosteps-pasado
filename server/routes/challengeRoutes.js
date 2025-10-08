@@ -87,8 +87,8 @@ router.post('/complete', async (req, res) => {
         recalculation: result.recalculationResult,
         newAchievements: result.newAchievements || [],
         message: result.allCompleted
-          ? 'Congratulations! You completed all three challenges today!'
-          : `Great job! ${result.completedCount}/3 challenges completed.`
+          ? '🎉 Congratulations! You completed all three challenges today!'
+          : `✅ Challenge complete! You earned 100 points. Great job! ${result.completedCount}/3 challenges completed.`
       }
     });
     

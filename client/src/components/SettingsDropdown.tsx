@@ -56,7 +56,7 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
         }));
 
         setNotifications(formatted);
-        setUnreadCount(formatted.filter((n) => n.unread && n.userId === user?._id && n.type !== "authentication" && n.type !== "user-profile" && n.type !== "pre-assessment").length);
+        setUnreadCount(formatted.filter((n) => n.unread && n.userId === user?._id && n.type !== "authentication" && n.type !== "daily-tracking" && n.type !== "user-profile" && n.type !== "pre-assessment").length);
       } catch (err: any) {
         console.error("Failed to fetch all notifications", err?.response ?? err);
       }

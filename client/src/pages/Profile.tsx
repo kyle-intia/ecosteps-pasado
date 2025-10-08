@@ -131,11 +131,11 @@ const Profile = () => {
         avatarUrl: profile.profilePic,
         joinedDate,
         stats: {
-          posts: 24,
-          reposts: 8,
-          followers: 156,
-          following: 89,
-          carbonSaved: "2.3 tons",
+          posts: 0,
+          reposts: 0,
+          followers: 0,
+          following: 0,
+          carbonSaved: "0 tons",
         }
       });
     }
@@ -174,10 +174,22 @@ const Profile = () => {
           };
         });
         setPosts(formatted);
-      } catch (error) {
-        console.error("Error fetching user posts:", error);
-      }
-    };
+
+        const postCount = formatted.filter((p) => p.isOriginalPost).length;
+        const repostCount = formatted.filter((p) => p.isRepost).length;
+
+        setCurrentUser((prevUser) => ({
+            ...prevUser,
+            stats: {
+              ...prevUser.stats,
+              posts: postCount,
+              reposts: repostCount,
+            },
+          }));
+          } catch (error) {
+            console.error("Error fetching user posts:", error);
+          }
+        };
   
     fetchUserPosts();
   }, [currentUser]); 

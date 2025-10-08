@@ -93,68 +93,68 @@ class LeaderboardService {
  * @param {number} pointsToAdd
  * @param {string} reason (optional) e.g. "Form submission bonus"
  */
-static async addPoints(userId, pointsToAdd, reason = "Manual points update") {
-  try {
-    if (!userId || !pointsToAdd || pointsToAdd <= 0) {
-      throw new Error("Invalid parameters for addPoints");
-    }
-
-    let leaderboardEntry = await Leaderboard.findOne({ user: userId });
-
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-    if (leaderboardEntry) {
-      if (reason === 'Posted in Community Page') {
-        const lastDate = leaderboardEntry.lastDailyCommunityPointsDate;
-        if (lastDate && lastDate >= todayStart) {
-          console.log(`[Leaderboard] Daily Community points already awarded today for user ${userId}`);
-          return leaderboardEntry;  // Already awarded today, skip
+  static async addPoints(userId, pointsToAdd, reason = "Manual points update") {
+    try {
+      if (!userId || !pointsToAdd || pointsToAdd <= 0) {
+        throw new Error("Invalid parameters for addPoints");
+      }
+    
+      let leaderboardEntry = await Leaderboard.findOne({ user: userId });
+    
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+      if (leaderboardEntry) {
+        if (reason === 'Posted in Community Page') {
+          const lastDate = leaderboardEntry.lastDailyCommunityPointsDate;
+          if (lastDate && lastDate >= todayStart) {
+            console.log(`[Leaderboard] Daily Community points already awarded today for user ${userId}`);
+            return leaderboardEntry;  // Already awarded today, skip
+          }
         }
+      
+        leaderboardEntry.points += pointsToAdd;
+        leaderboardEntry.totalScore += pointsToAdd;
+      
+        // Update the daily community date if applicable
+        if (reason === 'Posted in Community Page') {
+          leaderboardEntry.lastDailyCommunityPointsDate = today;
+        }
+      
+        // Handle tier progression (promotion + reset if needed)
+        leaderboardEntry = this.handleTierProgression(leaderboardEntry);
+      
+        leaderboardEntry.lastUpdated = today;
+        await leaderboardEntry.save();
+      
+        console.log(
+          `[Leaderboard] +${pointsToAdd} points for ${userId} (${reason}), now ${leaderboardEntry.tier}`
+        );
+      } else {
+        // First-time entry
+        const newEntryData = {
+          user: userId,
+          points: Math.min(pointsToAdd, 1000),
+          totalScore: pointsToAdd,
+          tier: "Bronze",
+          ecoScore: 0,
+          lastUpdated: today,
+        };
+        if (reason === 'Posted in Community Page') {
+          newEntryData.lastDailyCommunityPointsDate = today;
+        }
+        leaderboardEntry = await Leaderboard.create(newEntryData);
+      
+        console.log(`[Leaderboard] Created new entry for user ${userId} (${reason})`);
       }
-
-      leaderboardEntry.points += pointsToAdd;
-      leaderboardEntry.totalScore += pointsToAdd;
-
-      // Update the daily challenge date if applicable
-      if (reason === 'Posted in Community Page') {
-        leaderboardEntry.lastDailyCommunityPointsDate = today;
-      }
-
-      // Handle tier progression (promotion + reset if needed)
-      leaderboardEntry = this.handleTierProgression(leaderboardEntry);
-
-      leaderboardEntry.lastUpdated = today;
-      await leaderboardEntry.save();
-
-      console.log(
-        `[Leaderboard] +${pointsToAdd} points for ${userId} (${reason}), now ${leaderboardEntry.tier}`
-      );
-    } else {
-      // First-time entry
-      const newEntryData = {
-        user: userId,
-        points: Math.min(pointsToAdd, 1000),
-        totalScore: pointsToAdd,
-        tier: "Bronze",
-        ecoScore: 0,
-        lastUpdated: today,
-      };
-      if (reason === 'Posted in Community Page') {
-        newEntryData.lastDailyCommunityPointsDate = today;
-      }
-      leaderboardEntry = await Leaderboard.create(newEntryData);
-
-      console.log(`[Leaderboard] Created new entry for user ${userId} (${reason})`);
+    
+      await this.updateRanks();
+      return leaderboardEntry;
+    } catch (error) {
+      console.error("Error adding points to leaderboard:", error);
+      throw error;
     }
-
-    await this.updateRanks();
-    return leaderboardEntry;
-  } catch (error) {
-    console.error("Error adding points to leaderboard:", error);
-    throw error;
   }
-}
 
 
 
@@ -228,10 +228,21 @@ static async getLeaderboard(limit = 20) {
    */
   static async getUserLeaderboardInfo(userId) {
     try {
-      const userEntry = await Leaderboard.findOne({ user: userId }).populate(
-        "user",
-        "firstName lastName username profilePic"
-      );
+      const userEntry = await Leaderboard.findOne({ user: userId })
+      .populate({
+        path: 'user',
+        model: 'users_profile',
+        localField: 'author',
+        foreignField: 'userId',
+        justOne: true,
+        select: 'firstName lastName username profilePic'
+      })
+
+            // Count the posts for this user
+      const Posts = await Post.countDocuments({ author: userId });
+
+      // Count the daily trackings for this user
+      const Activity = await DailyTracking.countDocuments({ userId });
 
       if (!userEntry) {
         return { message: "User not found in leaderboard" };
@@ -244,6 +255,8 @@ static async getLeaderboard(limit = 20) {
         totalScore: userEntry.totalScore,
         ecoScore: userEntry.ecoScore,
         tier: userEntry.tier,
+        Posts,
+        Activity
       };
     } catch (error) {
       console.error("Error fetching user leaderboard info:", error);

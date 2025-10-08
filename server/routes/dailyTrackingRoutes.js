@@ -158,8 +158,6 @@ router.post('/submit', async (req, res) => {
     });
 
     await NotificationService.createNotification(userId, `${email} logged his/her daily carbon footprint`, "daily-tracking");
-    
-    await LeaderboardService.addPoints(userId, 100, 'Completed a daily challenge');
 
     if (existingEntry) {
       // Update existing entry
@@ -177,6 +175,7 @@ router.post('/submit', async (req, res) => {
       // Check for achievements
       const newAchievements = await DailyTrackingService.handleTrackingAchievements(userId, calculatedFootprint, trackingData);
 
+
       res.json({
         success: true,
         data: {
@@ -192,7 +191,7 @@ router.post('/submit', async (req, res) => {
       // Create new entry
       const newEntry = new DailyTracking({
         userId: userId,
-        date: now,
+        date: today,
         transport: trackingData.transport,
         homeEnergy: trackingData.homeEnergy,
         food: trackingData.food,

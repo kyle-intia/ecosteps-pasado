@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Target
 } from "lucide-react";
+import { useLeaderboard } from "../hooks/useLeaderboard";
 
 type UserProfile = {
   username?: string;
@@ -36,14 +37,15 @@ const Home = () => {
   const navigate = useNavigate();
   const { isPending, isLoggedIn} = useSessionStatus();
   const { signOut } = useSignOut()
-  const { user, isLoading, isError, error } = useProfile();
+  const { user, isLoading, isError, error: profileError } = useProfile();
+  const { userLeaderboard, pending, error: leaderboardError } = useLeaderboard();
 
   const profile = user as UserProfile | undefined;
 
   if (isLoading) 
     return <Spinner />;
   if (isError) 
-    return <p>Error: {String(error)}</p>;
+    return <p>Error: {String(profileError)}</p>;
 
   const handleSignOut = () => {
     signOut();
@@ -52,6 +54,16 @@ const Home = () => {
   if (isPending) {
     return <Spinner />;
   }
+
+  if (pending) 
+    return <Spinner></Spinner>
+
+
+  const ecoScore = leaderboardError ? 'N/A' : userLeaderboard?.totalScore ?? 'N/A';
+  const currentRank = leaderboardError ? 'N/A' : userLeaderboard?.currentRank ?? 'N/A';
+
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -240,11 +252,11 @@ const Home = () => {
                 
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <div className="text-xl font-semibold text-primary">1,047</div>
+                    <div className="text-xl font-semibold text-primary">{ecoScore}</div>
                     <div className="text-xs text-muted-foreground">Eco Score</div>
                   </div>
                   <div>
-                    <div className="text-xl font-semibold text-warning">#28</div>
+                    <div className="text-xl font-semibold text-warning">{currentRank}</div>
                     <div className="text-xs text-muted-foreground">Global Rank</div>
                   </div>
                 </div>

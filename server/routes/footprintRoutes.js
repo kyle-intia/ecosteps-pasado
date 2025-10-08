@@ -8,6 +8,8 @@ const Challenge = require('../models/Challenge');
 const DailyTrackingService = require('../services/dailyTrackingService');
 const authenticate = require('../middleware/authenticate');
 const EmissionFactorService = require('../services/emissionFactorService');
+const LeaderboardService = require('../services/leaderboardService')
+const NotificationService = require('../services/notificationService');
 
 // All routes require authentication
 router.use(authenticate);
@@ -167,7 +169,12 @@ router.post('/submit', async (req, res) => {
         }
       });
 
+      await NotificationService.createNotification(userId, `${userId}} logged his/her daily carbon footprint`, "daily-tracking");
+
+      await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
+
       savedEntry = await newEntry.save();
+
     }
 
     console.log('Footprint saved successfully:', savedEntry._id);
