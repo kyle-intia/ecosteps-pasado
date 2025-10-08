@@ -228,7 +228,7 @@ const TrackCarbon = () => {
 
   // API call functions
   const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
-    const response = await fetch('/api/footprint/submit', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
