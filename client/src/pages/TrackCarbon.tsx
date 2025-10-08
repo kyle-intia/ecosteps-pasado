@@ -155,19 +155,23 @@ const TrackCarbon = () => {
   useEffect(() => {
     const sessionFootprintId = localStorage.getItem('current_footprint_id');
     const sessionRecommendations = localStorage.getItem('current_recommendations');
-    
-    if (sessionFootprintId && sessionRecommendations) {
+    const sessionFootprintData = localStorage.getItem('current_footprint_data');
+
+    if (sessionFootprintId && sessionRecommendations && sessionFootprintData) {
       try {
         const parsedRecommendations = JSON.parse(sessionRecommendations);
+        const parsedFootprintData = JSON.parse(sessionFootprintData);
         setRecommendations(parsedRecommendations);
+        setFootprintData(parsedFootprintData);
         setIsSubmitted(true);
         setLoadingStatus('success');
-        console.log('Restored session state with', parsedRecommendations.length, 'recommendations');
+        console.log('Restored session state with', parsedRecommendations.length, 'recommendations and footprint data');
       } catch (error) {
-        console.error('Error parsing session recommendations:', error);
+        console.error('Error parsing session data:', error);
         // Clear invalid session data
         localStorage.removeItem('current_footprint_id');
         localStorage.removeItem('current_recommendations');
+        localStorage.removeItem('current_footprint_data');
       }
     }
   }, []);
@@ -344,6 +348,9 @@ const TrackCarbon = () => {
 
       setFootprintData(footprintResponse.data);
 
+      // Store footprint data in localStorage for persistence
+      localStorage.setItem('current_footprint_data', JSON.stringify(footprintResponse.data));
+
       // Step 2: Fetch AI recommendations
       const recommendationResponse = await fetchRecommendations(footprintResponse.data.footprintId);
       console.log('AI recommendations received:', recommendationResponse.data.recommendations.length, 'items');
@@ -401,6 +408,7 @@ const TrackCarbon = () => {
       // Clear localStorage
       localStorage.removeItem('current_footprint_id');
       localStorage.removeItem('current_recommendations');
+      localStorage.removeItem('current_footprint_data');
 
       toast({
         title: "Daily data reset",
