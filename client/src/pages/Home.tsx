@@ -118,7 +118,7 @@ const Home = () => {
             onClick={() => navigate("/community")}
           >
             <Lightbulb className="h-6 w-6 text-warning" />
-            <span className="text-sm font-medium">Smart Tips</span>
+            <span className="text-sm font-medium">Dashboard</span>
           </Button>
           
           <Button 

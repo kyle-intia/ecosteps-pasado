@@ -222,10 +222,6 @@ const Achievements = () => {
               <p className="text-3xl font-bold text-purple-600">{equipped.length}/3</p>
               <p className="text-sm text-muted-foreground">Equipped</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-orange-600">{challengeStats}</p>
-              <p className="text-sm text-muted-foreground">Challenges Completed</p>
-            </div>
           </div>
         </div>
 

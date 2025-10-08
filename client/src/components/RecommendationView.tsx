@@ -369,26 +369,6 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
         <Card className="shadow-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Home className="h-6 w-6 text-primary" />
-              Today's Entry
-            </CardTitle>
-            <CardDescription>
-              {isLoadingToday ? "Loading today's entry..." : todayEntry ? `Date: ${todayEntry.date}` : 'No entry for today'}
-            </CardDescription>
-          </CardHeader>
-          {todayEntry && (
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between"><span>Transport</span><span>{todayEntry.calculatedFootprint?.transport ?? '-'} kg</span></div>
-              <div className="flex justify-between"><span>Home Energy</span><span>{todayEntry.calculatedFootprint?.homeEnergy ?? '-'} kg</span></div>
-              <div className="flex justify-between"><span>Food</span><span>{todayEntry.calculatedFootprint?.food ?? '-'} kg</span></div>
-              <div className="flex justify-between font-medium"><span>Total</span><span>{todayEntry.calculatedFootprint?.total ?? '-'} kg</span></div>
-            </CardContent>
-          )}
-        </Card>
-
-        <Card className="shadow-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
               <Plane className="h-6 w-6 text-muted-foreground" />
               Recent History (7 days)
             </CardTitle>

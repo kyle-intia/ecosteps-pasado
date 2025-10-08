@@ -314,7 +314,7 @@ export default function Dashboard() {
             </CardHeader>
           </Card>
 
-          <Card className="shadow-card border-border hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/challenges")}>
+          <Card className="shadow-card border-border hover:shadow-elevated transition-smooth cursor-pointer" onClick={() => navigate("/home")}>
             <CardHeader className="text-center">
               <Target className="h-12 w-12 text-warning mx-auto mb-2" />
               <CardTitle>Daily Challenges</CardTitle>
