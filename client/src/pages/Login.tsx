@@ -55,7 +55,7 @@ export default function Login() {
 
   const checkPreAssessmentStatus = async () => {
     try {
-      const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preassessment/user/status`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

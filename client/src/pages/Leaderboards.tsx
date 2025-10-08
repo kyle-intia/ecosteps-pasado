@@ -107,7 +107,7 @@ const Leaderboards = () => {
   const handleSignOut = () => signOut();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
 
       <main className="max-w-6xl mx-auto px-4 py-8">

@@ -50,7 +50,7 @@ export default function CreateProfile() {
   useEffect(() => {
     const checkAssessmentStatus = async () => {
       try {
-        const response = await fetch("http://localhost:4004/profile/user/status", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/profile/user/status`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
