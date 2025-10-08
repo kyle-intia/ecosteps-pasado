@@ -1,6 +1,3 @@
-// server/index.js
-// Updated server index with AI recommendation routes integration
-
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -20,69 +17,66 @@ const env_1 = require("./constants/env");
 const authenticate_1 = __importDefault(require("./middleware/authenticate"));
 const session_route_1 = __importDefault(require("./routes/session.route"));
 const profile_route_1 = __importDefault(require("./routes/profile.route"));
-
-// Import existing feature routers
-const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
-const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
-
-const adminRoutes = require('./routes/adminRoute');
-const emissionFactorRoute = require('./routes/emissionFactorRoute');
-const isAdmin = require("./middleware/isAdmin");
-const notificationRoutes = require('./routes/notificationRoute');
-const userSettingsRoute = require('./routes/userSettingsRoute');
-const pushNotificationRoutes = require("./routes/pushNotificationRoute")
-const NotificationService = require('./services/notificationService');
-const badgeAchievementRoutes = require("./routes/badgeAchievementRoute");
-const ecoChallengeRoutes = require("./routes/ecoChallengeRoute")
-const challengeRoutes = require("./routes/challengeRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
-const communityRoutes = require("./routes/communityRoute");
-const leaderboardRoutes = require("./routes/leaderboardsRoutes");
-
-// Import new AI recommendation routes
-const footprintRoutes = require("./routes/footprintRoutes");
-const recommendationRoutes = require("./routes/recommendationRoutes");
-
-// Import achievement routes
-const achievementRoutes = require("./routes/achievementRoutes");
-
-const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
 const socketIo = require('socket.io');
 const cron = require('node-cron');
 const sendDailyTrackingReminders = require('./controllers/dailyReminder');
-
 const seedAchievements = require('./utils/seedAchievement');
 
-app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
+// Import feature routes (existing and new)
+const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
+const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
+const adminRoutes = require('./routes/adminRoute');
+const emissionFactorRoute = require('./routes/emissionFactorRoute');
+const notificationRoutes = require('./routes/notificationRoute');
+const userSettingsRoute = require('./routes/userSettingsRoute');
+const pushNotificationRoutes = require("./routes/pushNotificationRoute");
+const NotificationService = require('./services/notificationService');
+const badgeAchievementRoutes = require("./routes/badgeAchievementRoute");
+const ecoChallengeRoutes = require("./routes/ecoChallengeRoute");
+const challengeRoutes = require("./routes/challengeRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const communityRoutes = require("./routes/communityRoute");
+const leaderboardRoutes = require("./routes/leaderboardsRoutes");
+const footprintRoutes = require("./routes/footprintRoutes");
+const recommendationRoutes = require("./routes/recommendationRoutes");
+const achievementRoutes = require("./routes/achievementRoutes");
+
+// Setup express app
+const app = (0, express_1.default)();
+
+// Setup CORS with dynamic configuration
 const allowedOrigins = process.env.APP_ORIGIN?.split(',') || [];
 
 app.use((0, cors_1.default)({
   origin: function (origin, callback) {
-    // Allow no-origin requests (e.g. from mobile apps or Postman)
     if (!origin || allowedOrigins.includes(origin)) {
+      // Allow request if no origin (mobile, Postman) or origin is in the list
       callback(null, true);
     } else {
+      // Block any other origins and log the blocked request
       console.warn(`⛔ Blocked by CORS: ${origin}`);
       callback(new Error(`CORS error: Origin ${origin} not allowed`));
     }
   },
-  credentials: true,
+  credentials: true, // Allow cookies and credentials
 }));
 
+// Middlewares
 app.use((0, cookie_parser_1.default)());
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
 
+// Basic health check endpoint
 app.get("/", (_, res) => {
     return res.status(http_1.OK).json({
         status: "healthy",
     });
 });
 
+// Socket.io integration
 const server = http.createServer(app);
 const io = socketIo(server);
-
 NotificationService.setSocketIoInstance(io);
 
 // Authentication routes
@@ -93,13 +87,13 @@ app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
 
-// Existing feature routes - both legacy and /api prefixes for compatibility
+// Existing and new feature routes
 app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 
-// ADMIN
+// Admin routes
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
 app.use('/api/admin/emissionfactor', authenticate_1.default, isAdmin, emissionFactorRoute);
 app.use('/api/notifications', notificationRoutes);
@@ -108,44 +102,34 @@ app.use('/api/push', pushNotificationRoutes);
 app.use("/api/admin/achievements", badgeAchievementRoutes);
 app.use('/api/admin/eco-challenges', ecoChallengeRoutes);
 
-// Challenge routes
+// Challenge, Dashboard, and Community routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
 app.use("/api/challenges", authenticate_1.default, challengeRoutes);
-
-// Dashboard routes
 app.use("/dashboard", authenticate_1.default, dashboardRoutes);
 app.use("/api/dashboard", authenticate_1.default, dashboardRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
-// NEW: AI Recommendation Feature Routes
+// New AI Recommendation routes
 app.use("/footprint", authenticate_1.default, footprintRoutes);
 app.use("/api/footprint", authenticate_1.default, footprintRoutes);
 app.use("/recommendations", authenticate_1.default, recommendationRoutes);
 app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
 
-
-// Achievement routes 
+// Achievement routes
 app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
-app.use('/api/community', communityRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
-
-// Leaderboards
-app.use('/api/leaderboard', leaderboardRoutes);
-
-// Community
-app.use('/api/community', communityRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);
 
+// Daily reminders via cron job
 cron.schedule('10 0 * * *', () => {
   sendDailyTrackingReminders()
     .then(() => console.log('Daily tracking reminders sent at 8:00 AM.'))
     .catch((err) => console.error('Failed to send daily reminders:', err));
-}, {
-  timezone: 'Asia/Manila' 
-});
- 
+}, { timezone: 'Asia/Manila' });
+
 const now = new Date();
 if (now.getHours() >= 20) {
   sendDailyTrackingReminders()
@@ -153,11 +137,11 @@ if (now.getHours() >= 20) {
     .catch((err) => console.error('Failed to send reminder on server start:', err));
 }
 
+// Start the server
 const startServer = async () => {
   try {
     await (0, db_1.default)();  // DB connection
-    
-    await seedAchievements();  
+    await seedAchievements();  // Seed achievements if necessary
 
     app.listen(env_1.PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
@@ -170,7 +154,6 @@ const startServer = async () => {
   }
 };
 
-
 startServer().catch((err) => {
-    console.error("❌ Failed to start server:", err);
+  console.error("❌ Failed to start server:", err);
 });
