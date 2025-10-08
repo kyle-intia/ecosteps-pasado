@@ -246,7 +246,7 @@ const TrackCarbon = () => {
   };
 
   const fetchRecommendations = async (footprintId: string): Promise<RecommendationResponse> => {
-    const response = await fetch('/api/recommendations', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/recommendations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -264,7 +264,7 @@ const TrackCarbon = () => {
   };
 
   const resetDailyData = async (): Promise<void> => {
-    const response = await fetch('/api/footprint/reset-daily', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/reset-daily`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
