@@ -46,12 +46,6 @@ const recommendationRoutes = require("./routes/recommendationRoutes");
 // Import achievement routes
 const achievementRoutes = require("./routes/achievementRoutes");
 
-// Import leaderboards routes
-const leaderboardRoutes = require('./routes/leaderboards');
-
-// Import community routes
-const communityRoutes = require('./routes/community');
-
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
 const socketIo = require('socket.io');
