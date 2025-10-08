@@ -57,21 +57,10 @@ const seedAchievements = require('./utils/seedAchievement');
 app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-const allowedOrigins = process.env.APP_ORIGIN?.split(',') || [];
-
 app.use((0, cors_1.default)({
-  origin: function (origin, callback) {
-    // Allow no-origin requests (e.g. from mobile apps or Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`⛔ Blocked by CORS: ${origin}`);
-      callback(new Error(`CORS error: Origin ${origin} not allowed`));
-    }
-  },
-  credentials: true,
+    origin: true,
+    credentials: true,
 }));
-
 app.use((0, cookie_parser_1.default)());
 
 app.get("/", (_, res) => {
@@ -128,12 +117,6 @@ app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
-
-// Leaderboards
-app.use('/api/leaderboard', leaderboardRoutes);
-
-// Community
-app.use('/api/community', communityRoutes);
 
 // Error handling middleware
 app.use(errorHandler_1.default);
