@@ -1,24 +1,27 @@
 // client/src/components/RecommendationView.tsx
 // Component to display AI-generated carbon footprint recommendations
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Lightbulb, 
-  Car, 
-  Home, 
-  Utensils, 
-  Sparkles, 
+import {
+  Lightbulb,
+  Car,
+  Home,
+  Utensils,
+  Sparkles,
   TrendingDown,
   RotateCcw,
   CheckCircle2,
   Target,
-  Leaf
+  Leaf,
+  Plane
 } from 'lucide-react';
+import { getTodaysTracking, getDailyTrackingHistory } from '../lib/api';
+import useAuth from '../hooks/useAuth';
 
 interface Recommendation {
   id: string;
@@ -60,6 +63,43 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
   onRetry
 }) => {
   const navigate = useNavigate();
+  const [isLoadingToday, setIsLoadingToday] = useState(false);
+  const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
+  const { user } = useAuth() as { user: { _id?: string } };
+
+  useEffect(() => {
+    const userId = user?._id;
+    if (!userId) return;
+
+    const fetchToday = async () => {
+      try {
+        setIsLoadingToday(true);
+        const res = await getTodaysTracking();
+        setTodayEntry(res?.data || null);
+      } catch (_e) {
+        setTodayEntry(null);
+      } finally {
+        setIsLoadingToday(false);
+      }
+    };
+
+    const fetchHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const res = await getDailyTrackingHistory(7, 0);
+        setHistoryEntries(res?.data?.entries || []);
+      } catch (_e) {
+        setHistoryEntries([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchToday();
+    fetchHistory();
+  }, [user]);
 
   // Category icons
   const getCategoryIcon = (category: string) => {
@@ -324,38 +364,33 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
         </CardContent>
       </Card>
 
-      {/* Implementation Tips */}
-      <Card className="shadow-card border-border bg-gradient-to-r from-accent/5 to-warning/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-warning" />
-            Implementation Tips
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <h4 className="font-medium mb-2">Getting Started:</h4>
-              <ul className="space-y-1 text-muted-foreground">
-                <li>• Start with 1-2 recommendations</li>
-                <li>• Choose actions that fit your lifestyle</li>
-                <li>• Track your progress daily</li>
-                <li>• Celebrate small wins</li>
-              </ul>
+      {/* Show existing data cards only in form view */}
+      <div className="mt-10 grid grid-cols-1 gap-6">
+        <Card className="shadow-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plane className="h-6 w-6 text-muted-foreground" />
+              Recent History (7 days)
+            </CardTitle>
+            <CardDescription>
+              {isLoadingHistory ? 'Loading history...' : `Entries: ${historyEntries.length}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              {historyEntries.length === 0 && !isLoadingHistory && (
+                <div className="text-muted-foreground">No recent entries</div>
+              )}
+              {historyEntries.map((e) => (
+                <div key={e.id} className="flex justify-between">
+                  <span>{e.date}{e.isToday ? ' (Today)' : ''}</span>
+                  <span>{(e.footprint && e.footprint.total) ?? e.footprint ?? '-'} kg</span>
+                </div>
+              ))}
             </div>
-            
-            <div>
-              <h4 className="font-medium mb-2">Maximizing Impact:</h4>
-              <ul className="space-y-1 text-muted-foreground">
-                <li>• Focus on your highest emission categories</li>
-                <li>• Make changes gradually and sustainably</li>
-                <li>• Share your journey with others</li>
-                <li>• Review recommendations weekly</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -5,7 +5,7 @@ const Challenge = require('../models/Challenge');
 const Recommendation = require('../models/Recommendation');
 const ChallengeService = require('./challengeService');
 const AIRecommendationService = require('./aiRecommendationService');
-const LeaderboardService = require('./leaderboardService');
+const LeaderboardService = require('./leaderboardService')
 
 class DashboardService {
   /**

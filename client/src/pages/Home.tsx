@@ -1,7 +1,7 @@
 // client/src/pages/Home.tsx
 // Updated Home page with integrated Eco-Challenge section
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +20,16 @@ import {
   Coffee,
   MapPin,
   ArrowRight,
-  Target
+  Target,
+  RefreshCw,
+  MessageSquare
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { useLeaderboard } from "../hooks/useLeaderboard";
+import useRecentActivities from "../hooks/useRecentActivities";
+import useCommunityHighlights from "../hooks/useCommunityHighlights";
+import useChallengeProgress from "../hooks/useChallengeProgress";
+import useCO2Savings from "../hooks/useCO2Savings";
 
 type UserProfile = {
   username?: string;
@@ -36,14 +44,21 @@ const Home = () => {
   const navigate = useNavigate();
   const { isPending, isLoggedIn} = useSessionStatus();
   const { signOut } = useSignOut()
-  const { user, isLoading, isError, error } = useProfile();
+  const { user, isLoading, isError, error: profileError } = useProfile();
+  const { userLeaderboard, pending, error: leaderboardError } = useLeaderboard();
+
+  // New hooks for dynamic data
+  const { activities, isLoading: activitiesLoading, isError: activitiesError, refetch: refetchActivities } = useRecentActivities();
+  const { highlights, isLoading: highlightsLoading, isError: highlightsError } = useCommunityHighlights();
+  const { weeklyProgress, todaysProgress, isLoading: progressLoading, isError: progressError, refetch: refetchProgress } = useChallengeProgress();
+  const { todaysSavings, weeklySavings, isLoading: savingsLoading, isError: savingsError, refetch: refetchSavings } = useCO2Savings();
 
   const profile = user as UserProfile | undefined;
 
-  if (isLoading) 
+  if (isLoading)
     return <Spinner />;
-  if (isError) 
-    return <p>Error: {String(error)}</p>;
+  if (isError)
+    return <p>Error: {String(profileError)}</p>;
 
   const handleSignOut = () => {
     signOut();
@@ -52,6 +67,30 @@ const Home = () => {
   if (isPending) {
     return <Spinner />;
   }
+
+  if (pending)
+    return <Spinner></Spinner>
+
+  const ecoScore = leaderboardError ? 'N/A' : userLeaderboard?.totalScore ?? 'N/A';
+  const currentRank = leaderboardError ? 'N/A' : userLeaderboard?.currentRank ?? 'N/A';
+
+  // Time-based greeting
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Refresh all data
+  const handleRefresh = () => {
+    refetchActivities();
+    refetchProgress();
+    refetchSavings();
+  };
+
+
+
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -69,7 +108,7 @@ const Home = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
             <div className="text-white max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Welcome, {profile?.username || "Eco Warrior"}! 🌱
+                {getTimeBasedGreeting()}, {profile?.username || "Eco Warrior"}!🌱 
               </h1>
               <p className="text-lg text-white/90 mb-6">
                 Here's what's new today
@@ -107,7 +146,7 @@ const Home = () => {
             onClick={() => navigate("/community")}
           >
             <Lightbulb className="h-6 w-6 text-warning" />
-            <span className="text-sm font-medium">Smart Tips</span>
+            <span className="text-sm font-medium">Dashboard</span>
           </Button>
           
           <Button 
@@ -140,42 +179,41 @@ const Home = () => {
                     <Clock className="h-5 w-5 text-primary" />
                     <span>Recent Activity</span>
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="transition-all duration-300 ease-out" onClick={() => navigate("/track")}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={activitiesLoading}>
+                      <RefreshCw className={`h-4 w-4 ${activitiesLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="transition-all duration-300 ease-out" onClick={() => navigate("/track")}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="p-2 bg-success rounded-full">
-                    <Activity className="h-4 w-4 text-success-foreground" />
+                {activitiesLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Spinner />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Completed eco-challenge</p>
-                    <p className="text-xs text-muted-foreground">Walking Warrior challenge • 1 hour ago</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="p-2 bg-primary rounded-full">
-                    <MapPin className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Used public transport</p>
-                    <p className="text-xs text-muted-foreground">Morning commute • 6 hours ago</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="p-2 bg-accent rounded-full">
-                    <Coffee className="h-4 w-4 text-accent-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Chose eco bag at store</p>
-                    <p className="text-xs text-muted-foreground">Grocery shopping • Yesterday</p>
-                  </div>
-                </div>
+                ) : activitiesError ? (
+                  <p className="text-sm text-destructive">Failed to load activities</p>
+                ) : activities.length > 0 ? (
+                  activities.map((activity, index) => (
+                    <div key={activity.id} className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+                      <div className="p-2 bg-primary rounded-full">
+                        <Activity className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.description} • {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No recent activities</p>
+                )}
               </CardContent>
             </Card>
 
@@ -189,33 +227,32 @@ const Home = () => {
                 <CardDescription>See what others are achieving</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
-                    S
+                {highlightsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Spinner />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      <strong>@sarah_green</strong> completed all 3 eco-challenges and earned the Daily Champion badge! 🌟
-                    </p>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-success to-primary rounded-full flex items-center justify-center text-white font-bold">
-                    M
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      <strong>@mike_eco</strong> completed the Car-Free Commuter challenge for 30 days straight! 🚴‍♂️
-                    </p>
-                    <p className="text-xs text-muted-foreground">5 hours ago</p>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-4 transition-all duration-300 ease-out"
+                ) : highlightsError ? (
+                  <p className="text-sm text-destructive">Failed to load highlights</p>
+                ) : highlights.length > 0 ? (
+                  highlights.map((highlight, index) => (
+                    <div key={highlight.id} className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
+                        {highlight.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground">
+                          <strong>@{highlight.username}</strong> {highlight.content}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(highlight.timestamp, { addSuffix: true })}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No highlights available</p>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
                   onClick={() => navigate("/community")}
                 >
                   Join the Conversation
@@ -234,25 +271,31 @@ const Home = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-success">3.8kg</div>
+                  <div className="text-3xl font-bold text-success">
+                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `${todaysSavings}kg`}
+                  </div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
-                  <div className="text-xs text-green-600 mt-1">+1.7kg from challenges!</div>
+                  <div className="text-xs text-green-600 mt-1">
+                    {savingsLoading ? '' : savingsError ? '' : `+${weeklySavings}kg from challenges!`}
+                  </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <div className="text-xl font-semibold text-primary">1,047</div>
+                    <div className="text-xl font-semibold text-primary">{ecoScore}</div>
                     <div className="text-xs text-muted-foreground">Eco Score</div>
                   </div>
                   <div>
-                    <div className="text-xl font-semibold text-warning">#28</div>
+                    <div className="text-xl font-semibold text-warning">{currentRank}</div>
                     <div className="text-xs text-muted-foreground">Global Rank</div>
                   </div>
                 </div>
-                
+
                 <div className="pt-4 border-t border-border">
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-accent">2/3</div>
+                    <div className="text-lg font-semibold text-accent">
+                      {progressLoading ? <Spinner /> : progressError ? 'N/A' : `${todaysProgress.completed}/${todaysProgress.total}`}
+                    </div>
                     <div className="text-xs text-muted-foreground">Challenges Today</div>
                   </div>
                 </div>
@@ -271,17 +314,21 @@ const Home = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>This Week</span>
-                    <span className="font-medium">15/21</span>
+                    <span className="font-medium">
+                      {progressLoading ? <Spinner /> : progressError ? 'N/A' : `${weeklyProgress.completed}/${weeklyProgress.total}`}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full" style={{ width: '71%' }}></div>
+                    <div className="bg-primary h-2 rounded-full" style={{ width: progressLoading || progressError ? '0%' : `${weeklyProgress.percentage}%` }}></div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Perfect Days</span>
-                    <span className="font-medium">3</span>
+                    <span className="font-medium">
+                      {progressLoading ? <Spinner /> : progressError ? 'N/A' : weeklyProgress.perfectDays}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Days with all 3 challenges completed
