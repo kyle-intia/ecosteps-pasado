@@ -86,7 +86,6 @@ export default function Login() {
     const role = res?.role;
 
     localStorage.setItem("isLoggedIn", "true");
-
     toast({
       title: "Welcome back!",
       description: "You've successfully logged in to EcoStep.",
