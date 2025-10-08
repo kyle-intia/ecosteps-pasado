@@ -13,7 +13,7 @@ router.use(authenticate);
 // Multer configuration for image upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../client/public/uploads/community_post'));
+    cb(null, path.join(__dirname, '../public/uploads/community_post'));
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
