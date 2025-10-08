@@ -13,7 +13,7 @@ const createProfile = async (userId, input) => {
         throw new Error("Profile already exists for this user");
     }
     const profileData = {
-        user: userId,
+        userId: userId,
         ...input,
         profilePic: input.profilePic ?? undefined,
         userProfileDone: true,
@@ -21,19 +21,18 @@ const createProfile = async (userId, input) => {
         role: "user"
     };
     const profile = await userprofile_model_1.default.create(profileData);
-    await NotificationService.createNotification(userId, `${userId} completed his/her profile`, "user-profile");
     return profile;
 };
 exports.createProfile = createProfile;
 const getProfile = async (userId) => {
-    return userprofile_model_1.default.findOne({ user: userId });
+    return userprofile_model_1.default.findOne({ userId: userId });
 };
 exports.getProfile = getProfile;
 const updateProfile = async (userId, input) => {
-    return userprofile_model_1.default.findOneAndUpdate({ user: userId }, input, { new: true, runValidators: true });
+    return userprofile_model_1.default.findOneAndUpdate({ userId: userId }, input, { new: true, runValidators: true });
 };
 exports.updateProfile = updateProfile;
 const getProfileDone = async (userId) => {
-   return userprofile_model_1.default.findOne({ user: userId }, { userProfileDone: 1 });
+   return userprofile_model_1.default.findOne({ userId: userId }, { userProfileDone: 1 });
 };
 exports.getProfileDone = getProfileDone;

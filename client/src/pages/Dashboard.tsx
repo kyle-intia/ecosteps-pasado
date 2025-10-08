@@ -15,20 +15,18 @@ import { useDashboardData } from "../hooks/useDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import RecommendationView from "@/components/RecommendationView";
+import { useLeaderboard } from "../hooks/useLeaderboard";
 
 type UserProfile = {
   username?: string;
 };
-
-const currentFootprint = 15.6
-const goalFootprint = 12 
-const progressPercentage = Math.min((goalFootprint / currentFootprint) * 100, 100)
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isPending, isLoggedIn } = useSessionStatus();
+  
   const { signOut } = useSignOut();
   const { user, isLoading: profileLoading, isError: profileError } = useProfile();
   const { 
@@ -38,8 +36,10 @@ export default function Dashboard() {
     error: dashboardErrorDetails,
     refetch: refetchDashboard
   } = useDashboardData();
+  const { userLeaderboard, pending, error } = useLeaderboard();
 
   const profile = user as UserProfile | undefined;
+
 
   const handleSignOut = () => {
     signOut();
@@ -104,13 +104,16 @@ export default function Dashboard() {
     );
   }
 
+  if (pending) 
+    return <Spinner></Spinner>
+
   const { metrics, charts, recommendations, challengeStats, summary } = dashboardData?.data || {};
-  
+ 
   // Use real data or fallbacks
   const currentEmissions = metrics?.currentEmissions || 0;
   const targetEmissions = metrics?.targetEmissions || 1.0;
   const reductionPercentage = metrics?.reductionPercentage || 0;
-  const ecoScore = metrics?.ecoScore || 0;
+  const ecoScore = error ? 'N/A' : userLeaderboard?.totalScore ?? 'N/A';
   const treesSaved = metrics?.treesSaved || 0;
 
   return (
@@ -132,42 +135,6 @@ export default function Dashboard() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-        </div>
-
-        <div className="my-4">
-          <Card className="shadow-sm border-admin-border bg-gradient-to-br from-card to-accent/5">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Target className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Average Footprint Goal</h3>
-                      <p className="text-sm text-muted-foreground">Progress towards {goalFootprint} kg CO₂ target</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{currentFootprint} kg</p>
-                    <p className="text-xs text-muted-foreground">Current avg</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Progress value={progressPercentage} className="h-4" />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {(currentFootprint - goalFootprint).toFixed(1)} kg remaining
-                    </span>
-                    <span className="font-medium text-primary">
-                      {progressPercentage.toFixed(0)}% to goal
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Key Metrics */}

@@ -36,8 +36,6 @@ router.post('/submit', async (req, res) => {
     const preAssessment = new PreAssessment({ userId, responses, results, assessmentDone: true });
     await preAssessment.save();
 
-    await NotificationService.createNotification(userId, `${email} logged his/her pre-assessment carbon footprint`, "pre-assessment");
-
     // ✅ Explicitly select data to return (Best Practice)
     res.status(201).json({
       success: true,

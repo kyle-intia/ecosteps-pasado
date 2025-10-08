@@ -311,6 +311,7 @@ class DailyTrackingService {
         'DAILY_TRACKING_COMPLETE',
         {
           dailyFootprint: calculatedFootprint.total,
+          submitted: true,
           isCarFree: !trackingData.transport.modes.some(m => m.id === 'car'),
           isPlantBased: [trackingData.food.breakfast, trackingData.food.lunch, trackingData.food.dinner]
             .every(meal => meal === 'plant')

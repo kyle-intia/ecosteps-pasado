@@ -161,3 +161,46 @@ export const markNotificationAsRead = (notificationId) =>
 
 export const checkAchievements = (triggerEvent, context = {}) =>
   API.post("/achievements/check", { triggerEvent, context });
+
+
+//============= COMMUNITY =================
+
+
+export const getCommunityPosts = () => API.get("api/community/posts");
+
+export const getUserCommunityPosts = () => API.get("api/community/user/posts");
+
+export const createCommunityPost = (formData) => API.post("api/community/posts", formData, { headers: { "Content-Type": "multipart/form-data" } });
+
+export const likePost = (postId) => API.post(`api/community/posts/${postId}/like`);
+
+export const repostPost = (postId) => API.post(`api/community/posts/${postId}/repost`);
+
+export const commentOnPost = (postId, content) =>
+  API.post(`api/community/posts/${postId}/comment`, { content });
+
+export const deleteComment = (postId, commentId) => API.delete(`api/community/posts/${postId}/comment/${commentId}`);
+
+export const deletePost = (postId) => API.delete(`api/community/posts/${postId}`);
+
+export const editPost = (postId, content , imageFile) => {
+  const formData = new FormData();
+  formData.append('content', content);
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+
+  return API.put(`api/community/posts/${postId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+//============= LEADERBOARDS =====================
+
+
+export const getLeaderboard = () => API.get("api/leaderboard");
+
+export const getUserLeaderboard = () => API.get("api/leaderboard/user");
+

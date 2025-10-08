@@ -14,6 +14,7 @@ const authenticate = async (req, res, next) => {
 
   req.userId = payload.userId;
   req.sessionId = payload.sessionId;
+  req.email = payload.email;
 
 
   const now = new Date();
@@ -25,7 +26,7 @@ const authenticate = async (req, res, next) => {
 
   const user = await UserModel.findById(req.userId).select('email');
   if (!user) {
-    return res.status(401).json({ error: 'User not found' });
+    return res.status(404).json({ error: 'User not found' });
   }
   req.user = user;
 
