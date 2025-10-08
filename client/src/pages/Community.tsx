@@ -18,6 +18,7 @@ import {
   repostPost,
   commentOnPost,
   deleteComment,
+  deletePost,
 } from "../lib/api";
 
 import { formatDistanceToNow } from "date-fns";
@@ -69,6 +70,7 @@ const Community = () => {
   const [loadingPost, setLoadingPost] = useState(false);
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const { isPending, isLoggedIn } = useSessionStatus();
@@ -104,6 +106,29 @@ const Community = () => {
     }
     fetchPosts();
   }, [toast]);
+
+  // New: Delete post handler
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+
+    setDeletingPostId(postId);
+    try {
+      await deletePost(postId);
+      setPosts(posts.filter(post => post._id !== postId));
+      toast({
+        title: "Post deleted",
+        description: "Your post was removed successfully.",
+      });
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete post. Try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
 
   const handlePost = async () => {
       if (!postContent.trim() && !selectedImage) {
@@ -395,6 +420,22 @@ const Community = () => {
                         <span className="text-sm text-muted-foreground">
                           {formatDistanceToNow(new Date(post.createdAt))} ago
                         </span>
+                        {post.author.userId === userId && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 ml-2"
+                            disabled={deletingPostId === post._id}
+                            onClick={() => handleDeletePost(post._id)}
+                            title="Delete post"
+                          >
+                            {deletingPostId === post._id ? (
+                              <Spinner />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
