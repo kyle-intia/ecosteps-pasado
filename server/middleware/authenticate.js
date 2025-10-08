@@ -14,6 +14,7 @@ const authenticate = async (req, res, next) => {
 
   req.userId = payload.userId;
   req.sessionId = payload.sessionId;
+  req.email = payload.email;
 
 
   const now = new Date();

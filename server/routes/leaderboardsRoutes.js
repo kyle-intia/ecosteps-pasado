@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET current user’s rank and points
-router.get("/me", async (req, res) => {
+router.get("/user", async (req, res) => {
   try {
     const userId = req.userId;
     const userInfo = await LeaderboardService.getUserLeaderboardInfo(userId);

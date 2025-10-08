@@ -197,3 +197,10 @@ export const editPost = (postId, content , imageFile) => {
   });
 };
 
+//============= LEADERBOARDS =====================
+
+
+export const getLeaderboard = () => API.get("api/leaderboard");
+
+export const getUserLeaderboard = () => API.get("api/leaderboard/user");
+

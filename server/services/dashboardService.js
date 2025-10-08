@@ -44,9 +44,6 @@ class DashboardService {
       
       // Calculate metrics
       const metrics = this.calculateMetrics(currentMonthData, lastMonthData, preAssessment);
-
-      LeaderboardService.updateUserPointsFromEcoScore(userId, metrics.ecoScore)
-        .catch(err => console.error('Leaderboard update failed:', err));
       
       // Get chart data
       const monthlyTrend = await this.getMonthlyTrends(userId, 6);

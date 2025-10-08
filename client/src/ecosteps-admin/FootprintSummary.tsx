@@ -18,7 +18,27 @@ const leaderboardData = [
   { rank: 5, user: "david.wilson@email.com", footprint: 13.2, change: -5 },
 ]
 
+const months = [
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
+];
+
+const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+
 const FootprintSummary = () => {
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [dailyTrends, setDailyTrends] = useState<any[]>([]);
   const [filter, setFilter] = useState<  'average' | 'all' | 'user' | 'compare'>('average');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);  // For comparing two users
@@ -38,27 +58,25 @@ const FootprintSummary = () => {
   };
 
   // Fetch data for each day of the current month
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
-        const allDays = getDaysInMonth(year, month);
-        const allDailyData = [];
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const allDays = getDaysInMonth(selectedYear, selectedMonth);
+      const allDailyData = [];
 
-        for (const date of allDays) {
-          const data = await getDailyFootprintByCategory(date);
-          allDailyData.push({ date, ...(Array.isArray(data) && data.length > 0 ? data[0] : {}) });
-        }
-        setDailyTrends(allDailyData);
-      } catch (error) {
-        console.error("Error fetching daily footprint data:", error);
+      for (const date of allDays) {
+        const data = await getDailyFootprintByCategory(date);
+        allDailyData.push({ date, ...(Array.isArray(data) && data.length > 0 ? data[0] : {}) });
       }
-    };
 
-    fetchData();
-  }, []);
+      setDailyTrends(allDailyData);
+    } catch (error) {
+      console.error("Error fetching daily footprint data:", error);
+    }
+  };
+
+  fetchData();
+}, [selectedMonth, selectedYear]);
 
   const transformData = (dailyData) => {
     return dailyData.map((entry) => {
@@ -198,6 +216,8 @@ const FootprintSummary = () => {
           <p className="text-muted-foreground">Analyze carbon footprint trends and patterns</p>
         </div>
         <div className="flex gap-2">
+
+            
           <Select defaultValue="average" onValueChange={(value) => setFilter(value as 'average' | 'all' | 'user' | 'compare')}>
             <SelectTrigger className="w-72">
               <SelectValue>{filter === 'average' ? 'Carbon Emission Average "(kg C02)' : filter === 'all' ? 'All' : filter === 'user' ? 'Single User' : 'Compare Users'}</SelectValue>
@@ -288,9 +308,39 @@ const FootprintSummary = () => {
         {/* Trends Tab Content */}
         <TabsContent value="trends" className="space-y-4">
           <Card className="shadow-sm border-admin-border" ref={chartRef}>
-            <CardHeader>
+            <CardHeader className="flex flex-row justify-between">
+              <div>
                 <CardTitle className="text-lg">Daily Footprint Trends</CardTitle>
                 <p className="text-sm text-muted-foreground">Compare individual users and platform average</p>
+              </div>
+              <div className="flex flex-row gap-3">
+                <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Select Month">{months.find(m => m.value === selectedMonth)?.label}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m) => (
+                      <SelectItem key={m.value} value={String(m.value)}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                  
+                <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="Select Year">{selectedYear}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350} >
