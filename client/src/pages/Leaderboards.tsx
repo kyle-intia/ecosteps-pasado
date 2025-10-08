@@ -64,7 +64,7 @@ const Leaderboards = () => {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/leaderboard`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/leaderboard`, {
           credentials: "include",
         });
         const data = await response.json();
