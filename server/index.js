@@ -46,6 +46,12 @@ const recommendationRoutes = require("./routes/recommendationRoutes");
 // Import achievement routes
 const achievementRoutes = require("./routes/achievementRoutes");
 
+// Import leaderboards routes
+const leaderboardRoutes = require('./routes/leaderboards');
+
+// Import community routes
+const communityRoutes = require('./routes/community');
+
 const app = (0, express_1.default)();
 const path_1 = __importDefault(require("path"));
 const socketIo = require('socket.io');
@@ -118,6 +124,12 @@ app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
+// Leaderboards
+app.use('/api/leaderboard', leaderboardRoutes);
+
+// Community
+app.use('/api/community', communityRoutes);
+
 // Error handling middleware
 app.use(errorHandler_1.default);
 
@@ -157,5 +169,4 @@ const startServer = async () => {
 startServer().catch((err) => {
     console.error("❌ Failed to start server:", err);
 });
-
 

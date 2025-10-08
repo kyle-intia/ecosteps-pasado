@@ -44,6 +44,9 @@ class DashboardService {
       
       // Calculate metrics
       const metrics = this.calculateMetrics(currentMonthData, lastMonthData, preAssessment);
+
+      // Update leaderboard entry using eco score, activity, and posts
+      await LeaderboardService.upsertFromDashboard(userId, metrics);
       
       // Get chart data
       const monthlyTrend = await this.getMonthlyTrends(userId, 6);
