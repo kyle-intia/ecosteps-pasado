@@ -387,7 +387,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -415,8 +415,8 @@ const Profile = () => {
                   className="hidden"
                 />
 
-                <Button variant={isEditing ? 'default' : 'outline'} className="w-full md:w-auto" onClick={handleEditClick}>
-                  <Edit className="h-4 w-4 mr-2" />
+                <Button variant={isEditing ? 'default' : 'outline'} className="w-full md:w-auto transition-all duration-300 ease-out" onClick={handleEditClick}>
+                  <Edit className="h-4 w-4 mr-2 " />
                   {isEditing ? 'Save Photo' : 'Edit Photo'}
                 </Button>
               </div>
@@ -430,9 +430,9 @@ const Profile = () => {
                     </h1>
                     <p className="text-lg text-muted-foreground">@{currentUser.username}</p>
                   </div>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline" asChild className="transition-all duration-300 ease-out">
                     <Link to="/settings">
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Settings className="h-4 w-4 mr-2 " />
                       Settings
                     </Link>
                   </Button>
@@ -492,12 +492,16 @@ const Profile = () => {
                 Featured Achievements ({equipped.length}/3)
               </CardTitle>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="transition-all duration-300 ease-out" asChild>
                   <Link to="/achievements">View All</Link>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="transition-all duration-300 ease-out"
                   onClick={() => setIsEditingAchievements(!isEditingAchievements)}
                 >
                   {isEditingAchievements ? "Done" : "Edit"}
@@ -533,7 +537,7 @@ const Profile = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0"
+                                className="h-6 w-6 p-0 transition-all duration-300 ease-out"
                                 onClick={() => handleUnequip(slotAchievement.achievementId)}
                                 disabled={unequipMutation.isPending}
                               >
@@ -600,7 +604,7 @@ const Profile = () => {
                               variant="outline"
                               onClick={() => handleEquip(achievement.achievementId)}
                               disabled={equipMutation.isPending}
-                              className="flex-shrink-0"
+                              className="flex-shrink-0 transition-all duration-300 ease-out"
                             >
                               {equipMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -654,6 +658,7 @@ const Profile = () => {
                       variant="outline" 
                       onClick={() => setIsEditingAchievements(true)}
                       disabled={unlockedAchievements.length === 0}
+                      className="transition-all duration-300 ease-out"
                     >
                       {unlockedAchievements.length > 0 ? "Equip Achievements" : "Unlock Achievements First"}
                     </Button>
@@ -691,7 +696,7 @@ const Profile = () => {
                     
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="transition-all duration-300 ease-out">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -714,15 +719,15 @@ const Profile = () => {
                   <p className="text-foreground mb-4">{post.content}</p>
 
                   <div className="flex items-center space-x-6 text-muted-foreground">
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <MessageSquare className="h-4 w-4 mr-1" />
                       {post.comments}
                     </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <Repeat2 className="h-4 w-4 mr-1" />
                       {post.reposts}
                     </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <Heart className="h-4 w-4 mr-1" />
                       {post.likes}
                     </Button>
@@ -758,15 +763,15 @@ const Profile = () => {
                   <p className="text-foreground mb-4">{post.content}</p>
 
                   <div className="flex items-center space-x-6 text-muted-foreground">
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <MessageSquare className="h-4 w-4 mr-1" />
                       {post.comments}
                     </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <Repeat2 className="h-4 w-4 mr-1" />
                       {post.reposts}
                     </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto">
+                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <Heart className="h-4 w-4 mr-1" />
                       {post.likes}
                     </Button>

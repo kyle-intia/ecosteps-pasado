@@ -937,11 +937,11 @@ const TrackCarbon = () => {
                 </Button>
                 
                 {currentStep < 3 ? (
-                  <Button type="button" onClick={nextStep}>Next Step</Button>
+                  <Button type="button" className="transition-all duration-300 ease-out" onClick={nextStep}>Next Step</Button>
                 ) : (
                   <Button
                     type="button"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 transition-all duration-300 ease-out"
                     disabled={loadingStatus === 'loading'}
                     onClick={handleFormSubmit}
                   >
@@ -1028,7 +1028,7 @@ const TrackCarbon = () => {
               <Button 
                 variant="outline" 
                 onClick={handleEditFootprint}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 transition-all duration-300 ease-out"
               >
                 <RotateCcw className="h-4 w-4" />
                 Edit My Footprint
@@ -1066,7 +1066,7 @@ const TrackCarbon = () => {
                     {errorMessage || 'We encountered an error while generating your personalized recommendations.'}
                   </p>
                   <div className="flex space-x-2">
-                    <Button onClick={handleRetryRecommendations} size="sm">
+                    <Button onClick={handleRetryRecommendations} size="sm" className="transition-all duration-300 ease-out">
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Retry
                     </Button>
@@ -1096,7 +1096,7 @@ const TrackCarbon = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     We couldn't generate recommendations based on your current footprint data.
                   </p>
-                  <Button onClick={handleRetryRecommendations}>
+                  <Button onClick={handleRetryRecommendations} className="transition-all duration-300 ease-out">
                     Try Again
                   </Button>
                 </CardContent>

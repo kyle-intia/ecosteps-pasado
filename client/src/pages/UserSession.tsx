@@ -19,24 +19,26 @@ const Settings: React.FC = () => {
 
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>My Sessions</h1>
+    <div className="min-h-screen bg-gradient-subtle">
+      <div style={styles.container}>
+        <h1 style={styles.heading}>My Sessions</h1>
 
-      {isPending && <div style={styles.spinner}>Loading...</div>}
+        {isPending && <div style={styles.spinner}>Loading...</div>}
 
-      {isError && (
-        <p style={{ ...styles.message, color: "red" }}>
-          Failed to get sessions.
-        </p>
-      )}
+        {isError && (
+          <p style={{ ...styles.message, color: "red" }}>
+            Failed to get sessions.
+          </p>
+        )}
 
-      {isSuccess && (
-        <div style={styles.sessionList}>
-          {sessions.map((session) => (
-            <SessionCard key={session._id} session={session} />
-          ))}
-        </div>
-      )}
+        {isSuccess && (
+          <div style={styles.sessionList}>
+            {sessions.map((session) => (
+              <SessionCard key={session._id} session={session} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -46,11 +48,10 @@ export default Settings;
 // Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    marginTop: "4rem",
     maxWidth: "800px",
     marginLeft: "auto",
     marginRight: "auto",
-    padding: "0 1rem",
+    padding: "4rem 1rem 0 1rem",
   },
   heading: {
     marginBottom: "1.5rem",
