@@ -395,7 +395,7 @@ const handlePushToggle = async (checked: boolean) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -533,13 +533,13 @@ const handlePushToggle = async (checked: boolean) => {
               </div>
 
               <div className="flex justify-between items-center space-x-2">
-                <Button variant="outline" asChild>
+                <Button variant="outline" className="transition-all duration-300 ease-out" asChild>
                   <Link to="/profile">View Profile</Link>
                 </Button>
                               
                 <div className="flex space-x-2">
                   {isEditing && (
-                    <Button variant="ghost" onClick={resetFormData} disabled={isUpdating}>
+                    <Button variant="ghost" className="transition-all duration-300 ease-out" onClick={resetFormData} disabled={isUpdating}>
                       Cancel
                     </Button>
                   )}
@@ -726,7 +726,7 @@ const handlePushToggle = async (checked: boolean) => {
                     See your previous and current sessions.
                   </p>
                 </div>
-                  <Button variant="default" asChild>
+                  <Button variant="default" asChild className="transition-all duration-300 ease-out">
                     <Link to="/sessions">View Sessions</Link>
                   </Button>
               </div>
