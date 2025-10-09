@@ -30,6 +30,7 @@ import useRecentActivities from "../hooks/useRecentActivities";
 import useCommunityHighlights from "../hooks/useCommunityHighlights";
 import useChallengeProgress from "../hooks/useChallengeProgress";
 import useCO2Savings from "../hooks/useCO2Savings";
+import { useDashboardData } from "../hooks/useDashboard";
 
 type UserProfile = {
   username?: string;
@@ -52,6 +53,13 @@ const Home = () => {
   const { highlights, isLoading: highlightsLoading, isError: highlightsError } = useCommunityHighlights();
   const { weeklyProgress, todaysProgress, isLoading: progressLoading, isError: progressError, refetch: refetchProgress } = useChallengeProgress();
   const { todaysSavings, weeklySavings, isLoading: savingsLoading, isError: savingsError, refetch: refetchSavings } = useCO2Savings();
+  const { 
+    data: dashboardData, } = useDashboardData();
+
+  const { metrics } = dashboardData?.data || {};
+
+  // Check if data is loaded and accessible
+  const todaysSaving = metrics?.todaysCO2Saved || 0;
 
   const profile = user as UserProfile | undefined;
 
@@ -143,7 +151,7 @@ const Home = () => {
           <Button 
             variant="outline" 
             className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-warning/5 hover:border-warning/50"
-            onClick={() => navigate("/community")}
+            onClick={() => navigate("/dasboard")}
           >
             <Lightbulb className="h-6 w-6 text-warning" />
             <span className="text-sm font-medium">Dashboard</span>
@@ -272,7 +280,7 @@ const Home = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-success">
-                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `${todaysSavings}kg`}
+                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `{${todaysSaving}kg}`}
                   </div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
                   <div className="text-xs text-green-600 mt-1">
