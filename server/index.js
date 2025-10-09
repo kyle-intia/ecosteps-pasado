@@ -54,7 +54,7 @@ const sendDailyTrackingReminders = require('./controllers/dailyReminder');
 
 const seedAchievements = require('./utils/seedAchievement');
 
-app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
+app.use(express_1.default.static(path_1.default.join(__dirname, "../../server/public")));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({

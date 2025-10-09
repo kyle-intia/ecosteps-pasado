@@ -420,7 +420,7 @@ const Community = () => {
                         <span className="text-sm text-muted-foreground">
                           {formatDistanceToNow(new Date(post.createdAt))} ago
                         </span>
-                        {post.author.userId === userId && (
+                        {/* {post.author.userId === userId && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -435,7 +435,7 @@ const Community = () => {
                               <Trash2 className="h-4 w-4" />
                             )}
                           </Button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>
