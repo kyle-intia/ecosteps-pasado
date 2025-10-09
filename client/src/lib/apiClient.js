@@ -10,10 +10,10 @@ class ApiClient {
       // Accessing import.meta.env only in ESM/browser context
       // This try/catch avoids ReferenceErrors in non-browser tooling
       // eslint-disable-next-line no-undef
-      viteUrl = 'http://localhost:4004/api';
+      viteUrl = `$${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
     } catch (_) {}
     // Avoid using process.env in the browser; default to localhost if Vite var missing
-    this.baseURL = viteUrl || 'http://localhost:4004/api';
+    this.baseURL = viteUrl || `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
   }
 
   async request(endpoint, options = {}) {

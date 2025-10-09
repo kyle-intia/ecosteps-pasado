@@ -75,7 +75,7 @@ const EcoChallengeSection: React.FC = () => {
   const fetchTodaysChallenges = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/challenges/today', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/challenges/today`, {
         credentials: 'include'
       });
 
@@ -100,7 +100,7 @@ const EcoChallengeSection: React.FC = () => {
   const regenerateChallenges = async () => {
     try {
       setRegenerating(true);
-      const response = await fetch('/api/challenges/regenerate', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/challenges/regenerate`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -133,7 +133,7 @@ const EcoChallengeSection: React.FC = () => {
     try {
       setCompleting(challengeId);
       
-      const response = await fetch('/api/challenges/complete', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/challenges/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -298,7 +298,7 @@ const EcoChallengeSection: React.FC = () => {
             <Button 
               size="sm" 
               onClick={() => navigate('/track')}
-              className="ml-4"
+              className="ml-4 transition-all duration-300 ease-out"
             >
               Track Now
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -365,7 +365,7 @@ const EcoChallengeSection: React.FC = () => {
               </p>
               <Button 
                 onClick={() => navigate('/track')}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 transition-all duration-300 ease-out"
                 size="lg"
               >
                 Start Daily Tracking

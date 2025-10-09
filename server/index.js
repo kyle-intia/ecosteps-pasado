@@ -54,11 +54,11 @@ const sendDailyTrackingReminders = require('./controllers/dailyReminder');
 
 const seedAchievements = require('./utils/seedAchievement');
 
-app.use(express_1.default.static(path_1.default.join(__dirname, "../../client/public")));
+app.use(express_1.default.static(path_1.default.join(__dirname, "../../server/public")));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
-    origin: process.env.APP_ORIGIN,
+    origin: true,
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
@@ -157,5 +157,3 @@ const startServer = async () => {
 startServer().catch((err) => {
     console.error("❌ Failed to start server:", err);
 });
-
-

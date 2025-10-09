@@ -55,7 +55,7 @@ export default function Login() {
 
   const checkPreAssessmentStatus = async () => {
     try {
-      const response = await fetch("http://localhost:4004/api/preassessment/user/status", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preassessment/user/status`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +86,6 @@ export default function Login() {
     const role = res?.role;
 
     localStorage.setItem("isLoggedIn", "true");
-
     toast({
       title: "Welcome back!",
       description: "You've successfully logged in to EcoStep.",
@@ -203,7 +202,7 @@ export default function Login() {
               variant="ghost"
               size="icon"
               tabIndex={-1}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+              className="absolute transition-all duration-300 ease-out right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -225,7 +224,7 @@ export default function Login() {
         <Button
           type="submit"
           variant="hero"
-          className="w-full"
+          className="w-full transition-all duration-300 ease-out"
           disabled={!isFormValid || isPending}
         >
           {isPending ? "Signing In..." : "Sign In"}

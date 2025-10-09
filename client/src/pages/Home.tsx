@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import EcoChallengeSection from "@/components/EcoChallengeSection";
-import heroImage from "@/assets/hero-eco.jpg";
-import {
+import homeImage from "@/assets/register.png";
+import { 
   ChevronRight,
   Sparkles,
   Clock,
@@ -93,16 +93,17 @@ const Home = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
-      {/* Hero Section */}
+      {/* Home Section */}
       <div className="relative h-80 overflow-hidden">
         <img 
-          src={heroImage} 
+          src={homeImage} 
           alt="Nature landscape" 
           className="w-full h-full object-cover"
         />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-accent/60" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
             <div className="text-white max-w-2xl">
@@ -114,7 +115,7 @@ const Home = () => {
               </p>
               <Button 
                 onClick={() => navigate("/track")} 
-                className="bg-white text-black hover:bg-white/90"
+                className="bg-white text-black transition-all duration-300 ease-out hover:bg-white/90 "
               >
                 Track Today's Impact
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -132,7 +133,7 @@ const Home = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Button 
             variant="outline" 
-            className="h-24 flex flex-col space-y-2 hover:bg-primary/5 hover:border-primary/50"
+            className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-primary/5 hover:border-primary/50"
             onClick={() => navigate("/track")}
           >
             <Activity className="h-6 w-6 text-primary" />
@@ -141,7 +142,7 @@ const Home = () => {
           
           <Button 
             variant="outline" 
-            className="h-24 flex flex-col space-y-2 hover:bg-warning/5 hover:border-warning/50"
+            className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-warning/5 hover:border-warning/50"
             onClick={() => navigate("/community")}
           >
             <Lightbulb className="h-6 w-6 text-warning" />
@@ -150,7 +151,7 @@ const Home = () => {
           
           <Button 
             variant="outline" 
-            className="h-24 flex flex-col space-y-2 hover:bg-accent/5 hover:border-accent/50"
+            className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-accent/5 hover:border-accent/50"
             onClick={() => navigate("/community")}
           >
             <Users className="h-6 w-6 text-accent" />
@@ -159,7 +160,7 @@ const Home = () => {
           
           <Button 
             variant="outline" 
-            className="h-24 flex flex-col space-y-2 hover:bg-success/5 hover:border-success/50"
+            className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-success/5 hover:border-success/50"
             onClick={() => navigate("/achievements")}
           >
             <Award className="h-6 w-6 text-success" />
@@ -182,7 +183,7 @@ const Home = () => {
                     <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={activitiesLoading}>
                       <RefreshCw className={`h-4 w-4 ${activitiesLoading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigate("/track")}>
+                    <Button variant="ghost" size="sm" className="transition-all duration-300 ease-out" onClick={() => navigate("/track")}>
                       <Plus className="h-4 w-4 mr-1" />
                       Add
                     </Button>
@@ -344,7 +345,7 @@ const Home = () => {
               <CardContent className="space-y-2">
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start"
+                  className="w-full justify-start transition-all duration-300 ease-out"
                   onClick={() => navigate("/dashboard")}
                 >
                   <Activity className="h-4 w-4 mr-3" />
@@ -353,7 +354,7 @@ const Home = () => {
                 
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start"
+                  className="w-full justify-start transition-all duration-300 ease-out"
                   onClick={() => navigate("/leaderboards")}
                 >
                   <Award className="h-4 w-4 mr-3" />
@@ -362,7 +363,7 @@ const Home = () => {
                 
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start"
+                  className="w-full justify-start transition-all duration-300 ease-out"
                   onClick={() => navigate("/profile")}
                 >
                   <Users className="h-4 w-4 mr-3" />

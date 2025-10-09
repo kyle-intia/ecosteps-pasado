@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +64,7 @@ const Leaderboards = () => {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/leaderboard`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/leaderboard`, {
           credentials: "include",
         });
         const data = await response.json();
@@ -106,13 +107,13 @@ const Leaderboards = () => {
   const handleSignOut = () => signOut();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            EcoStep Leaderboards
+            EcoSteps Leaderboards
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover the top eco-warriors in our community and see how your impact compares.

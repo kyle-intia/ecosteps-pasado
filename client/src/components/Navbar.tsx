@@ -30,11 +30,16 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/home" className="flex items-center space-x-2 group">
-            <div className="p-2 rounded-full group-hover:bg-accent transition-colors">
-              <img src="/favicon.ico" alt="EcoStep Logo" className="h-10 w-10" />
-            </div>
-            <span className="text-xl font-bold text-foreground">EcoStep</span>
+          <Link to="/" className="flex items-center space-x-2 group">
+            {/* <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
+              <Leaf className="h-6 w-6 text-primary-foreground" />
+            </div> */}
+            <img 
+              src="/ecosteps.svg"
+              alt="EcoSteps Logo"
+              className="h-9 w-9 rounded"
+            />
+            <span className="text-xl font-bold text-foreground">EcoSteps</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -47,10 +52,10 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-smooth",
+                      "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out",
                       isActivePath(item.href)
                         ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted "
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -67,10 +72,14 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
               <SettingsDropdown onLogout={onLogout} />
             ) : (
               <>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild
+                className="transition-transform duration-200 ease-in-out hover:scale-105"
+                >
                   <Link to="/login">Login</Link>
                 </Button>
-                <Button variant="hero" asChild>
+                <Button variant="hero" asChild
+                className="transition-transform duration-200 ease-in-out hover:scale-105"
+                >
                   <Link to="/register">Get Started</Link>
                 </Button>
               </>
