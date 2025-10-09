@@ -265,7 +265,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                 </div>
               </div>
               
-              {/* Action Button */}
+              {/* Action Button
               <Button 
                 size="sm" 
                 className="w-full"
@@ -276,7 +276,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 I'll Try This
-              </Button>
+              </Button> */}
               
               {/* Source indicator */}
               <div className="text-xs text-muted-foreground text-center">
@@ -344,10 +344,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={onRetry} variant="outline" size="sm">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Generate New Recommendations
-              </Button>
+              
               
               <Button 
       size="sm"

@@ -280,7 +280,7 @@ const Home = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-success">
-                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `{${todaysSaving}kg}`}
+                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `${todaysSaving}kg`}
                   </div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
                   <div className="text-xs text-green-600 mt-1">
