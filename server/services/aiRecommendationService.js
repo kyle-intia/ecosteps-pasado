@@ -108,7 +108,7 @@ Context:
 - Transport: ${transportContext}
 - Food: ${mealContext}
 
-Generate 5 personalized, actionable recommendations to reduce carbon footprint. Each recommendation should:
+Generate 3 personalized, actionable recommendations to reduce carbon footprint. Each recommendation should:
 1. Be specific and actionable
 2. Target the highest emission categories
 3. Be practical for daily implementation
