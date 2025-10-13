@@ -205,6 +205,7 @@ const TrackCarbon = () => {
         case 'jeep':
         case 'tricycle':
         case 'train':
+        case 'e-jeep':
           publicTransportTotal += distance;
           updatedChecked.publicTransport = true;
           break;
@@ -728,7 +729,7 @@ const TrackCarbon = () => {
                             ? formData.bicycleDistance
                             : activity.subtype === "diesel" || activity.subtype === "gasoline"
                             ? formData.personalCarDistance
-                            : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "tricycle" || activity.subtype === "train"
+                            : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "tricycle" || activity.subtype === "train" || activity.subtype === "e-jeep"
                             ? formData.publicTransportDistance
                             : activity.subtype === "motorcycle"
                             ? formData.motorcycleDistance
@@ -748,7 +749,7 @@ const TrackCarbon = () => {
                               ? "bicycle"
                               : activity.subtype === "diesel" || activity.subtype === "gasoline"
                               ? "personalCar"
-                              : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep"
+                              : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "e-jeep" || activity.subtype === "tricycle" || activity.subtype === "train"
                               ? "publicTransport"
                               : activity.subtype === "motorcycle"
                               ? "motorcycle"
