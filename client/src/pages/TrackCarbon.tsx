@@ -146,67 +146,85 @@ const TrackCarbon = () => {
 
   useEffect(() => {
     if (!activities || activities.length === 0) return;
-
-      let updatedForm = {
-        ...formData,
-        personalCarDistance: "",
-        publicTransportDistance: "",
-        motorcycleDistance: "",
-        bicycleDistance: "",
-        walkingDistance: "",
-      };
-
-      let updatedChecked = {
-        personalCar: false,
-        publicTransport: false,
-        motorcycle: false,
-        bicycle: false,
-        walking: false,
-        noTransport: false,
-      };
-
-
-      selectedActivities.forEach((id) => { const act = activities.find((a) => a._id === id);
-        if (!act) return;
-
+  
+    let updatedForm = {
+      ...formData,
+      personalCarDistance: "",
+      publicTransportDistance: "",
+      motorcycleDistance: "",
+      bicycleDistance: "",
+      walkingDistance: "",
+    };
+  
+    let updatedChecked = {
+      personalCar: false,
+      publicTransport: false,
+      motorcycle: false,
+      bicycle: false,
+      walking: false,
+      noTransport: false,
+    };
+  
+    // Distance accumulators for each category
+    let walkingTotal = 0;
+    let bicycleTotal = 0;
+    let personalCarTotal = 0;
+    let motorcycleTotal = 0;
+    let publicTransportTotal = 0;
+  
+    selectedActivities.forEach((id) => {
+      const act = activities.find((a) => a._id === id);
+      if (!act) return;
+    
+      const distance = (act.totalDistance) || 0;
+    
       switch (act.subtype) {
         case 'walk':
-        updatedForm.walkingDistance = act.totalDistance?.toFixed(2) || '0';
-        updatedChecked.walking = true;
-        break;
-
+          walkingTotal += distance;
+          updatedChecked.walking = true;
+          break;
+      
         case 'bicycle':
-        updatedForm.bicycleDistance = act.totalDistance?.toFixed(2) || '0';
-        updatedChecked.bicycle = true;
-        break;
-
+          bicycleTotal += distance;
+          updatedChecked.bicycle = true;
+          break;
+      
         case 'diesel':
         case 'gasoline':
-        updatedForm.personalCarDistance = act.totalDistance?.toFixed(2) || '0';
-        updatedChecked.personalCar = true;
-        break;
-
+          personalCarTotal += distance;
+          updatedChecked.personalCar = true;
+          break;
+      
+        case 'motorcycle':
+          motorcycleTotal += distance;
+          updatedChecked.motorcycle = true;
+          break;
+      
         case 'public':
         case 'bus':
         case 'jeep':
         case 'tricycle':
         case 'train':
-        updatedForm.publicTransportDistance = act.totalDistance?.toFixed(2) || '0';
-        updatedChecked.publicTransport = true;
-        break;
-        
-        case 'motorcycle':
-        updatedForm.motorcycleDistance = act.totalDistance?.toFixed(2) || '0';
-        updatedChecked.motorcycle = true;
-        break;
+          publicTransportTotal += distance;
+          updatedChecked.publicTransport = true;
+          break;
+      
         default:
-        break;
+          break;
       }
-      });
-
+    });
+  
+    // Assign accumulated values to form, formatting to 2 decimal places
+    updatedForm.walkingDistance = walkingTotal.toFixed(2);
+    updatedForm.bicycleDistance = bicycleTotal.toFixed(2);
+    updatedForm.personalCarDistance = personalCarTotal.toFixed(2);
+    updatedForm.motorcycleDistance = motorcycleTotal.toFixed(2);
+    updatedForm.publicTransportDistance = publicTransportTotal.toFixed(2);
+  
     setFormData(updatedForm);
     setCheckedTransportModes(updatedChecked);
   }, [selectedActivities, activities]);
+
 
   const [isLoadingToday, setIsLoadingToday] = useState(false);
   const [todayEntry, setTodayEntry] = useState<any>(null);
@@ -281,8 +299,6 @@ const TrackCarbon = () => {
         setIsLoadingToday(false);
       }
     };
-
-    
 
     const fetchHistory = async () => {
       try {
