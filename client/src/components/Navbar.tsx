@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard } from "lucide-react";
+import { Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard, Send } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
@@ -18,6 +18,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   const navigationItems = [
     { name: "Home", href: "/home", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Live Tracking", href: "/track-distance", icon: Send },
     { name: "Track Carbon", href: "/track", icon: BarChart3 },
     { name: "Community", href: "/community", icon: Users },
     { name: "Leaderboards", href: "/leaderboards", icon: Trophy },

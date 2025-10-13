@@ -38,6 +38,7 @@ const challengeRoutes = require("./routes/challengeRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const communityRoutes = require("./routes/communityRoute");
 const leaderboardRoutes = require("./routes/leaderboardsRoutes");
+const activityRoutes = require("./routes/ActivityRoute");
 
 // Import new AI recommendation routes
 const footprintRoutes = require("./routes/footprintRoutes");
@@ -47,18 +48,16 @@ const recommendationRoutes = require("./routes/recommendationRoutes");
 const achievementRoutes = require("./routes/achievementRoutes");
 
 const app = (0, express_1.default)();
-const path_1 = __importDefault(require("path"));
 const socketIo = require('socket.io');
 const cron = require('node-cron');
 const sendDailyTrackingReminders = require('./controllers/dailyReminder');
 
 const seedAchievements = require('./utils/seedAchievement');
 
-app.use(express_1.default.static(path_1.default.join(__dirname, "../../server/public")));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
-    origin: true,
+    origin: process.env.APP_ORIGIN,
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
@@ -87,6 +86,8 @@ app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
+
+app.use("/api/activities", activityRoutes);
 
 // ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);

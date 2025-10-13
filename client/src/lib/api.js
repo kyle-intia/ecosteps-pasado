@@ -204,3 +204,6 @@ export const getLeaderboard = () => API.get("api/leaderboard");
 
 export const getUserLeaderboard = () => API.get("api/leaderboard/user");
 
+export const activityTrack = (data) => API.post("/api/activities", data);
+
+export const getActivityTrack = (options = {}) => API.get("/api/activities", options)

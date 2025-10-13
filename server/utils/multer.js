@@ -1,21 +1,57 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
-const uploadDir = path_1.default.join(__dirname, "../public/uploads/profile_pics");
-fs_1.default.mkdirSync(uploadDir, { recursive: true });
-const storage = multer_1.default.diskStorage({
-    destination(req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename(req, file, cb) {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + path_1.default.extname(file.originalname));
-    },
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+console.log('Cloudinary Config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
+  api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET',
 });
-const upload = (0, multer_1.default)({ storage });
-exports.default = upload;
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+
+const fileFilter = (req, file, cb) => {
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    cb(new Error('Only jpg, jpeg, and png files are allowed!'), false);
+  } else {
+    cb(null, true);
+  }
+};
+
+const profileStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'profile_pics',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+  },
+});
+
+const uploadProfilePic = multer({
+  storage: profileStorage,
+  fileFilter,
+});
+
+const communityStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'community_posts',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+  },
+});
+
+const uploadCommunityImage = multer({
+  storage: communityStorage,
+  fileFilter,
+});
+
+module.exports = {
+  uploadProfilePic,
+  uploadCommunityImage,
+};
