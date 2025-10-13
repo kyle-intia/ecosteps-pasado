@@ -57,7 +57,7 @@ const seedAchievements = require('./utils/seedAchievement');
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
-    origin: process.env.APP_ORIGIN,
+    origin: true,
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
