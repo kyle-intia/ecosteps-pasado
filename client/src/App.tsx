@@ -37,6 +37,8 @@ import AdminSettings from "./ecosteps-admin/AdminSettings";
 import { AdminLayout } from "./components/AdminLayout";
 import BadgeAchievements from "./ecosteps-admin/BadgeAchievement";
 import EcoChallenges from "./ecosteps-admin/EcoChallenge";
+import UserTrackDistance from "./pages/TrackDistance";
+import UserTrackHistory from "./pages/TrackHistory";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -70,6 +72,8 @@ const App: React.FC = () => {
                 <Route element={<UserProfileRoute/>}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/track" element={<TrackCarbon />} />
+                  <Route path="/track-distance" element={<UserTrackDistance />} />
+                  <Route path="/track-history" element={<UserTrackHistory />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/leaderboards" element={<Leaderboards />} />
                   <Route path="/home" element={<Home />} />

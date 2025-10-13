@@ -20,6 +20,7 @@ import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
 import RecommendationView from "../components/RecommendationView";
 import LoadingSpinner from "../components/LoadingSpinner";
+import useActivityTrack from "@/hooks/useActivityTrack";
 
 // Types for AI recommendations
 interface Recommendation {
@@ -97,6 +98,18 @@ const TrackCarbon = () => {
   const [loadingStatus, setLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [footprintData, setFootprintData] = useState<FootprintResponse['data'] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const { activities, isLoading, isError: trackError, error, refetch } = useActivityTrack();
+
+
+  const handleCheckboxChange = (activityId: string) => {
+    setSelectedActivities((prevState) => 
+      prevState.includes(activityId)
+        ? prevState.filter(id => id !== activityId)  // Unselect
+        : [...prevState, activityId]  // Select
+    );
+  };
+
 
   // Existing form state
   const [formData, setFormData] = useState({
@@ -129,6 +142,71 @@ const TrackCarbon = () => {
     laundry: false,
     none: false,
   });
+
+
+  useEffect(() => {
+    if (!activities || activities.length === 0) return;
+
+      let updatedForm = {
+        ...formData,
+        personalCarDistance: "",
+        publicTransportDistance: "",
+        motorcycleDistance: "",
+        bicycleDistance: "",
+        walkingDistance: "",
+      };
+
+      let updatedChecked = {
+        personalCar: false,
+        publicTransport: false,
+        motorcycle: false,
+        bicycle: false,
+        walking: false,
+        noTransport: false,
+      };
+
+
+      selectedActivities.forEach((id) => { const act = activities.find((a) => a._id === id);
+        if (!act) return;
+
+      switch (act.subtype) {
+        case 'walk':
+        updatedForm.walkingDistance = act.totalDistance?.toFixed(2) || '0';
+        updatedChecked.walking = true;
+        break;
+
+        case 'bicycle':
+        updatedForm.bicycleDistance = act.totalDistance?.toFixed(2) || '0';
+        updatedChecked.bicycle = true;
+        break;
+
+        case 'diesel':
+        case 'gasoline':
+        updatedForm.personalCarDistance = act.totalDistance?.toFixed(2) || '0';
+        updatedChecked.personalCar = true;
+        break;
+
+        case 'public':
+        case 'bus':
+        case 'jeep':
+        case 'tricycle':
+        case 'train':
+        updatedForm.publicTransportDistance = act.totalDistance?.toFixed(2) || '0';
+        updatedChecked.publicTransport = true;
+        break;
+        
+        case 'motorcycle':
+        updatedForm.motorcycleDistance = act.totalDistance?.toFixed(2) || '0';
+        updatedChecked.motorcycle = true;
+        break;
+        default:
+        break;
+      }
+      });
+
+    setFormData(updatedForm);
+    setCheckedTransportModes(updatedChecked);
+  }, [selectedActivities, activities]);
 
   const [isLoadingToday, setIsLoadingToday] = useState(false);
   const [todayEntry, setTodayEntry] = useState<any>(null);
@@ -559,11 +637,15 @@ const TrackCarbon = () => {
     return <LoadingSpinner />;
   }
 
+  if (isLoading) return <p>Loading...</p>;
+  if (trackError) return <p>Error: {(error as Error).message}</p>;
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
         {!isSubmitted ? (
           // FORM VIEW - Original form interface
           <>
@@ -597,6 +679,75 @@ const TrackCarbon = () => {
                 </div>
                 <Progress value={progress} className="h-2" />
               </CardHeader>
+            </Card>
+
+            <Card className="shadow-card border-border mb-8">
+              <CardHeader>
+                <div className="flex justify-between items-center mb-2">
+                  <CardTitle className="text-lg">Transportation Pattern Today</CardTitle>
+                  <p>Date: {new Date().toLocaleDateString()}</p>
+                  <button onClick={() => refetch()} className="refresh-button">Refresh Activities</button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activities?.map((activity) => (
+                <div key={activity._id} className="flex items-center space-x-2">
+                  <input
+                  type="checkbox"
+                  checked={selectedActivities.includes(activity._id)}
+                  onChange={() => handleCheckboxChange(activity._id)}
+                  />
+                  <Label className="flex-1">{activity.subtype}</Label>
+                  <Input
+                    type="number"
+                    placeholder="km"
+                    className="w-20"
+                    value={
+                      selectedActivities.includes(activity._id)
+                        ? // if checked → use formData value (editable)
+                          (activity.subtype === "walk"
+                            ? formData.walkingDistance
+                            : activity.subtype === "bicycle"
+                            ? formData.bicycleDistance
+                            : activity.subtype === "diesel" || activity.subtype === "gasoline"
+                            ? formData.personalCarDistance
+                            : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "tricycle" || activity.subtype === "train"
+                            ? formData.publicTransportDistance
+                            : activity.subtype === "motorcycle"
+                            ? formData.motorcycleDistance
+                            : "")
+                        : // if not checked → just display fetched totalDistance
+                          activity.totalDistance?.toFixed(2) || ""
+                    }
+                    onChange={(e) => {
+                      // only allow form data to be changed if checked
+                      if (selectedActivities.includes(activity._id)) {
+                        setFormData({
+                          ...formData,
+                          [`${
+                            activity.subtype === "walk"
+                              ? "walking"
+                              : activity.subtype === "bicycle"
+                              ? "bicycle"
+                              : activity.subtype === "diesel" || activity.subtype === "gasoline"
+                              ? "personalCar"
+                              : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep"
+                              ? "publicTransport"
+                              : activity.subtype === "motorcycle"
+                              ? "motorcycle"
+                              : ""
+                          }Distance`]: e.target.value,
+                        });
+                      }
+                    }}
+                    disabled
+                  />
+
+                </div>
+              ))}
+              </div>
+              </CardContent>
             </Card>
 
             {/* Form Steps - Same as original but wrapped in form */}

@@ -32,11 +32,13 @@ import {
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost} from "../lib/api";
+import { getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost, commentOnPost, deleteComment } from "../lib/api"; 
 import { Spinner } from "@/components/ui/spinner";
 import  useSessionStatus from "../hooks/useSessionStatus"
 import  useSignOut from "../hooks/useLogout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import UserTrackHistory from "@/components/TrackHistory";
 
 type Achievement = {
   achievementId: string;
@@ -88,8 +90,12 @@ const Profile = () => {
   const fileInputRef = useRef(null);
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  const [openComments, setOpenComments] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -142,7 +148,7 @@ const Profile = () => {
   }, [profile]);
 
   useEffect(() => {
-    const fetchUserPosts = async () => {
+    const fetchUserPosts = async () => {  
     
       if (!currentUser?.userId) return;
     
@@ -163,7 +169,8 @@ const Profile = () => {
             timestamp: formatDate(post.createdAt),
             likes: post.likesCount,
             reposts: post.repostsCount,
-            comments: post.comments?.length || 0,
+            commentsCount: post.comments?.length || 0,
+            comments: post.comments || [], // <--- Add this line
             isOriginalPost,
             isRepost: userReposted,
             originalAuthor: {
@@ -173,6 +180,7 @@ const Profile = () => {
             },
           };
         });
+
         setPosts(formatted);
 
         const postCount = formatted.filter((p) => p.isOriginalPost).length;
@@ -192,7 +200,64 @@ const Profile = () => {
         };
   
     fetchUserPosts();
-  }, [currentUser]); 
+  }, [currentUser]);
+  
+  const toggleComments = (postId: string) => {
+    setOpenComments(openComments === postId ? null : postId);
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent<HTMLFormElement>, postId: string) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const input = form.elements.namedItem("comment") as HTMLInputElement;
+    const content = input.value;
+
+    if (!content.trim()) return;
+
+    try {
+      const res = await commentOnPost(postId, content);
+      const updatedPost = res;  // Use res directly (whole post)
+
+      setPosts(prev =>
+        prev.map(post => (post._id === postId ? { ...post, comments: updatedPost.comments } : post))
+      );
+      (form.elements.namedItem("comment") as HTMLInputElement).value = "";  // Clear input
+    } catch (error) {
+      console.error("Comment error:", error);
+      toast({
+        title: "Comment failed",
+        description: "Couldn't add your comment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+
+    setDeletingCommentId(commentId);
+    try {
+      await deleteComment(postId, commentId);
+      setPosts(posts.map(post =>
+        post._id === postId
+          ? { ...post, comments: post.comments.filter(c => c._id !== commentId) }
+          : post
+      ));
+      toast({
+        title: "Comment deleted",
+        description: "Your comment was removed successfully.",
+      });
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete comment. Try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
 
   // Handle Post Editing
   const { data: achievementData, isLoading: achievementsLoading } = useQuery<AchievementData>({
@@ -336,7 +401,6 @@ const Profile = () => {
       setIsEditing(true);
       fileInputRef.current?.click();
     } else {
-      // Save photo
       handleSubmit();
     }
   };
@@ -351,32 +415,34 @@ const Profile = () => {
   const handleSubmit = async () => {
     if (!selectedFile) return;
 
-    const formData = new FormData();
-    formData.append('profilePic', selectedFile);
-
+    setIsUploading(true);
     try {
-      const response = await updateProfile(formData);
-        // Assume response.newAvatarUrl has the new URL returned by the API
+      const formData = new FormData();
+      formData.append('profilePic', selectedFile);
 
-        if (response.newAvatarUrl) {
-          setCurrentUser(prevUser => ({
-            ...prevUser,
-            avatarUrl: response.newAvatarUrl,
-          }));
-        } else {
-          setCurrentUser(prevUser => ({
-            ...prevUser,
-            avatarUrl: URL.createObjectURL(selectedFile),
-          }));
-        }
+      const response = await updateProfile(formData);
+
+      if (response.newAvatarUrl) {
+        setCurrentUser(prevUser => ({
+          ...prevUser,
+          avatarUrl: response.newAvatarUrl,
+        }));
+      } else {
+        setCurrentUser(prevUser => ({
+          ...prevUser,
+          avatarUrl: URL.createObjectURL(selectedFile),
+        }));
+      }
 
       setIsEditing(false);
       setSelectedFile(null);
     } catch (error) {
       console.error('Upload failed', error);
-      // Optionally: show user feedback
+    } finally {
+      setIsUploading(false);
     }
   };
+
 
   if (isPending) {
     return <Spinner />;
@@ -411,9 +477,18 @@ const Profile = () => {
                   className="hidden"
                 />
 
-                <Button variant={isEditing ? 'default' : 'outline'} className="w-full md:w-auto transition-all duration-300 ease-out" onClick={handleEditClick}>
-                  <Edit className="h-4 w-4 mr-2 " />
-                  {isEditing ? 'Save Photo' : 'Edit Photo'}
+                <Button
+                  variant={isEditing ? 'default' : 'outline'}
+                  className="w-full md:w-auto transition-all duration-300 ease-out"
+                  onClick={handleEditClick}
+                  disabled={isUploading} // disable button while uploading
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Edit className="h-4 w-4 mr-2" />
+                  )}
+                  {isUploading ? 'Saving...' : isEditing ? 'Save Photo' : 'Edit Photo'}
                 </Button>
               </div>
 
@@ -659,9 +734,10 @@ const Profile = () => {
 
         {/* Posts and Reposts */}
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="reposts">Reposts</TabsTrigger>
+            <TabsTrigger value="history">Track History</TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="space-y-4 mt-6">
@@ -721,9 +797,14 @@ const Profile = () => {
                   </div>
 
                   <div className="flex items-center space-x-6 text-muted-foreground">
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0 h-auto transition-all duration-300 ease-out"
+                      onClick={() => toggleComments(post.id)}
+                    >
                       <MessageSquare className="h-4 w-4 mr-1" />
-                      {post.comments}
+                      {post.commentsCount}
                     </Button>
                     <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
                       <Repeat2 className="h-4 w-4 mr-1" />
@@ -734,6 +815,64 @@ const Profile = () => {
                       {post.likes}
                     </Button>
                   </div>
+
+                  {openComments === post.id && (
+                    <div className="mt-4 space-y-3 border-t pt-3">
+                      {post.comments.length > 0 ? (
+                        post.comments.map((comment: any) => (
+                          <div className="flex justify-between">
+                            <div key={comment._id} className="flex items-start space-x-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={comment.author?.profilePic || undefined} />
+                                <AvatarFallback>
+                                  {comment.author?.firstName?.[0]}
+                                  {comment.author?.lastName?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{comment.author?.username}</p>
+                                <p className="text-sm text-foreground">{comment.content}</p>
+                              </div>
+                            </div>
+                            <div>
+                              {comment.author.userId === currentUser.userId && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500"
+                                disabled={deletingCommentId === comment._id}
+                                onClick={() => handleDeleteComment(post.id, comment._id)}
+                                title="Delete comment"
+                              >
+                                {deletingCommentId === comment._id ? (
+                                  <Spinner />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            </div>
+                          </div>
+                        ))
+                      
+
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No comments yet</p>
+                      )}
+
+                      <form
+                        onSubmit={(e) => handleCommentSubmit(e, post.id)} // ✅ use post.id
+                        className="mt-4 flex space-x-2"
+                      >
+                        <Textarea
+                          name="comment"
+                          placeholder="Write a comment..."
+                          className="flex-1 resize-none"
+                        />
+                        <Button type="submit" size="sm">Post</Button>
+                      </form>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -791,6 +930,10 @@ const Profile = () => {
                 </CardContent>
               </Card>
             ))}
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4 mt-6">
+            <UserTrackHistory />
           </TabsContent>
         </Tabs>
       </main>

@@ -13,7 +13,7 @@ exports.createProfileHandler = (0, catchErrors_1.default)(async (req, res) => {
     const userId = req.userId;
     (0, appAssert_1.default)(userId, http_1.UNAUTHORIZED, "User not authenticated");
     const filePath = req.file
-        ? `/uploads/profile_pics/${req.file.filename}`
+        ? req.file.path
         : undefined;
     const input = profile_schemas_1.createProfileSchema.parse({
         ...req.body,
@@ -40,7 +40,7 @@ exports.updateProfileHandler = (0, catchErrors_1.default)(async (req, res) => {
     const userId = req.userId;
     (0, appAssert_1.default)(userId, http_1.UNAUTHORIZED, "User not authenticated");
     const filePath = req.file
-        ? `/uploads/profile_pics/${req.file.filename}`
+        ? req.file.path
         : undefined;
     const input = profile_schemas_1.updateProfileSchema.parse({
         ...req.body,

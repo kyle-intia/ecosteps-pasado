@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navbar } from "@/components/Navbar";
-import { Heart, MessageCircle, Repeat2, Share, Camera, Users, Leaf, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share, Camera, Users, Leaf, Trash2, Loader2, Edit, Share2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import useSessionStatus from "../hooks/useSessionStatus";
@@ -158,12 +158,19 @@ const Community = () => {
         description: "Your eco journey has been shared with the community.",
       });
     } catch (error) {
-      console.error("Post error:", error);
-      toast({
-        title: "Post failed",
-        description: "Could not share your post. Try again later.",
-        variant: "destructive",
-      });
+        console.error("Post error:", error);
+
+        const message =
+          error?.response?.data?.message ||    // preferred key if you fix server
+          error?.response?.data?.error ||      // fallback to 'error' key your server sends
+          error?.message ||
+          "Could not share your post. Try again later.";
+
+        toast({
+          title: "Post failed",
+          description: message,
+          variant: "destructive",
+        });
     } finally {
       setLoadingPost(false);
     }
@@ -369,13 +376,17 @@ const Community = () => {
                   }
                 }}
               />
-
-              <Button
-                onClick={handlePost}
-                disabled={loadingPost || (!postContent.trim() && !selectedImage)}
-              >
-                {loadingPost ? "Sharing..." : "+ Share Post"}
-              </Button>
+                <Button
+                  onClick={handlePost}
+                  disabled={loadingPost || (!postContent.trim() && !selectedImage)}
+                >
+                  {loadingPost ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  {loadingPost ? "Sharing..." : "Share Post"}
+                </Button>
             </div>
           </CardContent>
         </Card>

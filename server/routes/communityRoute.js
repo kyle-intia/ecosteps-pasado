@@ -1,73 +1,52 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
 const CommunityService = require('../services/communityService');
 const LeaderboardService = require('../services/leaderboardService')
 const router = express.Router();
 const authenticate = require('../middleware/authenticate');
-
+const multer = require('../utils/multer');
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
 
-// Multer configuration for image upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../public/uploads/community_post'));
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}${ext}`;
-    cb(null, uniqueName);
-  },
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.jpg', '.jpeg', '.png'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!allowedTypes.includes(ext)) {
-      return cb(new Error('Only image files are allowed!'));
-    }
-    cb(null, true);
-  },
-  limits: { fileSize: 3 * 1024 * 1024 },
-});
-
 // Create a new post with an image
-router.post('/posts', upload.single('image'), async (req, res) => {
-  try {
-    const content = req.body.content;
-    const image = req.file ? `/uploads/community_post/${req.file.filename}` : null;
-    const userId = req.user._id;
-
-    if (!content && !image) {
-      return res.status(400).json({ error: 'Content or image is required' });
+router.post('/posts', (req, res) => {
+  multer.uploadCommunityImage.single('image')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message });
     }
 
-    const newPost = await CommunityService.createPost({ userId, content, image });
-    // Add flags for new post (same as GET)
-    const obj = newPost.toObject();
-    const postWithFlags = {
-      ...obj,
-      isLiked: obj.likes.some((id) => id.toString() === userId.toString()),
-      isReposted: obj.reposts.some((id) => id.toString() === userId.toString()),
-      likesCount: obj.likes.length,
-      repostsCount: obj.reposts.length,
-    };
+    try {
+      const content = req.body.content;
+      const image = req.file ? req.file.path : null;
+      const userId = req.user._id;
 
-    await LeaderboardService.addPoints(userId, 100, 'Posted in Community Page');
+      if (!content && !image) {
+        return res.status(400).json({ error: 'Content or image is required' });
+      }
 
-    res.status(201).json({ success: true, data: postWithFlags });
-  } catch (error) {
-    console.error('Create post error:', error);
-    if (error.message === 'User profile not found') {
-      return res.status(404).json({ error: error.message });
+      const newPost = await CommunityService.createPost({ userId, content, image });
+      const obj = newPost.toObject();
+      const postWithFlags = {
+        ...obj,
+        isLiked: obj.likes.some((id) => id.toString() === userId.toString()),
+        isReposted: obj.reposts.some((id) => id.toString() === userId.toString()),
+        likesCount: obj.likes.length,
+        repostsCount: obj.reposts.length,
+      };
+
+      await LeaderboardService.addPoints(userId, 100, 'Posted in Community Page');
+
+      res.status(201).json({ success: true, data: postWithFlags });
+    } catch (error) {
+      console.error('Create post error:', error);
+      if (error.message === 'User profile not found') {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
     }
-    res.status(500).json({ error: error.message });
-  }
+  });
 });
+
 
 
 router.get('/user/post/:postId', async (req, res) => {
@@ -253,13 +232,13 @@ router.delete('/posts/:id', async (req, res) => {
 
 
 
-router.patch('/posts/:id', upload.single('image'), async (req, res) => {
+router.patch('/posts/:id', multer.uploadCommunityImage.single('image'), async (req, res) => {
   try {
     const { id: postId } = req.params;
     const userId = req.user._id;
 
     const content = req.body.content;
-    const image = req.file ? `/uploads/community_post/${req.file.filename}` : undefined;
+    const image = req.file ? req.file.path : undefined;
 
     if (!content && !image) {
       return res.status(400).json({ error: 'No content or image provided for update' });
