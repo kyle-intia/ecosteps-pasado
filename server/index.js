@@ -57,7 +57,7 @@ const seedAchievements = require('./utils/seedAchievement');
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
-    origin: true,
+    origin: ['https://ecosteps-online.netlify.app'],
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());

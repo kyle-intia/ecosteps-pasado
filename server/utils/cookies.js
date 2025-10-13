@@ -7,10 +7,9 @@ exports.REFRESH_PATH = "/auth/refresh";
 const secure = env_1.NODE_ENV !== "development";
 const domain = env_1.NODE_ENV === "development" ? "localhost" : "ecostep.online";
 const defaults = {
-    sameSite: "lax",
+    sameSite: "none",
     httpOnly: true,
     secure,
-    domain
 };
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
