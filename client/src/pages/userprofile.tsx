@@ -131,9 +131,13 @@ export default function CreateProfile() {
       navigate(redirectUrl, { replace: true });
     },
     onError: (error: any) => {
+      const message =
+        error?.error ||
+        "Please try again.";
+        
       toast({
         title: "Something went wrong",
-        description: error?.message || "Please try again.",
+        description: message,
         variant: "destructive",
       });
     },

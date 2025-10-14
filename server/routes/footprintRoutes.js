@@ -100,6 +100,7 @@ router.post('/submit', async (req, res) => {
 
     const transformedTransport = transformTransportData(trackingData.transport);
     const transformedHomeEnergy = transformHomeEnergyData(trackingData.homeEnergy);
+    const email = req.email
 
     // Get today's date in Philippines timezone (matching existing logic)
     const now = new Date();
@@ -169,7 +170,7 @@ router.post('/submit', async (req, res) => {
         }
       });
 
-      await NotificationService.createNotification(userId, `${userId}} logged his/her daily carbon footprint`, "daily-tracking");
+      await NotificationService.createNotification(userId, `${email}} logged his/her daily carbon footprint`, "daily-tracking");
 
       await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
 

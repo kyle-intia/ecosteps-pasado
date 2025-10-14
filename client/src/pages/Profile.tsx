@@ -437,11 +437,30 @@ const Profile = () => {
       setIsEditing(false);
       setSelectedFile(null);
     } catch (error) {
-      console.error('Upload failed', error);
+      console.error("Upload error:", error);
+        
+      const message =
+        (error && typeof error === "object" && error.error) ||
+        "Could not upload your picture. Try again later.";
+        
+      toast({
+        title: "Upload failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
   };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setPreviewUrl(null); // if you want to clear the preview
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // reset the file input
+    }
+  };
+
 
 
   if (isPending) {
@@ -477,20 +496,34 @@ const Profile = () => {
                   className="hidden"
                 />
 
-                <Button
-                  variant={isEditing ? 'default' : 'outline'}
-                  className="w-full md:w-auto transition-all duration-300 ease-out"
-                  onClick={handleEditClick}
-                  disabled={isUploading} // disable button while uploading
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Edit className="h-4 w-4 mr-2" />
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <Button
+                    variant={isEditing ? 'default' : 'outline'}
+                    className="transition-all duration-300 ease-out"
+                    onClick={handleEditClick}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Edit className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploading ? 'Saving...' : isEditing ? 'Save Photo' : 'Edit Photo'}
+                  </Button>
+                  
+                  {/* Show Cancel button only when editing */}
+                  {isEditing && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancel}
+                      disabled={isUploading}
+                    >
+                      Cancel
+                    </Button>
                   )}
-                  {isUploading ? 'Saving...' : isEditing ? 'Save Photo' : 'Edit Photo'}
-                </Button>
+                </div>
               </div>
+
 
               {/* Profile Info */}
               <div className="flex-1">
