@@ -134,6 +134,20 @@ const UserTrackDistance = () => {
       return;
     }
 
+
+    if (totalDistance < 0.10) {
+      toast({
+        title: "Distance Too Short",
+        description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 100 m.`,
+        variant: "destructive",
+      });
+    
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+      return;
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/activities`, {
         method: "POST",

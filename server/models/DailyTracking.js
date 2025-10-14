@@ -70,7 +70,10 @@ const dailyTrackingSchema = new mongoose.Schema({
       type: String,
       enum: ['meat', 'fish', 'dairy', 'mixed', 'plant', 'skipped'],
       required: true
-    }
+    },
+    breakfastFood:{type: String},
+    lunchFood:{type: String},
+    dinnerFood:{type: String}
   },
   calculatedFootprint: {
     transport: {

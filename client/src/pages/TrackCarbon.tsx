@@ -100,7 +100,7 @@ const TrackCarbon = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const { activities, isLoading, isError: trackError, error, refetch } = useActivityTrack();
-
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: boolean }>({});
 
   const handleCheckboxChange = (activityId: string) => {
     setSelectedActivities((prevState) => 
@@ -126,6 +126,9 @@ const TrackCarbon = () => {
     breakfastType: "",
     lunchType: "",
     dinnerType: "",
+    breakfastDescription: "",
+    lunchDescription: "",
+    dinnerDescription: "",
   });
 
   const [checkedTransportModes, setCheckedTransportModes] = useState({
@@ -321,6 +324,40 @@ const TrackCarbon = () => {
     signOut();
   };
 
+  const validateStep = (step: number): boolean => {
+    const errors: { [key: string]: boolean } = {};
+
+    if (step === 1) {
+      // Transport modes
+      const hasTransport = Object.values(checkedTransportModes).some(v => v);
+      if (!hasTransport) errors["transportModes"] = true;
+
+      // Flights today
+      if (!formData.flightsToday) errors["flightsToday"] = true;
+    }
+
+    if (step === 2) {
+      if (!formData.homeType) errors["homeType"] = true;
+      if (!formData.houseSharing || Number(formData.houseSharing) <= 0) {
+        errors["houseSharing"] = true;
+      }
+
+      const hasAppliances = Object.values(checkedAppliances).some(v => v);
+      if (!hasAppliances) errors["appliances"] = true;
+    }
+
+    if (step === 3) {
+      if (!formData.breakfastType) errors["breakfastType"] = true;
+      if (!formData.lunchType) errors["lunchType"] = true;
+      if (!formData.dinnerType) errors["dinnerType"] = true;
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+
+
   // API call functions
   const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
     const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/submit`, {
@@ -428,6 +465,9 @@ const TrackCarbon = () => {
         breakfast: mapMeal(formData.breakfastType),
         lunch: mapMeal(formData.lunchType),
         dinner: mapMeal(formData.dinnerType),
+        breakfastFood: formData.breakfastDescription || '',
+        lunchFood: formData.lunchDescription || '',
+        dinnerFood: formData.dinnerDescription || '',
       };
 
       const payload = {
@@ -783,7 +823,7 @@ const TrackCarbon = () => {
                     <div className="space-y-4">
                       <Label>Q1. What is/are your mode(s) of transportation for daily commute? (Check all that apply)</Label>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 p-2 rounded-md transition-all duration-200 ease-in-out ${fieldErrors.transportModes ? "border border-red-500" : ""}`}>
                         {/* Personal Car */}
                         <div className="flex items-center space-x-2">
                           <input
@@ -931,7 +971,7 @@ const TrackCarbon = () => {
                     <div className="space-y-2">
                       <Label htmlFor="flightsToday">Q2. Did you take any flights today?</Label>
                       <Select value={formData.flightsToday} onValueChange={(value) => handleInputChange("flightsToday", value)}>
-                        <SelectTrigger>
+                        <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.flightsToday ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select flight option" />
                         </SelectTrigger>
                         <SelectContent>
@@ -959,7 +999,7 @@ const TrackCarbon = () => {
                     <div className="space-y-2">
                       <Label htmlFor="homeType">Q3. What type of home do you live in?</Label>
                       <Select value={formData.homeType} onValueChange={(value) => handleInputChange("homeType", value)}>
-                        <SelectTrigger>
+                        <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.homeType ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select home type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -979,13 +1019,14 @@ const TrackCarbon = () => {
                         onChange={(e) => handleInputChange("houseSharing", e.target.value)}
                         onKeyDown={handleInputKeyDown}
                         placeholder="Enter number of people (including yourself)"
+                        className={`transition-all duration-200 ease-in-out ${fieldErrors.houseSharing ? 'border-red-500' : ''}`}
                       />
                     </div>
 
                     <div className="space-y-4">
                       <Label>Q5. Which high-energy appliances did you use today? (Check all that apply)</Label>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 p-2 rounded-md transition-all duration-200 ease-in-out ${fieldErrors.appliances ? "border border-red-500" : ""}`}>
                         <div className="flex items-center space-x-2">
                           <input 
                             type="checkbox" 
@@ -1037,69 +1078,130 @@ const TrackCarbon = () => {
               )}
 
               {/* Step 3: Food & Lifestyle */}
-              {currentStep === 3 && (
-                <Card className="shadow-card border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Utensils className="h-6 w-6 text-accent" />
-                      Food & Lifestyle
-                    </CardTitle>
-                    <CardDescription>Your dietary habits and lifestyle choices</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="breakfastType">Q6. What did you have for breakfast today?</Label>
-                      <Select value={formData.breakfastType} onValueChange={(value) => handleInputChange("breakfastType", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select breakfast type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                          <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-                          <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
-                          <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-                          <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-                          <SelectItem value="skipped">Skipped breakfast</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+{currentStep === 3 && (
+  <Card className="shadow-card border-border">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Utensils className="h-6 w-6 text-accent" />
+        Food & Lifestyle
+      </CardTitle>
+      <CardDescription>Your dietary habits and lifestyle choices</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      {/* Breakfast Section */}
+      <div className="space-y-2">
+        <Label htmlFor="breakfastType">Q6. What did you have for breakfast today?</Label>
+        <Select
+          value={formData.breakfastType}
+          onValueChange={(value) => handleInputChange("breakfastType", value)}
+        >
+          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.breakfastType ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder="Select breakfast type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
+            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+            <SelectItem value="skipped">Skipped breakfast</SelectItem>
+          </SelectContent>
+        </Select>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="lunchType">Q7. What did you have for lunch today?</Label>
-                      <Select value={formData.lunchType} onValueChange={(value) => handleInputChange("lunchType", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select lunch type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                          <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-                          <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
-                          <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-                          <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-                          <SelectItem value="skipped">Skipped lunch</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+        {/* Conditional Textbox for all except "skipped" and "mixed" */}
+        {formData.breakfastType && !(formData.breakfastType === "skipped" || formData.breakfastType === "mixed") && (
+          <div className="space-y-2">
+            <Label htmlFor="breakfastDescription">
+              Please specify (optional, for better recommendations):
+            </Label>
+            <Input
+              type="text"
+              id="breakfastDescription"
+              value={formData.breakfastDescription || ""}
+              onChange={(e) => handleInputChange("breakfastDescription", e.target.value)}
+              placeholder="e.g., bacon, sausage, fruits, etc."
+            />
+          </div>
+        )}
+      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="dinnerType">Q8. What did you have for dinner today?</Label>
-                      <Select value={formData.dinnerType} onValueChange={(value) => handleInputChange("dinnerType", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select dinner type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-                          <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-                          <SelectItem value="plant-based">Plant-based (fruits, grains)</SelectItem>
-                          <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-                          <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-                          <SelectItem value="skipped">Skipped dinner</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+      {/* Lunch Section */}
+      <div className="space-y-2">
+        <Label htmlFor="lunchType">Q7. What did you have for lunch today?</Label>
+        <Select
+          value={formData.lunchType}
+          onValueChange={(value) => handleInputChange("lunchType", value)}
+        >
+          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.lunchType ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder="Select lunch type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
+            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+            <SelectItem value="skipped">Skipped lunch</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Conditional Textbox for all except "skipped" and "mixed" */}
+        {formData.lunchType && !(formData.lunchType === "skipped" || formData.lunchType === "mixed") && (
+          <div className="space-y-2">
+            <Label htmlFor="lunchDescription">
+              Please specify (optional, for better recommendations):
+            </Label>
+            <Input
+              type="text"
+              id="lunchDescription"
+              value={formData.lunchDescription || ""}
+              onChange={(e) => handleInputChange("lunchDescription", e.target.value)}
+              placeholder="e.g., tuna, chicken, grains, etc."
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Dinner Section */}
+      <div className="space-y-2">
+        <Label htmlFor="dinnerType">Q8. What did you have for dinner today?</Label>
+        <Select
+          value={formData.dinnerType}
+          onValueChange={(value) => handleInputChange("dinnerType", value)}
+        >
+          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.dinnerTypeType ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder="Select dinner type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
+            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
+            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
+            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
+            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
+            <SelectItem value="skipped">Skipped dinner</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Conditional Textbox for all except "skipped" and "mixed" */}
+        {formData.dinnerType && !(formData.dinnerType === "skipped" || formData.dinnerType === "mixed") && (
+          <div className="space-y-2">
+            <Label htmlFor="dinnerDescription">
+              Please specify (optional, for better recommendations):
+            </Label>
+            <Input
+              type="text"
+              id="dinnerDescription"
+              value={formData.dinnerDescription || ""}
+              onChange={(e) => handleInputChange("dinnerDescription", e.target.value)}
+              placeholder="e.g., salmon, steak, vegetables, etc."
+            />
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+)}
+
 
               {/* Navigation Buttons */}
               <div className="flex justify-between mt-8">
@@ -1113,13 +1215,39 @@ const TrackCarbon = () => {
                 </Button>
                 
                 {currentStep < 3 ? (
-                  <Button type="button" className="transition-all duration-300 ease-out" onClick={nextStep}>Next Step</Button>
+                  <Button
+                    type="button"
+                    className="transition-all duration-300 ease-out"
+                    onClick={() => {
+                      if (validateStep(currentStep)) {
+                        nextStep();
+                      } else {
+                        toast({
+                          title: "Missing required fields",
+                          description: "Please complete all required questions before continuing.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
+                    Next Step
+                  </Button>
                 ) : (
                   <Button
                     type="button"
                     className="flex items-center gap-2 transition-all duration-300 ease-out"
                     disabled={loadingStatus === 'loading'}
-                    onClick={handleFormSubmit}
+                    onClick={() => {
+                      if (validateStep(currentStep)) {
+                        handleFormSubmit();
+                      } else {
+                        toast({
+                          title: "Missing required fields",
+                          description: "Please complete all required questions before continuing.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
                   >
                     {loadingStatus === 'loading' ? (
                       <>

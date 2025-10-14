@@ -76,85 +76,114 @@ class AIRecommendationService {
    * @param {Object} footprintData - User's footprint data
    * @returns {string} Formatted prompt for AI
    */
-  static buildRecommendationPrompt(footprintData) {
-    const { breakdown, transportModes, homeType, occupants, appliances, meals } = footprintData;
-    
-    // Calculate percentages for context
-    const total = breakdown.total;
-    const transportPercent = total > 0 ? ((breakdown.transport / total) * 100).toFixed(1) : 0;
-    const homePercent = total > 0 ? ((breakdown.homeEnergy / total) * 100).toFixed(1) : 0;
-    const foodPercent = total > 0 ? ((breakdown.food / total) * 100).toFixed(1) : 0;
+static buildRecommendationPrompt(footprintData) {
+  const { breakdown, transportModes, homeType, occupants, appliances, meals } = footprintData;
+  let { breakfastFood, lunchFood, dinnerFood } = footprintData.food || {};
 
-    // Build transport context
-    const transportContext = transportModes.length > 0 
-      ? transportModes.map(mode => `${mode.id}: ${mode.distance}km`).join(', ')
-      : 'no transport recorded';
+  // Simplify and keep the validation logic (can enhance later)
+  breakfastFood = breakfastFood || meals.breakfast || 'unknown';
+  lunchFood = lunchFood || meals.lunch || 'unknown';
+  dinnerFood = dinnerFood || meals.dinner || 'unknown';
 
-    // Build appliance context
-    const applianceContext = appliances.length > 0 
-      ? appliances.join(', ') 
-      : 'no high-energy appliances used';
+  const total = breakdown.total || 0;
+  const transportPercent = total > 0 ? ((breakdown.transport / total) * 100).toFixed(1) : 0;
+  const homePercent = total > 0 ? ((breakdown.homeEnergy / total) * 100).toFixed(1) : 0;
+  const foodPercent = total > 0 ? ((breakdown.food / total) * 100).toFixed(1) : 0;
 
-    // Build meal context
-    const mealContext = `breakfast: ${meals.breakfast}, lunch: ${meals.lunch}, dinner: ${meals.dinner}`;
+  const transportContext = transportModes.length > 0
+    ? transportModes.map(mode => `${mode.id} (${mode.distance} km)`).join(', ')
+    : 'no transport recorded';
 
-    const prompt = `Carbon Footprint Analysis:
+  const applianceContext = appliances.length > 0
+    ? appliances.join(', ')
+    : 'no high-energy appliances used';
 
-Daily emissions: ${total.toFixed(2)} kg CO2e
-Breakdown: Transport ${breakdown.transport.toFixed(2)}kg (${transportPercent}%), Home Energy ${breakdown.homeEnergy.toFixed(2)}kg (${homePercent}%), Food ${breakdown.food.toFixed(2)}kg (${foodPercent}%)
+  const mealContext = `Breakfast: ${breakfastFood}, Lunch: ${lunchFood}, Dinner: ${dinnerFood}`;
 
-Context:
-- Home: ${homeType}, ${occupants} occupants, appliances: ${applianceContext}
-- Transport: ${transportContext}
-- Food: ${mealContext}
+  console.log(mealContext)
 
-Generate 3 personalized, actionable recommendations to reduce carbon footprint. Each recommendation should:
-1. Be specific and actionable
-2. Target the highest emission categories
-3. Be practical for daily implementation
-4. Include estimated CO2 savings
+  return `
+You are a sustainability advisor specializing in low-carbon Filipino lifestyles. Your job is to give down-to-earth, practical advice that makes sense in the Philippine context.
 
-Recommendations:
-1.`;
+User’s carbon footprint summary:
+- Total emissions: ${total.toFixed(2)} kg CO2e
+- Transport: ${breakdown.transport.toFixed(2)} kg CO2e (${transportPercent}%)
+- Home energy: ${breakdown.homeEnergy.toFixed(2)} kg CO2e (${homePercent}%)
+- Food: ${breakdown.food.toFixed(2)} kg CO2e (${foodPercent}%)
 
-    return prompt;
-  }
+User context:
+- Home: ${homeType}, ${occupants} occupants
+- Appliances: ${applianceContext}
+- Transport modes and distances: ${transportContext}
+- Meals consumed: ${mealContext}
+
+Your task:
+Generate exactly 3 personalized, practical, and culturally Filipino-specific recommendations to reduce this user’s carbon footprint.
+
+❗Only suggest actions relevant to the Philippines — e.g., jeepneys, tricycles, rice-heavy meals, AC use, local fast food (Jollibee, etc.). Avoid Western references (like electric cars or quinoa). Focus on daily habits common in urban or rural areas of the Philippines.
+
+✅ Return ONLY a clean JSON array like this:
+[
+  {
+    "title": "Short title",
+    "description": "Detailed, practical advice based on user data.",
+    "category": "transport | home | food | general",
+    "estimatedSavings": 1.5
+  },
+  ...
+]
+
+DO NOT include anything outside the JSON array.
+
+`;
+}
+
+
 
   /**
    * Call OpenAI Chat Completions API
    * @param {string} prompt - The prompt to send to AI
    * @returns {Promise<string>} AI generated text
    */
-  static async callOpenAIAPI(prompt) {
-    const response = await fetch(this.API_URL, {
-      headers: {
-        Authorization: `Bearer ${this.API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      method: 'POST',
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
-        temperature: 0.7,
-        top_p: 0.9
-      })
-    });
+static async callOpenAIAPI(prompt) {
+  const response = await fetch(this.API_URL, {
+    headers: {
+      Authorization: `Bearer ${this.API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful environmental advisor generating carbon-reduction recommendations based on user lifestyle in the Philippines.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 700,
+      temperature: 0.7,
+      top_p: 0.95
+    })
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json();
-
-    // Handle OpenAI response format
-    if (result.choices && result.choices[0]?.message?.content) {
-      return result.choices[0].message.content;
-    } else {
-      throw new Error('Unexpected OpenAI API response format');
-    }
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
   }
+
+  const result = await response.json();
+
+  if (result.choices && result.choices[0]?.message?.content) {
+    return result.choices[0].message.content;
+  } else {
+    throw new Error('Unexpected OpenAI API response format');
+  }
+}
+
 
   /**
    * Parse AI response into structured recommendations
@@ -162,48 +191,44 @@ Recommendations:
    * @param {Object} footprintData - Original footprint data for context
    * @returns {Array<Object>} Structured recommendations
    */
-  static parseAIResponse(aiResponse, footprintData) {
-    try {
-      // Clean and split the response
-      const cleanedResponse = aiResponse
-        .replace(/^\d+\.\s*/, '') // Remove leading number if present
-        .trim();
+static parseAIResponse(aiResponse, footprintData) {
+  try {
+    const trimmed = aiResponse.trim();
 
-      // Split into potential recommendations (look for numbered lists or line breaks)
-      const lines = cleanedResponse
-        .split(/\n+|\d+\.\s*/)
-        .filter(line => line.trim().length > 10)
-        .slice(0, 5); // Limit to 5 recommendations
-
-      const recommendations = [];
-      const { breakdown } = footprintData;
-
-      // If we don't get good structured data, create from the text
-      if (lines.length === 0) {
-        return this.createFallbackRecommendations(footprintData);
-      }
-
-      lines.forEach((line, index) => {
-        const recommendation = this.parseRecommendationLine(line.trim(), breakdown, index + 1);
-        if (recommendation) {
-          recommendations.push(recommendation);
-        }
-      });
-
-      // Ensure we have at least 3 recommendations
-      while (recommendations.length < 3) {
-        const fallback = this.createFallbackRecommendations(footprintData);
-        const needed = 3 - recommendations.length;
-        recommendations.push(...fallback.slice(0, needed));
-      }
-
-      return recommendations;
-
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return this.createFallbackRecommendations(footprintData);
+    // Check if it's a valid JSON-like response
+    if (!trimmed.startsWith('[')) {
+      throw new Error('AI response is not a JSON array');
     }
+
+    const parsed = JSON.parse(trimmed);
+
+    // Ensure it's an array of objects with required fields
+    const recommendations = parsed
+      .filter(rec => typeof rec.title === 'string' && typeof rec.description === 'string')
+      .map((rec, index) => ({
+        id: `ai_rec_${index + 1}`,
+        title: rec.title.trim(),
+        description: rec.description.trim(),
+        category: rec.category || 'general',
+        estimatedSavings: Math.min(Math.round((rec.estimatedSavings || 0.5) * 100) / 100, 50),
+        priority: index + 1,
+        source: 'ai_generated',
+        actionable: true
+      }));
+
+    // If the model gave less than 3, fill with fallback
+    if (recommendations.length < 3) {
+      const fallback = this.createFallbackRecommendations(footprintData);
+      recommendations.push(...fallback.slice(0, 3 - recommendations.length));
+    }
+
+    return recommendations;
+  } catch (error) {
+    console.error('Failed to parse AI JSON response:', error);
+    return this.createFallbackRecommendations(footprintData);
   }
+}
+
 
   /**
    * Parse a single recommendation line

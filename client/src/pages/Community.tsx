@@ -160,9 +160,7 @@ const Community = () => {
     } catch (error) {
         console.error("Post error:", error);
 
-        const message =
-          error?.response?.data?.message ||    // preferred key if you fix server
-          error?.response?.data?.error ||      // fallback to 'error' key your server sends
+        const message = 
           error?.message ||
           "Could not share your post. Try again later.";
 
