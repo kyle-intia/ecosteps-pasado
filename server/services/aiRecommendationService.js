@@ -80,10 +80,39 @@ static buildRecommendationPrompt(footprintData) {
   const { breakdown, transportModes, homeType, occupants, appliances, meals } = footprintData;
   let { breakfastFood, lunchFood, dinnerFood } = footprintData.food || {};
 
+
+    const foodKeywords = [
+  // Common Filipino dishes
+  "adobo", "sinigang", "lechon", "pandesal", "longganisa", "tocino", "bangus", "monggo",
+  "kare-kare", "halo-halo", "pancit", "lugaw", "tinola", "dinuguan", "sisig", "paksiw",
+  "bulalo", "pinakbet", "kilawin", "batchoy", "laing", "bistek", "mechado", "caldereta",
+  "arroz caldo", "embutido", "ginataang", "kamayan", "pinaputok na tilapia",
+  // Common Filipino ingredients and food types
+  "rice", "pastil", "fish", "chicken", "pork", "beef", "vegetable", "fruit", "banana", "mango",
+  "camote", "egg", "salad", "seafood", "shrimp", "crab", "fast-food", "fried", "grilled",
+  // Popular Filipino fast-food chains and dishes
+  "jollibee", "chicken joy", "mcdonald's", "kfc", "pizza", "burger", "fried chicken",
+  // Snacks and desserts
+  "puto", "kutsinta", "bibingka", "leche flan", "taho", "polvoron", "halo-halo", "skipped"
+  ];
+
+  function containsFoodKeyword(foodString) {
+    if (!foodString || typeof foodString !== 'string') return false;
+    const lower = foodString.toLowerCase();
+    return foodKeywords.some(keyword => lower.includes(keyword));
+  }
+
+  function isValidFood(food) {
+    return food && typeof food === 'string' 
+      && food.trim() !== '' 
+      && food.toLowerCase() !== 'skipped' 
+      && containsFoodKeyword(food);
+  }
+
   // Simplify and keep the validation logic (can enhance later)
-  breakfastFood = breakfastFood || meals.breakfast || 'unknown';
-  lunchFood = lunchFood || meals.lunch || 'unknown';
-  dinnerFood = dinnerFood || meals.dinner || 'unknown';
+ breakfastFood = isValidFood(breakfastFood) ? breakfastFood : meals.breakfastFood || meals.dinner || 'no data';
+  lunchFood = isValidFood(lunchFood) ? lunchFood : meals.lunchFood || meals.lunch || 'no data';
+  dinnerFood = isValidFood(dinnerFood) ? dinnerFood : meals.dinnerFood || meals.dinner || 'no data';
 
   const total = breakdown.total || 0;
   const transportPercent = total > 0 ? ((breakdown.transport / total) * 100).toFixed(1) : 0;
@@ -122,6 +151,11 @@ Generate exactly 3 personalized, practical, and culturally Filipino-specific rec
 
 ❗Only suggest actions relevant to the Philippines — e.g., jeepneys, tricycles, rice-heavy meals, AC use, local fast food (Jollibee, etc.). Avoid Western references (like electric cars or quinoa). Focus on daily habits common in urban or rural areas of the Philippines.
 
+Each recommendation should:
+  1. Focus on the highest emission categories.
+  2. Suggest realistic daily changes.
+  3. Include an estimate of potential CO2 savings.
+  4. Reference the user's specific habits and items (e.g., transport modes, meals, appliances).
 ✅ Return ONLY a clean JSON array like this:
 [
   {
