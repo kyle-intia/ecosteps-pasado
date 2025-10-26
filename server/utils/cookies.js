@@ -5,11 +5,13 @@ const date_1 = require("./date");
 const env_1 = require("../constants/env");
 exports.REFRESH_PATH = "/auth/refresh";
 const secure = env_1.NODE_ENV !== "development";
-const domain = env_1.NODE_ENV === "development" ? "localhost" : "ecostep.online";
+const sameSite = env_1.NODE_ENV === "development" ? "lax" : "none";
+const domain = env_1.NODE_ENV === "development" ? undefined : "ecosteps-online.netlify.app";
 const defaults = {
-    sameSite: "none",
+    sameSite,
     httpOnly: true,
     secure,
+    ...(domain && { domain }),
 };
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
