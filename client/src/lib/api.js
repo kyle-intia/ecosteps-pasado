@@ -129,6 +129,11 @@ export const togglePushNotification = (data) => API.post(`/api/notifications/pus
 export const getUserSettings = (userId) => API.get(`/api/user-settings/notification/${userId}`);
 export const updateUserSettings = (userId, data) => API.put(`/api/user-settings/notification/${userId}`, data);
 
+//======== Footprin
+
+export const calculateFootprint = (data) => API.post("/api/footprint/submit", data);
+export const getTodayFootprint = () => API.get('/api/footprint/today');
+
 //======== PUSH NOTIFICATIONS ==============
 export const pushSubscribe = (userId, subscription) => API.post("/api/push/subscribe", { userId, subscription });
 

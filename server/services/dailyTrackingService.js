@@ -136,11 +136,14 @@ class DailyTrackingService {
       responses.flightType || 'no_flight'
     );
     
-    const homeEnergy = this.calculateHomeEnergy(
+  let homeEnergy = 0;
+  if (responses.occupants && Number(responses.occupants) > 0) {
+    homeEnergy = this.calculateHomeEnergy(
       responses.homeType,
       responses.occupants,
       responses.appliances || []
     );
+  }
     
     const food = this.calculateFood(
       responses.breakfast || 'skipped',
@@ -243,8 +246,8 @@ class DailyTrackingService {
     }
     
     // Validate occupants
-    if (safe.occupants && (isNaN(Number(safe.occupants)) || Number(safe.occupants) < 1)) {
-      errors.push('Occupants must be a number greater than 0');
+    if (safe.occupants && (isNaN(Number(safe.occupants)) || Number(safe.occupants) < 0)) {
+      errors.push('Occupants must be a number greater than or equal to 0');
     }
     
     // Validate appliances

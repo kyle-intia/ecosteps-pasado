@@ -80,8 +80,7 @@ static buildRecommendationPrompt(footprintData) {
   const { breakdown, transportModes, homeType, occupants, appliances, meals } = footprintData;
   let { breakfastFood, lunchFood, dinnerFood } = footprintData.food || {};
 
-
-    const foodKeywords = [
+  const foodKeywords = [
   // Common Filipino dishes
   "adobo", "sinigang", "lechon", "pandesal", "longganisa", "tocino", "bangus", "monggo",
   "kare-kare", "halo-halo", "pancit", "lugaw", "tinola", "dinuguan", "sisig", "paksiw",
@@ -110,7 +109,7 @@ static buildRecommendationPrompt(footprintData) {
   }
 
   // Simplify and keep the validation logic (can enhance later)
- breakfastFood = isValidFood(breakfastFood) ? breakfastFood : meals.breakfastFood || meals.dinner || 'no data';
+  breakfastFood = isValidFood(breakfastFood) ? breakfastFood : meals.breakfastFood || meals.breakfast || 'no data';
   lunchFood = isValidFood(lunchFood) ? lunchFood : meals.lunchFood || meals.lunch || 'no data';
   dinnerFood = isValidFood(dinnerFood) ? dinnerFood : meals.dinnerFood || meals.dinner || 'no data';
 
@@ -145,6 +144,12 @@ User context:
 - Appliances: ${applianceContext}
 - Transport modes and distances: ${transportContext}
 - Meals consumed: ${mealContext}
+
+Pre-assessment context: data
+
+Has private car
+has health condition
+has mobility considerations
 
 Your task:
 Generate exactly 3 personalized, practical, and culturally Filipino-specific recommendations to reduce this user’s carbon footprint.

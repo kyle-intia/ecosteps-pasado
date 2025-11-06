@@ -21,8 +21,6 @@ const leaderboardSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 0,
-    min: 0,
-    max: 2000,
   },
   totalScore: {
     type: Number,
