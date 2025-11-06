@@ -1,53 +1,101 @@
 // client/src/pages/TrackCarbon.tsx
-// Enhanced with AI Recommendation workflow integration
-
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Navbar } from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
-import { Car, Zap, Utensils, Plane, Home, TrendingDown, Calculator, AlertTriangle, RotateCcw, Sparkles, Lightbulb } from "lucide-react";
+import {
+  Car,
+  Zap,
+  Utensils,
+  Plane,
+  Home,
+  AlertTriangle,
+  RotateCcw,
+  Sparkles,
+  Lightbulb,
+  Calculator,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout, getTodaysTracking, getDailyTrackingHistory, submitDailyTracking } from "../lib/api";
+import {
+  logout,
+  getTodaysTracking,
+  getDailyTrackingHistory,
+} from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
 import RecommendationView from "../components/RecommendationView";
 import LoadingSpinner from "../components/LoadingSpinner";
 import useActivityTrack from "@/hooks/useActivityTrack";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-// Types for AI recommendations
-interface Recommendation {
+type Category = "transport" | "home" | "food";
+
+type BaseEntry = {
   id: string;
-  title: string;
-  description: string;
-  category: 'transport' | 'home' | 'food' | 'general';
-  estimatedSavings: number;
-  priority: number;
-  source: 'ai_generated' | 'rule_based' | 'hybrid';
-  actionable: boolean;
-}
+  category: Category;
+  createdAt: string;
+};
 
-interface Achievement {
-  achievementId: string;
-  name: string;
-  description: string;
-  category: 'daily' | 'challenge' | 'carbon' | 'transport' | 'home' | 'food';
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
-  icon: string;
-  targetValue: number;
-  unlocked: boolean;
-  unlockedAt?: string;
-  progress: number;
-  isEquipped: boolean;
-  profilePriority: number;
-}
+type TransportEntry = BaseEntry & {
+  category: "transport";
+  mode:
+    | "car"
+    | "public_transport"
+    | "motorcycle"
+    | "bicycle"
+    | "walking"
+    | "flight"
+    | "no_travel";
+  distanceKm?: number;
+  flightType?: "short-haul" | "long-haul" | undefined;
+};
+
+type HomeEntry = BaseEntry & {
+  category: "home";
+  homeType: "large_house" | "small_house" | "apartment";
+  occupants: number;
+  appliances: "aircon" | "laundry" | "none";
+};
+
+type FoodEntry = BaseEntry & {
+  category: "food";
+  mealSlot: "breakfast" | "lunch" | "dinner";
+  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed" | "skipped";
+  description?: string;
+};
+
+type Entry = TransportEntry | HomeEntry | FoodEntry;
 
 interface FootprintResponse {
   success: boolean;
@@ -67,14 +115,14 @@ interface FootprintResponse {
       food: number;
       total: number;
     };
-    newAchievements?: Achievement[];
+    newAchievements?: any[];
   };
 }
 
 interface RecommendationResponse {
   success: boolean;
   data: {
-    recommendations: Recommendation[];
+    recommendations: any[];
     footprintSummary: {
       total: number;
       transport: number;
@@ -88,210 +136,414 @@ interface RecommendationResponse {
   };
 }
 
+const makeId = () =>
+  `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+const ANIM = { initial: { opacity: 0, y: 6 }, enter: { opacity: 1, y: 0 } };
+
 const TrackCarbon = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  
-  // AI Recommendations state
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [loadingStatus, setLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [footprintData, setFootprintData] = useState<FootprintResponse['data'] | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const { activities, isLoading, isError: trackError, error, refetch } = useActivityTrack();
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: boolean }>({});
-
-  const handleCheckboxChange = (activityId: string) => {
-    setSelectedActivities((prevState) => 
-      prevState.includes(activityId)
-        ? prevState.filter(id => id !== activityId)  // Unselect
-        : [...prevState, activityId]  // Select
-    );
-  };
-
-
-  // Existing form state
-  const [formData, setFormData] = useState({
-    transportModes: [],
-    flightsToday: "",
-    personalCarDistance: "",
-    publicTransportDistance: "",
-    motorcycleDistance: "",
-    bicycleDistance: "",
-    walkingDistance: "",
-    homeType: "",
-    houseSharing: "",
-    highEnergyAppliances: [],
-    breakfastType: "",
-    lunchType: "",
-    dinnerType: "",
-    breakfastDescription: "",
-    lunchDescription: "",
-    dinnerDescription: "",
-  });
-
-  const [checkedTransportModes, setCheckedTransportModes] = useState({
-    personalCar: false,
-    publicTransport: false,
-    motorcycle: false,
-    bicycle: false,
-    walking: false,
-    noTransport: false,
-  });
-
-  const [checkedAppliances, setCheckedAppliances] = useState({
-    aircon: false,
-    laundry: false,
-    none: false,
-  });
-
-
-  useEffect(() => {
-    if (!activities || activities.length === 0) return;
-  
-    let updatedForm = {
-      ...formData,
-      personalCarDistance: "",
-      publicTransportDistance: "",
-      motorcycleDistance: "",
-      bicycleDistance: "",
-      walkingDistance: "",
-    };
-  
-    let updatedChecked = {
-      personalCar: false,
-      publicTransport: false,
-      motorcycle: false,
-      bicycle: false,
-      walking: false,
-      noTransport: false,
-    };
-  
-    // Distance accumulators for each category
-    let walkingTotal = 0;
-    let bicycleTotal = 0;
-    let personalCarTotal = 0;
-    let motorcycleTotal = 0;
-    let publicTransportTotal = 0;
-  
-    selectedActivities.forEach((id) => {
-      const act = activities.find((a) => a._id === id);
-      if (!act) return;
-    
-      const distance = (act.totalDistance) || 0;
-    
-      switch (act.subtype) {
-        case 'walk':
-          walkingTotal += distance;
-          updatedChecked.walking = true;
-          break;
-      
-        case 'bicycle':
-          bicycleTotal += distance;
-          updatedChecked.bicycle = true;
-          break;
-      
-        case 'diesel':
-        case 'gasoline':
-          personalCarTotal += distance;
-          updatedChecked.personalCar = true;
-          break;
-      
-        case 'motorcycle':
-          motorcycleTotal += distance;
-          updatedChecked.motorcycle = true;
-          break;
-      
-        case 'public':
-        case 'bus':
-        case 'jeep':
-        case 'tricycle':
-        case 'train':
-        case 'e-jeep':
-          publicTransportTotal += distance;
-          updatedChecked.publicTransport = true;
-          break;
-      
-        default:
-          break;
-      }
-    });
-  
-    // Assign accumulated values to form, formatting to 2 decimal places
-    updatedForm.walkingDistance = walkingTotal.toFixed(2);
-    updatedForm.bicycleDistance = bicycleTotal.toFixed(2);
-    updatedForm.personalCarDistance = personalCarTotal.toFixed(2);
-    updatedForm.motorcycleDistance = motorcycleTotal.toFixed(2);
-    updatedForm.publicTransportDistance = publicTransportTotal.toFixed(2);
-  
-    setFormData(updatedForm);
-    setCheckedTransportModes(updatedChecked);
-  }, [selectedActivities, activities]);
-
-
-  const [isLoadingToday, setIsLoadingToday] = useState(false);
-  const [todayEntry, setTodayEntry] = useState<any>(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
-  
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { sessions, isPending, isError } = useSessions();
-  
+  const { user } = useAuth() as { user: { _id?: string } };
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // entries
+  const [entries, setEntries] = useState<Entry[]>([]);
+
+  // modal & dialogs
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
+  // editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Category>("transport");
+
+  // forms inside modal
+  const [transportForm, setTransportForm] = useState<Partial<TransportEntry>>({
+    mode: "car",
+    distanceKm: 0,
+    flightType: undefined,
+  });
+  const [homeForm, setHomeForm] = useState<Partial<HomeEntry>>({
+    homeType: "apartment",
+    occupants: 0,
+    appliances: "none",
+  });
+  const [foodForm, setFoodForm] = useState<Partial<FoodEntry>>({
+    mealSlot: "breakfast",
+    mealType: "meat",
+    description: "",
+  });
+
+  // activity tracking
+  const {
+    activities,
+    isLoading: isActivitiesLoading,
+    isError: activitiesError,
+    refetch: refetchActivities,
+  } = useActivityTrack();
+
+  // footprint & recommendations
+  const [footprintData, setFootprintData] =
+    useState<FootprintResponse["data"] | null>(null);
+  const [footprintId, setFootprintId] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [loadingStatus, setLoadingStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // UI animation states for progress bars
+  const [animTransport, setAnimTransport] = useState(0);
+  const [animHome, setAnimHome] = useState(0);
+  const [animFood, setAnimFood] = useState(0);
+
+  // restore persisted state
   useEffect(() => {
-    if (!isPending && sessions.length > 0) {
-        const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-        setIsLoggedIn(loggedIn);
+    const savedEntries = localStorage.getItem("current_entries");
+    if (savedEntries) {
+      try {
+        setEntries(JSON.parse(savedEntries));
+      } catch {
+        localStorage.removeItem("current_entries");
+      }
     }
 
+    const savedFootprint = localStorage.getItem("current_footprint_data");
+    if (savedFootprint) {
+      try {
+        const parsed = JSON.parse(savedFootprint);
+        setFootprintData(parsed);
+        setFootprintId(parsed.footprintId);
+        // set anim values to actuals after a small delay
+        setTimeout(() => {
+          const t = parsed.calculatedFootprint.transport || 0;
+          const h = parsed.calculatedFootprint.homeEnergy || 0;
+          const f = parsed.calculatedFootprint.food || 0;
+          setAnimTransport(t);
+          setAnimHome(h);
+          setAnimFood(f);
+        }, 200);
+      } catch {}
+    }
+
+    const savedRecs = localStorage.getItem("current_recommendations");
+    if (savedRecs) {
+      try {
+        setRecommendations(JSON.parse(savedRecs));
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("current_entries", JSON.stringify(entries));
+  }, [entries]);
+
+  // session & fetching today/history
+  useEffect(() => {
+    if (!isPending && sessions.length > 0) {
+      const logged = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(logged);
+    }
     if (!isPending && (isError || sessions.length === 0)) {
       localStorage.removeItem("isLoggedIn");
       navigate("/", { replace: true });
     }
   }, [isPending, isError, sessions, navigate]);
 
-  // Check for existing session data on component mount
   useEffect(() => {
-    const sessionFootprintId = localStorage.getItem('current_footprint_id');
-    const sessionRecommendations = localStorage.getItem('current_recommendations');
-    const sessionFootprintData = localStorage.getItem('current_footprint_data');
-
-    if (sessionFootprintId && sessionRecommendations && sessionFootprintData) {
+    if (!isLoggedIn || !user || footprintData) return;
+    (async () => {
       try {
-        const parsedRecommendations = JSON.parse(sessionRecommendations);
-        const parsedFootprintData = JSON.parse(sessionFootprintData);
-        setRecommendations(parsedRecommendations);
-        setFootprintData(parsedFootprintData);
-        setIsSubmitted(true);
-        setLoadingStatus('success');
-        console.log('Restored session state with', parsedRecommendations.length, 'recommendations and footprint data');
-      } catch (error) {
-        console.error('Error parsing session data:', error);
-        // Clear invalid session data
-        localStorage.removeItem('current_footprint_id');
-        localStorage.removeItem('current_recommendations');
-        localStorage.removeItem('current_footprint_data');
-      }
-    }
-  }, []);
+        const res = await getTodaysTracking();
+        // don't override entries; keep today's stored footprint separate
+        // you already store today's entry in a separate panel below if needed
+      } catch {}
+    })();
+  }, [isLoggedIn, user, footprintData]);
 
+  // logout
   const { mutate: signOut } = useMutation({
     mutationFn: logout,
     onSettled: () => {
       localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
+      queryClient.clear();
+      navigate("/login", { replace: true });
     },
   });
+  const handleSignOut = () => signOut();
 
-  const { user } = useAuth() as { user: { _id?: string } };
+  // API wrappers
+  const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/footprint/submit`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(trackingData),
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to submit footprint");
+    }
+    return response.json();
+  };
+
+  const fetchRecommendations = async (
+    id: string
+  ): Promise<RecommendationResponse> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/recommendations`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ footprintId: id }),
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to fetch recommendations");
+    }
+    return response.json();
+  };
+
+  const resetDailyData = async (): Promise<void> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/footprint/reset-daily`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to reset daily data");
+    }
+  };
+
+  // create entries
+  const createTransportEntryFromForm = (): TransportEntry => ({
+    id: makeId(),
+    category: "transport",
+    createdAt: new Date().toISOString(),
+    mode: (transportForm.mode as TransportEntry["mode"]) || "car",
+    distanceKm:
+      transportForm.mode === "no_travel" ? 0 : Number(transportForm.distanceKm || 0),
+    flightType: transportForm.flightType,
+  });
+
+  const createHomeEntryFromForm = (): HomeEntry => ({
+    id: makeId(),
+    category: "home",
+    createdAt: new Date().toISOString(),
+    homeType: (homeForm.homeType as HomeEntry["homeType"]) || "small_house",
+    occupants: Number(homeForm.occupants || 0),
+    appliances: (homeForm.appliances as HomeEntry["appliances"]) || "none",
+  });
+
+  const createFoodEntryFromForm = (): FoodEntry => ({
+    id: makeId(),
+    category: "food",
+    createdAt: new Date().toISOString(),
+    mealSlot: (foodForm.mealSlot as FoodEntry["mealSlot"]) || "breakfast",
+    mealType: (foodForm.mealType as FoodEntry["mealType"]) || "plant",
+    description: foodForm.description || "",
+  });
+
+  const addOrUpdateEntry = (entry: Entry) => {
+    if (editingId) {
+      setEntries((prev) => prev.map((e) => (e.id === editingId ? { ...entry, id: editingId } : e)));
+      setEditingId(null);
+      toast({ title: "Saved", description: "Entry updated." });
+    } else {
+      setEntries((prev) => [entry, ...prev]);
+      toast({ title: "Added", description: "Entry added." });
+    }
+  };
+
+  // add handlers
+  const handleAddTransport = () => {
+    const entry = createTransportEntryFromForm();
+    addOrUpdateEntry(entry);
+    setTransportForm({ mode: "car", distanceKm: 0, flightType: undefined });
+    setIsAddOpen(false);
+  };
+  const handleAddHome = () => {
+    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 1) {
+      toast({ title: "Invalid", description: "Choose home type & occupants.", variant: "destructive" });
+      return;
+    }
+    const entry = createHomeEntryFromForm();
+    addOrUpdateEntry(entry);
+    setHomeForm({ homeType: "small_house", occupants: 0, appliances: "none" });
+    setIsAddOpen(false);
+  };
+  const handleAddFood = () => {
+    const entry = createFoodEntryFromForm();
+    addOrUpdateEntry(entry);
+    setFoodForm({ mealSlot: "breakfast", mealType: "meat", description: "" });
+    setIsAddOpen(false);
+  };
+
+  // edit flow: open modal pre-filled
+  const handleEditEntry = (id: string) => {
+    const e = entries.find((x) => x.id === id);
+    if (!e) return;
+    setEditingId(id);
+    setIsAddOpen(true);
+    setActiveTab(e.category);
+    if (e.category === "transport") {
+      const t = e as TransportEntry;
+      setTransportForm({ mode: t.mode, distanceKm: t.distanceKm || 0, flightType: t.flightType });
+    } else if (e.category === "home") {
+      const h = e as HomeEntry;
+      setHomeForm({ homeType: h.homeType, occupants: h.occupants, appliances: h.appliances });
+    } else {
+      const f = e as FoodEntry;
+      setFoodForm({ mealSlot: f.mealSlot, mealType: f.mealType, description: f.description });
+    }
+  };
+
+  // delete flow: open dialog per-item
+  const confirmDelete = (id: string) => {
+    setDeleteTargetId(id);
+    setIsDeleteConfirmOpen(true);
+  };
+  const executeDelete = () => {
+    if (!deleteTargetId) return;
+    setEntries((prev) => prev.filter((e) => e.id !== deleteTargetId));
+    setIsDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
+    toast({ title: "Deleted", description: "Entry removed." });
+  };
+
+  // import from live tracking
+  const handleImportFromLiveTracking = () => {
+    if (!activities || activities.length === 0) {
+      toast({ title: "No live data", description: "No tracked activities to import.", variant: "destructive" });
+      return;
+    }
+    const imported = activities.map((act: any) => {
+      const subtype = String(act.subtype || "").toLowerCase();
+      let mode: TransportEntry["mode"] = "walking";
+      if (["walk", "walking"].includes(subtype)) mode = "walking";
+      else if (["bicycle", "bike"].includes(subtype)) mode = "bicycle";
+      else if (["diesel", "gasoline", "car"].includes(subtype)) mode = "car";
+      else if (["motorcycle"].includes(subtype)) mode = "motorcycle";
+      else if (["public", "bus", "jeep", "train", "tricycle", "e-jeep"].includes(subtype)) mode = "public_transport";
+      const distance = Number(act.totalDistance || 0);
+      return {
+        id: makeId(),
+        category: "transport",
+        createdAt: new Date().toISOString(),
+        mode,
+        distanceKm: distance,
+      } as TransportEntry;
+    });
+    setEntries((prev) => [...imported, ...prev]);
+    setIsAddOpen(false);
+    toast({ title: "Imported", description: `Imported ${imported.length} activities.` });
+  };
+
+  // calculate payload & call API
+  const handleCalculate = async () => {
+    if (entries.length === 0) {
+      toast({ title: "No entries", description: "Add entries before calculating.", variant: "destructive" });
+      return;
+    }
+
+    const transportAgg: Record<string, number> = {};
+    let flightsToday: "none" | "short-haul" | "long-haul" = "none";
+
+    entries.forEach((e) => {
+      if (e.category === "transport") {
+        const t = e as TransportEntry;
+        if (t.mode === "flight") {
+          if (t.flightType === "long-haul") flightsToday = "long-haul";
+          else if (flightsToday !== "long-haul" && t.flightType === "short-haul") flightsToday = "short-haul";
+        } else {
+          transportAgg[t.mode] = (transportAgg[t.mode] || 0) + Number(t.distanceKm || 0);
+        }
+      }
+    });
+
+    const transportModes = Object.entries(transportAgg).map(([id, distance]) => ({ id, distance: Number(distance.toFixed(2)) }));
+
+    const homeEntries = entries.filter((e) => e.category === "home") as HomeEntry[];
+    let homeEnergyPayload = { homeType: "small_house", occupants: 0, appliances: ["none"] as any[] };
+    if (homeEntries.length > 0) {
+      const latest = homeEntries.sort((a,b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+      homeEnergyPayload = { homeType: latest.homeType, occupants: latest.occupants, appliances: [latest.appliances] };
+    }
+
+    const foodEntries = entries.filter((e) => e.category === "food") as FoodEntry[];
+    const foodPayload: any = { breakfast: "skipped", lunch: "skipped", dinner: "skipped", breakfastFood: "", lunchFood: "", dinnerFood: "" };
+    if (foodEntries.length > 0) {
+      const latestBySlot: Record<string, FoodEntry> = {};
+      foodEntries.forEach((f) => {
+        const prev = latestBySlot[f.mealSlot];
+        if (!prev || new Date(f.createdAt) > new Date(prev.createdAt)) latestBySlot[f.mealSlot] = f;
+      });
+      if (latestBySlot.breakfast) { foodPayload.breakfast = latestBySlot.breakfast.mealType; foodPayload.breakfastFood = latestBySlot.breakfast.description || ""; }
+      if (latestBySlot.lunch) { foodPayload.lunch = latestBySlot.lunch.mealType; foodPayload.lunchFood = latestBySlot.lunch.description || ""; }
+      if (latestBySlot.dinner) { foodPayload.dinner = latestBySlot.dinner.mealType; foodPayload.dinnerFood = latestBySlot.dinner.description || ""; }
+    }
+
+    const payload = {
+      transport: { modes: transportModes, distances: Object.assign({}, ...transportModes.map((m:any) => ({ [m.id]: m.distance }))) },
+      flightsToday: flightsToday === "none" ? "none" : flightsToday,
+      homeEnergy: homeEnergyPayload,
+      food: foodPayload,
+      rawEntries: entries,
+    };
+
+    try {
+      setLoadingStatus("loading");
+      setErrorMessage(null);
+      const res = await submitFootprint(payload);
+      setFootprintData(res.data);
+      setFootprintId(res.data.footprintId);
+      localStorage.setItem("current_footprint_data", JSON.stringify(res.data));
+      // animate progress bars to category values (raw)
+      const t = res.data.calculatedFootprint.transport || 0;
+      const h = res.data.calculatedFootprint.homeEnergy || 0;
+      const f = res.data.calculatedFootprint.food || 0;
+      // smooth animation: incrementally step up
+      setAnimTransport(0); setAnimHome(0); setAnimFood(0);
+      const dur = 600;
+      const steps = 30;
+      for (let i=1;i<=steps;i++){
+        setTimeout(()=> {
+          setAnimTransport(Number(((t * i) / steps).toFixed(2)));
+          setAnimHome(Number(((h * i) / steps).toFixed(2)));
+          setAnimFood(Number(((f * i) / steps).toFixed(2)));
+        }, Math.round((i * dur)/steps));
+      }
+      setLoadingStatus("success");
+      toast({ title: "Calculated", description: `Total: ${res.data.calculatedFootprint.total} kg CO₂e.` });
+    } catch (err: any) {
+      console.error(err);
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to calculate footprint");
+      toast({ title: "Error", description: err.message || "Calculation failed", variant: "destructive" });
+    }
+  };
+
+  const [isLoadingToday, setIsLoadingToday] = useState(false);
+  const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!isLoggedIn || isSubmitted) return; // Skip if already showing recommendations
-    const userId = user?._id;
-    if (!userId) return;
-
     const fetchToday = async () => {
       try {
         setIsLoadingToday(true);
@@ -318,954 +570,587 @@ const TrackCarbon = () => {
 
     fetchToday();
     fetchHistory();
-  }, [isLoggedIn, user, isSubmitted]);
-
-  const handleSignOut = () => {
-    signOut();
-  };
-
-  const validateStep = (step: number): boolean => {
-    const errors: { [key: string]: boolean } = {};
-
-    if (step === 1) {
-      // Transport modes
-      const hasTransport = Object.values(checkedTransportModes).some(v => v);
-      if (!hasTransport) errors["transportModes"] = true;
-
-      // Flights today
-      if (!formData.flightsToday) errors["flightsToday"] = true;
-    }
-
-    if (step === 2) {
-      if (!formData.homeType) errors["homeType"] = true;
-      if (!formData.houseSharing || Number(formData.houseSharing) <= 0) {
-        errors["houseSharing"] = true;
-      }
-
-      const hasAppliances = Object.values(checkedAppliances).some(v => v);
-      if (!hasAppliances) errors["appliances"] = true;
-    }
-
-    if (step === 3) {
-      if (!formData.breakfastType) errors["breakfastType"] = true;
-      if (!formData.lunchType) errors["lunchType"] = true;
-      if (!formData.dinnerType) errors["dinnerType"] = true;
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  }, [isLoggedIn, user]);
 
 
 
-  // API call functions
-  const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/submit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(trackingData)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to submit footprint');
-    }
-
-    return response.json();
-  };
-
-  const fetchRecommendations = async (footprintId: string): Promise<RecommendationResponse> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/recommendations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({ footprintId })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch recommendations');
-    }
-
-    return response.json();
-  };
-
-  const resetDailyData = async (): Promise<void> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/reset-daily`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to reset daily data');
-    }
-  };
-
-  // Form submission handler with AI workflow
-  const handleFormSubmit = async (event?: React.FormEvent) => {
-    if (event) {
-      event.preventDefault();
-    }
-
-    try {
-      console.log('Starting footprint submission and AI recommendation flow');
-      setLoadingStatus('loading');
-      setErrorMessage(null);
-
-      // Build payload for API
-      const modes: Array<{ id: string; distance?: number }> = [];
-      const distances: Record<string, number> = {};
-
-      const addMode = (key: string, backendId: string, distanceStr: string) => {
-        const enabled = (checkedTransportModes as any)[key];
-        if (!enabled) return;
-        const km = Number(distanceStr || 0) || 0;
-        modes.push({ id: backendId, distance: km });
-        distances[backendId] = km;
-      };
-
-      if (checkedTransportModes.noTransport) {
-        modes.push({ id: "no_travel" });
-      } else {
-        addMode("personalCar", "car", formData.personalCarDistance);
-        addMode("publicTransport", "public_transport", formData.publicTransportDistance);
-        addMode("motorcycle", "motorcycle", formData.motorcycleDistance);
-        addMode("bicycle", "bicycle", formData.bicycleDistance);
-        addMode("walking", "walking", formData.walkingDistance);
-      }
-
-      const flightsToday = formData.flightsToday || "none";
-      let mappedHomeType = formData.homeType;
-      if (mappedHomeType === "large-house") {
-        mappedHomeType = "large_house";
-      } else if (mappedHomeType === "small-house") {
-        mappedHomeType = "small_house";
-      }
-
-      const occupants = Number(formData.houseSharing || 1) || 1;
-      const appliances: string[] = [];
-      if (checkedAppliances.none) {
-        appliances.push("none");
-      } else {
-        if (checkedAppliances.aircon) appliances.push("aircon");
-        if (checkedAppliances.laundry) appliances.push("laundry");
-      }
-
-      const mapMeal = (value: string) => value || "skipped";
-      const food = {
-        breakfast: mapMeal(formData.breakfastType),
-        lunch: mapMeal(formData.lunchType),
-        dinner: mapMeal(formData.dinnerType),
-        breakfastFood: formData.breakfastDescription || '',
-        lunchFood: formData.lunchDescription || '',
-        dinnerFood: formData.dinnerDescription || '',
-      };
-
-      const payload = {
-        transport: { modes, distances },
-        flightsToday,
-        homeEnergy: { homeType: mappedHomeType, occupants, appliances },
-        food,
-      };
-
-      // Step 1: Submit footprint data
-      const footprintResponse = await submitFootprint(payload);
-      console.log('Footprint submitted successfully:', footprintResponse.data.footprintId);
-
-      setFootprintData(footprintResponse.data);
-
-      // Store footprint data in localStorage for persistence
-      localStorage.setItem('current_footprint_data', JSON.stringify(footprintResponse.data));
-
-      // Step 2: Fetch AI recommendations
-      const recommendationResponse = await fetchRecommendations(footprintResponse.data.footprintId);
-      console.log('AI recommendations received:', recommendationResponse.data.recommendations.length, 'items');
-
-      // Update state with successful results
-      setRecommendations(recommendationResponse.data.recommendations);
-      setIsSubmitted(true);
-      setLoadingStatus('success');
-
-      // Store in localStorage for persistence
-      localStorage.setItem('current_footprint_id', footprintResponse.data.footprintId);
-      localStorage.setItem('current_recommendations', JSON.stringify(recommendationResponse.data.recommendations));
-
-      // Show success toast
-      toast({
-        title: "Carbon footprint calculated!",
-        description: `Total: ${footprintResponse.data.calculatedFootprint.total} kg CO₂e. AI recommendations generated.`,
-      });
-
-    } catch (error: any) {
-      console.error('Error in footprint submission or recommendation generation:', error);
-      setLoadingStatus('error');
-      setErrorMessage(error.message || 'Failed to process your request. Please try again.');
-      
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process your carbon footprint. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Edit footprint handler with reset warning
-  const handleEditFootprint = async () => {
-    const confirmReset = window.confirm(
-      "⚠️ Warning: Editing your footprint will reset today's carbon tracking and uncheck all completed eco-challenges. Do you want to continue?"
-    );
-
-    if (!confirmReset) {
+  // get AI recommendations (separate)
+  const handleGetRecommendations = async () => {
+    const id = footprintId || footprintData?.footprintId;
+    if (!id) {
+      toast({ title: "No footprint", description: "Calculate first.", variant: "destructive" });
       return;
     }
-
     try {
-      console.log('Resetting daily data and returning to form');
+      setLoadingStatus("loading");
+      const rec = await fetchRecommendations(id);
+      setRecommendations(rec.data.recommendations);
+      localStorage.setItem("current_recommendations", JSON.stringify(rec.data.recommendations));
+      setLoadingStatus("success");
+      toast({ title: "Recommendations ready", description: `Generated ${rec.data.recommendations.length} recommendations.` });
+    } catch (err: any) {
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to fetch recommendations");
+      toast({ title: "Error", description: err.message || "Failed to fetch recommendations", variant: "destructive" });
+    }
+  };
+
+  // reset footprint (dialog)
+  const handleConfirmReset = async () => {
+    setIsResetConfirmOpen(false);
+    try {
       await resetDailyData();
-
-      // Reset frontend state
-      setIsSubmitted(false);
-      setRecommendations([]);
       setFootprintData(null);
-      setLoadingStatus('idle');
-      setErrorMessage(null);
-      setCurrentStep(1);
-
-      // Clear localStorage
-      localStorage.removeItem('current_footprint_id');
-      localStorage.removeItem('current_recommendations');
-      localStorage.removeItem('current_footprint_data');
-
-      toast({
-        title: "Daily data reset",
-        description: "Your carbon tracking and eco-challenges have been reset. You can now enter new data.",
-      });
-
-    } catch (error: any) {
-      console.error('Error resetting daily data:', error);
-      toast({
-        title: "Reset failed",
-        description: error.message || "Failed to reset your daily data. Please try again.",
-        variant: "destructive"
-      });
+      setFootprintId(null);
+      setRecommendations([]);
+      setLoadingStatus("idle");
+      localStorage.removeItem("current_footprint_data");
+      localStorage.removeItem("current_recommendations");
+      toast({ title: "Reset", description: "Daily data reset. You can add new entries." });
+    } catch (err: any) {
+      toast({ title: "Reset failed", description: err.message || "Reset failed", variant: "destructive" });
     }
   };
 
-  // Retry AI recommendations
-  const handleRetryRecommendations = async () => {
-    if (!footprintData) {
-      toast({
-        title: "Error",
-        description: "No footprint data available. Please submit your footprint first.",
-        variant: "destructive"
-      });
-      return;
-    }
+  // computed totals (use footprintData if available)
+  const totals = useMemo(() => {
+    if (!footprintData) return { transport: 0, homeEnergy: 0, food: 0, total: 0 };
+    return {
+      transport: Number(footprintData.calculatedFootprint.transport || 0),
+      homeEnergy: Number(footprintData.calculatedFootprint.homeEnergy || 0),
+      food: Number(footprintData.calculatedFootprint.food || 0),
+      total: Number(footprintData.calculatedFootprint.total || 0),
+    };
+  }, [footprintData]);
 
-    try {
-      setLoadingStatus('loading');
-      setErrorMessage(null);
+  // distinct accent colors for progress bars: transport-blue, home-green, food-amber
+  const transportColor = "bg-primary";
+  const homeColor = "bg-green-500";
+  const foodColor = "bg-amber-500";
 
-      const recommendationResponse = await fetchRecommendations(footprintData.footprintId);
-      setRecommendations(recommendationResponse.data.recommendations);
-      setLoadingStatus('success');
-
-      // Update localStorage
-      localStorage.setItem('current_recommendations', JSON.stringify(recommendationResponse.data.recommendations));
-
-      toast({
-        title: "Recommendations updated",
-        description: `Generated ${recommendationResponse.data.recommendations.length} new recommendations for you.`,
-      });
-
-    } catch (error: any) {
-      console.error('Error retrying recommendations:', error);
-      setLoadingStatus('error');
-      setErrorMessage(error.message || 'Failed to generate recommendations. Please try again.');
-    }
-  };
-
-  // Existing form handlers (unchanged)
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleTransportModeChange = (mode: string, isChecked: boolean) => {
-    if (mode === "noTransport") {
-      if (isChecked) {
-        setCheckedTransportModes({
-          personalCar: false,
-          publicTransport: false,
-          motorcycle: false,
-          bicycle: false,
-          walking: false,
-          noTransport: true,
-        });
-        
-        setFormData(prev => ({
-          ...prev,
-          personalCarDistance: "",
-          publicTransportDistance: "",
-          motorcycleDistance: "",
-          bicycleDistance: "",
-          walkingDistance: "",
-        }));
-      } else {
-        setCheckedTransportModes(prev => ({ ...prev, noTransport: false }));
-      }
-    } else {
-      setCheckedTransportModes(prev => ({
-        ...prev,
-        [mode]: isChecked,
-        noTransport: false,
-      }));
-    }
-  };
-
-  const handleDistanceChange = (mode: string, value: string) => {
-    const distanceField = `${mode}Distance`;
-    setFormData(prev => ({ ...prev, [distanceField]: value }));
-  };
-
-  // Prevent form submission when pressing Enter in inputs on Steps 1-2
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && currentStep < 3) {
-      e.preventDefault();
-      // Optionally advance to next step if on Step 1 or 2
-      if (currentStep < 3) {
-        nextStep();
-      }
-    }
-  };
-
-  const handleApplianceChange = (appliance: string, isChecked: boolean) => {
-    if (appliance === "none") {
-      if (isChecked) {
-        setCheckedAppliances({
-          aircon: false,
-          laundry: false,
-          none: true,
-        });
-      } else {
-        setCheckedAppliances(prev => ({ ...prev, none: false }));
-      }
-    } else {
-      setCheckedAppliances(prev => ({
-        ...prev,
-        [appliance]: isChecked,
-        none: false,
-      }));
-    }
-  };
-
-  const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const stepTitles = [
-    "Transportation",
-    "Home Energy", 
-    "Food & Lifestyle"
-  ];
-
-  const progress = (currentStep / 3) * 100;
-  const isNoTransportSelected = checkedTransportModes.noTransport;
-  const isNoApplianceSelected = checkedAppliances.none;
-
-  // Show loading spinner during initial auth check
-  if (isPending) {
-    return <LoadingSpinner />;
-  }
-
-  if (isLoading) return <p>Loading...</p>;
-  if (trackError) return <p>Error: {(error as Error).message}</p>;
+  if (isPending) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
-      
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {!isSubmitted ? (
-          // FORM VIEW - Original form interface
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* If recommendations exist -> show recommendations view */}
+        {recommendations && recommendations.length > 0 ? (
+          <div>
+            <RecommendationView recommendations={recommendations} footprintData={footprintData} onRetry={async () => {
+              const id = footprintId || (footprintData as any)?.footprintId;
+              if (!id) return;
+              try {
+                setLoadingStatus("loading");
+                const rec = await fetchRecommendations(id);
+                setRecommendations(rec.data.recommendations);
+                setLoadingStatus("success");
+              } catch (err:any) {
+                setLoadingStatus("error");
+              }
+            }} />
+          </div>
+        ) : (
+          // Main add/entries view or dashboard when footprint exists
           <>
             <div className="mb-8 text-center">
               <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
                 <Calculator className="h-8 w-8 text-primary" />
-                Track Your Carbon Footprint
+                Add Entries — Track Your Carbon
               </h1>
               <p className="text-muted-foreground">
-                Answer these questions to calculate your environmental impact and get AI-powered recommendations
+                Add Transport, Home Energy, and Food entries. Import live-tracked activities or add manually.
               </p>
             </div>
 
-            {todayEntry && (
-              <Alert className="mb-6 border-warning bg-warning/10">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Existing Entry Found</AlertTitle>
-                <AlertDescription>
-                  You already have a tracking entry for today ({todayEntry.calculatedFootprint?.total || '-'} kg CO₂e). 
-                  Submitting new data will update your footprint and may reset completed eco-challenges.
-                </AlertDescription>
-              </Alert>
+            {/* Top controls */}
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => { setEditingId(null); setActiveTab("transport"); }}>
+                      <Plus className="w-5 h-5" /> Add Entry
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader><DialogTitle>{editingId ? "Edit Entry" : "Add New Entry"}</DialogTitle></DialogHeader>
+
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Category)}>
+                      <TabsList>
+                        <TabsTrigger value="transport">Transport</TabsTrigger>
+                        <TabsTrigger value="home">Home Energy</TabsTrigger>
+                        <TabsTrigger value="food">Food</TabsTrigger>
+                      </TabsList>
+
+                  <TabsContent value="transport" className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      {/* Mode */}
+                      <div>
+                        <Label>Mode</Label>
+                        <Select
+                          value={transportForm.mode}
+                          onValueChange={(v) =>
+                            setTransportForm((prev) => ({ ...prev, mode: v as any }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="car">Personal Car</SelectItem>
+                            <SelectItem value="public_transport">Public Transport</SelectItem>
+                            <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                            <SelectItem value="bicycle">Bicycle / E-bike</SelectItem>
+                            <SelectItem value="walking">Walking</SelectItem>
+                            <SelectItem value="flight">Flight</SelectItem>
+                            <SelectItem value="no_travel">Didn't commute today</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                        
+                      {/* Distance */}
+                      <div>
+                        <Label>Distance (km)</Label>
+                        <Input
+                          type="number"
+                          placeholder="km"
+                          value={transportForm.distanceKm ?? ""}
+                          onChange={(e) =>
+                            setTransportForm((prev) => ({
+                              ...prev,
+                              distanceKm: Number(e.target.value || 0),
+                            }))
+                          }
+                          disabled={
+                            transportForm.mode === "no_travel" ||
+                            transportForm.mode === "flight"
+                          }
+                        />
+                      </div>
+                        
+                      {/* Only show Flight Type if mode === "flight" */}
+                      {transportForm.mode === "flight" && (
+                        <div>
+                          <Label>Flight type</Label>
+                          <Select
+                            value={transportForm.flightType}
+                            onValueChange={(v) =>
+                              setTransportForm((prev) => ({
+                                ...prev,
+                                flightType: (v as any) || undefined,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select flight type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="short-haul">Short-haul (&lt;3h)</SelectItem>
+                              <SelectItem value="long-haul">Long-haul (&gt;3h)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        onClick={() => {
+                          if (editingId) setIsSaveConfirmOpen(true)
+                          else handleAddTransport()
+                        }}
+                      >
+                        {editingId ? "Save Transport" : "Add Transport"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setTransportForm({ mode: "car", distanceKm: 0, flightType: undefined })
+                        }
+                      >
+                        Reset
+                      </Button>
+                      <Button variant="ghost" onClick={handleImportFromLiveTracking}>
+                        Import from Live Tracking
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+
+                      <TabsContent value="home" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                          <div>
+                            <Label>Home Type</Label>
+                            <Select value={homeForm.homeType} onValueChange={(v) => setHomeForm(prev=>({...prev, homeType: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose home" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="large_house">Large House</SelectItem>
+                                <SelectItem value="small_house">Small House</SelectItem>
+                                <SelectItem value="apartment">Apartment / Condo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Occupants</Label>
+                            <Input type="number" min={1} value={homeForm.occupants ?? 1} onChange={(e)=>setHomeForm(prev=>({...prev, occupants: Number(e.target.value||1)}))} />
+                          </div>
+
+                          <div>
+                            <Label>Appliances</Label>
+                            <Select value={homeForm.appliances as any} onValueChange={(v)=>setHomeForm(prev=>({...prev, appliances: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose appliance" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="aircon">Aircon</SelectItem>
+                                <SelectItem value="laundry">Laundry</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <Button onClick={()=>{ if (editingId) setIsSaveConfirmOpen(true); else handleAddHome(); }}>
+                            {editingId ? "Save Home" : "Add Home"}
+                          </Button>
+                          <Button variant="outline" onClick={()=>setHomeForm({homeType:"apartment", occupants:1, appliances:"none"})}>Reset</Button>
+                          <Button variant="ghost" onClick={handleImportFromLiveTracking}>Import from Live Tracking</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="food" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                          <div>
+                            <Label>Meal Slot</Label>
+                            <Select value={foodForm.mealSlot} onValueChange={(v)=>setFoodForm(prev=>({...prev, mealSlot: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose slot" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="breakfast">Breakfast</SelectItem>
+                                <SelectItem value="lunch">Lunch</SelectItem>
+                                <SelectItem value="dinner">Dinner</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Type</Label>
+                            <Select value={foodForm.mealType} onValueChange={(v)=>setFoodForm(prev=>({...prev, mealType: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Meal type" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="meat">Meat-based</SelectItem>
+                                <SelectItem value="fish">Fish-based</SelectItem>
+                                <SelectItem value="plant">Plant-based</SelectItem>
+                                <SelectItem value="dairy">Dairy</SelectItem>
+                                <SelectItem value="mixed">Mixed</SelectItem>
+                                <SelectItem value="skipped">Skipped</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Description</Label>
+                            <Input value={foodForm.description || ""} onChange={(e)=>setFoodForm(prev=>({...prev, description: e.target.value}))} placeholder="e.g., tuna, rice" />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <Button onClick={()=>{ if (editingId) setIsSaveConfirmOpen(true); else handleAddFood(); }}>
+                            {editingId ? "Save Food" : "Add Food"}
+                          </Button>
+                          <Button variant="outline" onClick={()=>setFoodForm({mealSlot:"breakfast", mealType:"plant", description:""})}>Reset</Button>
+                          <Button variant="ghost" onClick={handleImportFromLiveTracking}>Import from Live Tracking</Button>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Save confirm dialog (when editing) */}
+                <Dialog open={isSaveConfirmOpen} onOpenChange={setIsSaveConfirmOpen}>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader><DialogTitle>Save changes?</DialogTitle></DialogHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">Save edits to this entry?</p>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={()=>setIsSaveConfirmOpen(false)}>Cancel</Button>
+                        <Button onClick={()=>{
+                          if (!editingId) { setIsSaveConfirmOpen(false); return; }
+                          const newEntry = activeTab === "transport" ? createTransportEntryFromForm() :
+                                           activeTab === "home" ? createHomeEntryFromForm() :
+                                           createFoodEntryFromForm();
+                          const updated = { ...newEntry, id: editingId, createdAt: new Date().toISOString() } as Entry;
+                          setEntries(prev => prev.map(e => e.id === editingId ? updated : e));
+                          setEditingId(null);
+                          setIsSaveConfirmOpen(false);
+                          setIsAddOpen(false);
+                          toast({ title: "Saved", description: "Entry updated." });
+                        }}>Save</Button>
+                      </div>
+                    </CardContent>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleCalculate} disabled={loadingStatus === "loading"}>
+                 <Calculator /> Calculate Carbon Footprint
+                </Button>
+                <Button onClick={handleGetRecommendations} disabled={!footprintData && !footprintId}>
+                  <Lightbulb/> Get AI Recommendations
+                </Button>
+              </div>
+            </div>
+
+            {/* Dashboard summary (if footprint calculated OR restored) */}
+            {footprintData && (
+              <motion.div initial="initial" animate="enter" variants={ANIM} className="mb-6">
+                <Card className="shadow-card border-border">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="h-6 w-6 text-warning" />
+                          Your Footprint Summary
+                        </CardTitle>
+                        <CardDescription className="text-sm">Detailed breakdown of your latest calculated footprint</CardDescription>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Total CO₂e</div>
+                        <div className="text-2xl font-bold">{footprintData.calculatedFootprint.total} kg</div>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Transport */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Car className="h-6 w-6 text-primary" />
+                        <div>
+                          <div className="text-sm font-medium">Transport</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="text-sm font-semibold">{animTransport.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animTransport / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+
+                      <div className="hidden md:block text-sm text-muted-foreground">
+                        {/* Optional extra info */}
+                      </div>
+                    </div>
+
+                    {/* Home Energy */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Zap className="h-6 w-6 text-green-600" />
+                        <div>
+                          <div className="text-sm font-medium">Home Energy</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-semibold">{animHome.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animHome / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Food */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Utensils className="h-6 w-6 text-amber-600" />
+                        <div>
+                          <div className="text-sm font-medium">Food</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-semibold">{animFood.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animFood / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edit button below */}
+                    <div className="flex justify-end">
+                      <Button variant="outline" onClick={() => { setIsResetConfirmOpen(true); }}>
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Edit My Footprint
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
 
-            {/* Progress Bar */}
-            <Card className="shadow-card border-border mb-8">
-              <CardHeader>
-                <div className="flex justify-between items-center mb-2">
-                  <CardTitle className="text-lg">Step {currentStep} of 3: {stepTitles[currentStep - 1]}</CardTitle>
-                  <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-              </CardHeader>
-            </Card>
-
-            <Card className="shadow-card border-border mb-8">
-              <CardHeader>
-                <div className="flex justify-between items-center mb-2">
-                  <CardTitle className="text-lg">Transportation Pattern Today</CardTitle>
-                  <p>Date: {new Date().toLocaleDateString()}</p>
-                  <button onClick={() => refetch()} className="refresh-button">Refresh Activities</button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activities?.map((activity) => (
-                <div key={activity._id} className="flex items-center space-x-2">
-                  <input
-                  type="checkbox"
-                  checked={selectedActivities.includes(activity._id)}
-                  onChange={() => handleCheckboxChange(activity._id)}
-                  />
-                  <Label className="flex-1">{activity.subtype}</Label>
-                  <Input
-                    type="number"
-                    placeholder="km"
-                    className="w-20"
-                    value={
-                      selectedActivities.includes(activity._id)
-                        ? // if checked → use formData value (editable)
-                          (activity.subtype === "walk"
-                            ? formData.walkingDistance
-                            : activity.subtype === "bicycle"
-                            ? formData.bicycleDistance
-                            : activity.subtype === "diesel" || activity.subtype === "gasoline"
-                            ? formData.personalCarDistance
-                            : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "tricycle" || activity.subtype === "train" || activity.subtype === "e-jeep"
-                            ? formData.publicTransportDistance
-                            : activity.subtype === "motorcycle"
-                            ? formData.motorcycleDistance
-                            : "")
-                        : // if not checked → just display fetched totalDistance
-                          activity.totalDistance?.toFixed(2) || ""
-                    }
-                    onChange={(e) => {
-                      // only allow form data to be changed if checked
-                      if (selectedActivities.includes(activity._id)) {
-                        setFormData({
-                          ...formData,
-                          [`${
-                            activity.subtype === "walk"
-                              ? "walking"
-                              : activity.subtype === "bicycle"
-                              ? "bicycle"
-                              : activity.subtype === "diesel" || activity.subtype === "gasoline"
-                              ? "personalCar"
-                              : activity.subtype === "public" || activity.subtype === "bus" || activity.subtype === "jeep" || activity.subtype === "e-jeep" || activity.subtype === "tricycle" || activity.subtype === "train"
-                              ? "publicTransport"
-                              : activity.subtype === "motorcycle"
-                              ? "motorcycle"
-                              : ""
-                          }Distance`]: e.target.value,
-                        });
-                      }
-                    }}
-                    disabled
-                  />
-
-                </div>
-              ))}
-              </div>
-              </CardContent>
-            </Card>
-
-            {/* Form Steps - Same as original but wrapped in form */}
-            <form onSubmit={handleFormSubmit}>
-              {/* Step 1: Transportation */}
-              {currentStep === 1 && (
-                <Card className="shadow-card border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Car className="h-6 w-6 text-primary" />
-                      Transport & Travel (Daily)
-                    </CardTitle>
-                    <CardDescription>Tell us about your daily travel patterns</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <Label>Q1. What is/are your mode(s) of transportation for daily commute? (Check all that apply)</Label>
-                      
-                      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 p-2 rounded-md transition-all duration-200 ease-in-out ${fieldErrors.transportModes ? "border border-red-500" : ""}`}>
-                        {/* Personal Car */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="personalCar"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.personalCar}
-                            onChange={(e) => handleTransportModeChange("personalCar", e.target.checked)}
-                            disabled={isNoTransportSelected}
-                          />
-                          <Label 
-                            htmlFor="personalCar" 
-                            className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Personal Car
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="km"
-                            className="w-20"
-                            value={formData.personalCarDistance}
-                            onChange={(e) => handleDistanceChange("personalCar", e.target.value)}
-                            disabled={!checkedTransportModes.personalCar || isNoTransportSelected}
-                          />
-                        </div>
-
-                        {/* Public Transportation */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="publicTransport"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.publicTransport}
-                            onChange={(e) => handleTransportModeChange("publicTransport", e.target.checked)}
-                            disabled={isNoTransportSelected}
-                          />
-                          <Label 
-                            htmlFor="publicTransport" 
-                            className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Public Transportation
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="km"
-                            className="w-20"
-                            value={formData.publicTransportDistance}
-                            onChange={(e) => handleDistanceChange("publicTransport", e.target.value)}
-                            disabled={!checkedTransportModes.publicTransport || isNoTransportSelected}
-                          />
-                        </div>
-
-                        {/* Motorcycle */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="motorcycle"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.motorcycle}
-                            onChange={(e) => handleTransportModeChange("motorcycle", e.target.checked)}
-                            disabled={isNoTransportSelected}
-                          />
-                          <Label 
-                            htmlFor="motorcycle" 
-                            className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Motorcycle
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="km"
-                            className="w-20"
-                            value={formData.motorcycleDistance}
-                            onChange={(e) => handleDistanceChange("motorcycle", e.target.value)}
-                            disabled={!checkedTransportModes.motorcycle || isNoTransportSelected}
-                          />
-                        </div>
-
-                        {/* Bicycle/E-bike */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="bicycle"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.bicycle}
-                            onChange={(e) => handleTransportModeChange("bicycle", e.target.checked)}
-                            disabled={isNoTransportSelected}
-                          />
-                          <Label 
-                            htmlFor="bicycle" 
-                            className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Bicycle / E-bike
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="km"
-                            className="w-20"
-                            value={formData.bicycleDistance}
-                            onChange={(e) => handleDistanceChange("bicycle", e.target.value)}
-                            disabled={!checkedTransportModes.bicycle || isNoTransportSelected}
-                          />
-                        </div>
-
-                        {/* Walking */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="walking"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.walking}
-                            onChange={(e) => handleTransportModeChange("walking", e.target.checked)}
-                            disabled={isNoTransportSelected}
-                          />
-                          <Label 
-                            htmlFor="walking" 
-                            className={`flex-1 ${isNoTransportSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Walking
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="km"
-                            className="w-20"
-                            value={formData.walkingDistance}
-                            onChange={(e) => handleDistanceChange("walking", e.target.value)}
-                            disabled={!checkedTransportModes.walking || isNoTransportSelected}
-                          />
-                        </div>
-
-                        {/* No Transport */}
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="noTransport"
-                            className="w-4 h-4"
-                            checked={checkedTransportModes.noTransport}
-                            onChange={(e) => handleTransportModeChange("noTransport", e.target.checked)}
-                          />
-                          <Label htmlFor="noTransport" className="flex-1">Didn't commute today</Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="flightsToday">Q2. Did you take any flights today?</Label>
-                      <Select value={formData.flightsToday} onValueChange={(value) => handleInputChange("flightsToday", value)}>
-                        <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.flightsToday ? 'border-red-500' : ''}`}>
-                          <SelectValue placeholder="Select flight option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="long-haul">Yes, long-haul (More than 3 hours)</SelectItem>
-                          <SelectItem value="short-haul">Yes, short-haul (Less than 3 hours)</SelectItem>
-                          <SelectItem value="none">No</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
+            {/* Entries list (cards) */}
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {entries.length === 0 && (
+                <Card className="shadow-card border-border p-6">
+                  <CardContent className="text-center text-muted-foreground">No entries yet. Add entries using the pop-up above.</CardContent>
                 </Card>
               )}
 
-              {/* Step 2: Energy */}
-              {currentStep === 2 && (
-                <Card className="shadow-card border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="h-6 w-6 text-warning" />
-                      Home Energy Usage
-                    </CardTitle>
-                    <CardDescription>Information about your home energy consumption</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="homeType">Q3. What type of home do you live in?</Label>
-                      <Select value={formData.homeType} onValueChange={(value) => handleInputChange("homeType", value)}>
-                        <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.homeType ? 'border-red-500' : ''}`}>
-                          <SelectValue placeholder="Select home type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="large-house">Large House (3 or more bedrooms)</SelectItem>
-                          <SelectItem value="small-house">Small House (2 or less bedrooms)</SelectItem>
-                          <SelectItem value="apartment">Apartment/Condo</SelectItem>
-                        </SelectContent>
-                      </Select>
+              {entries.map((e) => (
+                <Card key={e.id} className="shadow-card border-border">
+                  <CardHeader className="flex flex-row justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                        {e.category === "transport" && <Car className="h-5 w-5 text-muted-foreground" />}
+                        {e.category === "home" && <Home className="h-5 w-5 text-muted-foreground" />}
+                        {e.category === "food" && <Utensils className="h-5 w-5 text-muted-foreground" />}
+                        <span className="capitalize">{e.category}</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground mt-1">
+                        {new Date(e.createdAt).toLocaleString()}
+                      </CardDescription>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="houseSharing">Q4. With how many people did you share your house today?</Label>
-                      <Input
-                        id="houseSharing"
-                        type="number"
-                        value={formData.houseSharing}
-                        onChange={(e) => handleInputChange("houseSharing", e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        placeholder="Enter number of people (including yourself)"
-                        className={`transition-all duration-200 ease-in-out ${fieldErrors.houseSharing ? 'border-red-500' : ''}`}
-                      />
-                    </div>
-
-                    <div className="space-y-4">
-                      <Label>Q5. Which high-energy appliances did you use today? (Check all that apply)</Label>
-                      
-                      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 p-2 rounded-md transition-all duration-200 ease-in-out ${fieldErrors.appliances ? "border border-red-500" : ""}`}>
-                        <div className="flex items-center space-x-2">
-                          <input 
-                            type="checkbox" 
-                            id="aircon" 
-                            className="w-4 h-4" 
-                            checked={checkedAppliances.aircon}
-                            onChange={(e) => handleApplianceChange("aircon", e.target.checked)}
-                            disabled={isNoApplianceSelected}
-                          />
-                          <Label 
-                            htmlFor="aircon" 
-                            className={`flex-1 ${isNoApplianceSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Air Conditioning / Heating Systems
-                          </Label>
-                        </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-28">
+                        <DropdownMenuItem onClick={() => handleEditEntry(e.id)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            setIsDeleteConfirmOpen(true)
+                            setDeleteTargetId(e.id)
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                         
-                        <div className="flex items-center space-x-2">
-                          <input 
-                            type="checkbox" 
-                            id="laundry" 
-                            className="w-4 h-4" 
-                            checked={checkedAppliances.laundry}
-                            onChange={(e) => handleApplianceChange("laundry", e.target.checked)}
-                            disabled={isNoApplianceSelected}
-                          />
-                          <Label 
-                            htmlFor="laundry" 
-                            className={`flex-1 ${isNoApplianceSelected ? "text-muted-foreground" : ""}`}
-                          >
-                            Laundry Machine
-                          </Label>
+                    <Dialog
+                      open={isDeleteConfirmOpen && deleteTargetId === e.id}
+                      onOpenChange={(v) => {
+                        if (!v) {
+                          setIsDeleteConfirmOpen(false)
+                          setDeleteTargetId(null)
+                        }
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>Delete Entry</DialogTitle>
+                        </DialogHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Are you sure you want to delete this entry? This action cannot be undone.
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setIsDeleteConfirmOpen(false)
+                                setDeleteTargetId(null)
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={executeDelete}>
+                              Delete
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                            
+                  <CardContent className="mt-2 text-sm">
+                    {e.category === "food" && (
+                      <div className="flex flex-row justify-between items-center">
+                        <div>
+                          <p className="text-muted-foreground">Meal Slot: <span className="font-semibold uppercase text-primary mt-2">{e.mealSlot}</span></p>
+                          <p className="text-muted-foreground">Meal Type: <span className="font-semibold uppercase text-primary mt-2">{e.mealType}</span></p>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                          <input 
-                            type="checkbox" 
-                            id="none" 
-                            className="w-4 h-4" 
-                            checked={checkedAppliances.none}
-                            onChange={(e) => handleApplianceChange("none", e.target.checked)}
-                          />
-                          <Label htmlFor="none" className="flex-1">None</Label>
+                        <div>
+                          <p className="text-muted-foreground">Description: <span className="font-semibold text-xl uppercase text-primary mx-4">{e.description || "-"}</span></p>
+                        </div>
+                  
+                      </div>
+                    )}
+
+                    {e.category === "transport" && (
+                      <div className="flex flex-row justify-between items-center">
+                        <div>
+                          <p className="text-muted-foreground">Mode: <span className="font-semibold uppercase text-primary mt-2">{e.mode}</span></p>
+                        </div>
+                    
+                        <div>
+                          <p className="text-muted-foreground"> Distance (km) <span className="font-semibold text-xl uppercase text-primary mx-4">{(e.distanceKm ?? 0).toFixed(2)}</span></p>
+                        </div>
+                    
+                        {e.mode === "flight" && (
+                          <>
+                            <div className="text-muted-foreground mt-2">Flight Type</div>
+                            <div>{e.flightType ?? "-"}</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {e.category === "home" && (
+                      <div className="grid grid-cols-2 items-center">
+                        <div className="text-muted-foreground">Home Type</div>
+                        <div>{e.homeType}</div>
+                    
+                        <div className="text-muted-foreground mt-2">Occupants</div>
+                        <div>{e.occupants}</div>
+                    
+                        <div className="text-muted-foreground mt-2">Appliances</div>
+                        <div className="font-semibold text-base text-primary mt-2">
+                          {e.appliances}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
+              ))}
+            </div>
 
-              {/* Step 3: Food & Lifestyle */}
-{currentStep === 3 && (
-  <Card className="shadow-card border-border">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Utensils className="h-6 w-6 text-accent" />
-        Food & Lifestyle
-      </CardTitle>
-      <CardDescription>Your dietary habits and lifestyle choices</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-6">
-      {/* Breakfast Section */}
-      <div className="space-y-2">
-        <Label htmlFor="breakfastType">Q6. What did you have for breakfast today?</Label>
-        <Select
-          value={formData.breakfastType}
-          onValueChange={(value) => handleInputChange("breakfastType", value)}
-        >
-          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.breakfastType ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select breakfast type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
-            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-            <SelectItem value="skipped">Skipped breakfast</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Conditional Textbox for all except "skipped" and "mixed" */}
-        {formData.breakfastType && !(formData.breakfastType === "skipped" || formData.breakfastType === "mixed") && (
-          <div className="space-y-2">
-            <Label htmlFor="breakfastDescription">
-              Please specify (optional, for better recommendations):
-            </Label>
-            <Input
-              type="text"
-              id="breakfastDescription"
-              value={formData.breakfastDescription || ""}
-              onChange={(e) => handleInputChange("breakfastDescription", e.target.value)}
-              placeholder="e.g., bacon, sausage, fruits, etc."
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Lunch Section */}
-      <div className="space-y-2">
-        <Label htmlFor="lunchType">Q7. What did you have for lunch today?</Label>
-        <Select
-          value={formData.lunchType}
-          onValueChange={(value) => handleInputChange("lunchType", value)}
-        >
-          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.lunchType ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select lunch type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
-            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-            <SelectItem value="skipped">Skipped lunch</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Conditional Textbox for all except "skipped" and "mixed" */}
-        {formData.lunchType && !(formData.lunchType === "skipped" || formData.lunchType === "mixed") && (
-          <div className="space-y-2">
-            <Label htmlFor="lunchDescription">
-              Please specify (optional, for better recommendations):
-            </Label>
-            <Input
-              type="text"
-              id="lunchDescription"
-              value={formData.lunchDescription || ""}
-              onChange={(e) => handleInputChange("lunchDescription", e.target.value)}
-              placeholder="e.g., tuna, chicken, grains, etc."
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Dinner Section */}
-      <div className="space-y-2">
-        <Label htmlFor="dinnerType">Q8. What did you have for dinner today?</Label>
-        <Select
-          value={formData.dinnerType}
-          onValueChange={(value) => handleInputChange("dinnerType", value)}
-        >
-          <SelectTrigger className={`transition-all duration-200 ease-in-out ${fieldErrors.dinnerTypeType ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select dinner type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="meat">Meat-based (bacon, hotdogs, sausage)</SelectItem>
-            <SelectItem value="fish">Fish-based (salmon, tuna, shrimp)</SelectItem>
-            <SelectItem value="plant">Plant-based (fruits, grains)</SelectItem>
-            <SelectItem value="dairy">Dairy (milk, yogurt, eggs)</SelectItem>
-            <SelectItem value="mixed">Mixed (combination of categories)</SelectItem>
-            <SelectItem value="skipped">Skipped dinner</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Conditional Textbox for all except "skipped" and "mixed" */}
-        {formData.dinnerType && !(formData.dinnerType === "skipped" || formData.dinnerType === "mixed") && (
-          <div className="space-y-2">
-            <Label htmlFor="dinnerDescription">
-              Please specify (optional, for better recommendations):
-            </Label>
-            <Input
-              type="text"
-              id="dinnerDescription"
-              value={formData.dinnerDescription || ""}
-              onChange={(e) => handleInputChange("dinnerDescription", e.target.value)}
-              placeholder="e.g., salmon, steak, vegetables, etc."
-            />
-          </div>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-)}
-
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                >
-                  Previous
-                </Button>
-                
-                {currentStep < 3 ? (
-                  <Button
-                    type="button"
-                    className="transition-all duration-300 ease-out"
-                    onClick={() => {
-                      if (validateStep(currentStep)) {
-                        nextStep();
-                      } else {
-                        toast({
-                          title: "Missing required fields",
-                          description: "Please complete all required questions before continuing.",
-                          variant: "destructive"
-                        });
-                      }
-                    }}
-                  >
-                    Next Step
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    className="flex items-center gap-2 transition-all duration-300 ease-out"
-                    disabled={loadingStatus === 'loading'}
-                    onClick={() => {
-                      if (validateStep(currentStep)) {
-                        handleFormSubmit();
-                      } else {
-                        toast({
-                          title: "Missing required fields",
-                          description: "Please complete all required questions before continuing.",
-                          variant: "destructive"
-                        });
-                      }
-                    }}
-                  >
-                    {loadingStatus === 'loading' ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Calculate & Get AI Recommendations
-                      </>
-                    )}
-                  </Button>
-                )}
+              <div>
+                <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={()=>setIsResetConfirmOpen(true)}>Reset Daily Data</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader><DialogTitle>Reset Daily Data</DialogTitle></DialogHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">Resetting will clear today's footprint and eco-challenges. Continue?</p>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={()=>setIsResetConfirmOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleConfirmReset}>Reset</Button>
+                      </div>
+                    </CardContent>
+                  </DialogContent>
+                </Dialog>
               </div>
-            </form>
 
-            {/* Show existing data cards only in form view */}
+                        {/* Show existing data cards only in form view */}
             <div className="mt-10 grid grid-cols-1 gap-6">
               <Card className="shadow-card border-border">
                 <CardHeader>
@@ -1313,100 +1198,7 @@ const TrackCarbon = () => {
               </Card>
             </div>
           </>
-        ) : (
-          // RESULTS VIEW - AI Recommendations interface
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-                <Lightbulb className="h-8 w-8 text-warning" />
-                Your AI-Powered Recommendations
-              </h1>
-              <p className="text-muted-foreground">
-                Personalized suggestions to reduce your carbon footprint
-              </p>
-            </div>
 
-            {/* Edit Button */}
-            <div className="flex justify-center">
-              <Button 
-                variant="outline" 
-                onClick={handleEditFootprint}
-                className="flex items-center gap-2 transition-all duration-300 ease-out"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Edit My Footprint
-              </Button>
-            </div>
-
-            {/* Loading State */}
-            {loadingStatus === 'loading' && (
-              <Card className="shadow-card border-border">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <div>
-                      <h3 className="text-lg font-medium">Generating AI Recommendations</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Analyzing your carbon footprint and creating personalized suggestions...
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Error State */}
-            {loadingStatus === 'error' && (
-              <Card className="shadow-card border-border border-destructive">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-5 w-5" />
-                    Failed to Generate Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    {errorMessage || 'We encountered an error while generating your personalized recommendations.'}
-                  </p>
-                  <div className="flex space-x-2">
-                    <Button onClick={handleRetryRecommendations} size="sm" className="transition-all duration-300 ease-out">
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Retry
-                    </Button>
-                    <Button variant="outline" onClick={handleEditFootprint} size="sm">
-                      Back to Form
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Success State - Show Recommendations */}
-            {loadingStatus === 'success' && recommendations.length > 0 && (
-              <RecommendationView 
-                recommendations={recommendations}
-                footprintData={footprintData}
-                onRetry={handleRetryRecommendations}
-              />
-            )}
-
-            {/* Empty State */}
-            {loadingStatus === 'success' && recommendations.length === 0 && (
-              <Card className="shadow-card border-border">
-                <CardContent className="p-8 text-center">
-                  <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No Recommendations Available</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    We couldn't generate recommendations based on your current footprint data.
-                  </p>
-                  <Button onClick={handleRetryRecommendations} className="transition-all duration-300 ease-out">
-                    Try Again
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         )}
       </main>
     </div>
