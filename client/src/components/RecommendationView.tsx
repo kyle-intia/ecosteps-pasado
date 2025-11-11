@@ -360,34 +360,6 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
           </div>
         </CardContent>
       </Card>
-
-      {/* Show existing data cards only in form view */}
-      <div className="mt-10 grid grid-cols-1 gap-6">
-        <Card className="shadow-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plane className="h-6 w-6 text-muted-foreground" />
-              Recent History (7 days)
-            </CardTitle>
-            <CardDescription>
-              {isLoadingHistory ? 'Loading history...' : `Entries: ${historyEntries.length}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              {historyEntries.length === 0 && !isLoadingHistory && (
-                <div className="text-muted-foreground">No recent entries</div>
-              )}
-              {historyEntries.map((e) => (
-                <div key={e.id} className="flex justify-between">
-                  <span>{e.date}{e.isToday ? ' (Today)' : ''}</span>
-                  <span>{(e.footprint && e.footprint.total) ?? e.footprint ?? '-'} kg</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

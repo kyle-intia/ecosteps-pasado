@@ -1,163 +1,548 @@
 // client/src/pages/TrackCarbon.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Leaf, Car, Utensils, Calendar, Calculator, Sparkles, Receipt, RotateCcw, AlertTriangle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Navbar } from "@/components/Navbar";
+import { Progress } from "@/components/ui/progress";
+import {
+  Car,
+  Zap,
+  Utensils,
+  Plane,
+  Home,
+  AlertTriangle,
+  RotateCcw,
+  Sparkles,
+  Lightbulb,
+  Calculator,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
+import {
+  logout,
+  getTodaysTracking,
+  getDailyTrackingHistory,
+} from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
 import RecommendationView from "../components/RecommendationView";
 import LoadingSpinner from "../components/LoadingSpinner";
 import useActivityTrack from "@/hooks/useActivityTrack";
-import { logout, getTodaysTracking, getDailyTrackingHistory } from "../lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-/**
- * Emission factors for quick local estimates (kg CO2e per km or per serving)
- * These are the same as in your copy file and are used to show per-entry CO2e locally.
- */
-const EMISSION_FACTORS: Record<string, number> = {
-  diesel: 0.171,
-  electric: 0.047,
-  gasoline: 0.192,
-  hybrid: 0.109,
-  motorcycle: 0.103,
-  tricycle: 0.089,
-  jeep: 0.112,
-  "e-jeep": 0.051,
-  train: 0.041,
-  walk: 0,
-  bicycle: 0,
-  // Food
-  meat: 7.2,
-  fish: 5.1,
-  dairy: 3.2,
-  mixed: 2.8,
-  skipped: 0,
+type Category = "transport" | "home" | "food";
+
+type BaseEntry = {
+  id: string;
+  category: Category;
+  createdAt: string;
 };
 
-type EntryType = "distance" | "food";
+type TransportEntry = BaseEntry & {
+  category: "transport";
+  mode:
+    | "car"
+    | "public_transport"
+    | "motorcycle"
+    | "bicycle"
+    | "walking"
+    | "flight"
+    | "no_travel";
+  distanceKm?: number;
+  flightType?: "short-haul" | "long-haul" | undefined;
+};
 
-interface TrackEntry {
-  id: string;
-  type: EntryType;
-  category?: string; // private/public/basic or undefined for food
-  subtype: string; // diesel, jeep, meat, fish, etc.
-  value: number; // km or servings
-  co2e?: number; // computed locally
-  timestamp: string;
+type HomeEntry = BaseEntry & {
+  category: "home";
+  homeType: "large_house" | "small_house" | "apartment";
+  occupants: number;
+  appliances: "aircon" | "laundry" | "none";
+};
+
+type FoodEntry = BaseEntry & {
+  category: "food";
+  mealSlot: "breakfast" | "lunch" | "dinner";
+  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed" | "skipped";
+  description?: string;
+};
+
+type Entry = TransportEntry | HomeEntry | FoodEntry;
+
+interface FootprintResponse {
+  success: boolean;
+  data: {
+    id: string;
+    footprintId: string;
+    isUpdate: boolean;
+    calculatedFootprint: {
+      transport: number;
+      homeEnergy: number;
+      food: number;
+      total: number;
+    };
+    breakdown: {
+      transport: number;
+      homeEnergy: number;
+      food: number;
+      total: number;
+    };
+    newAchievements?: any[];
+  };
 }
 
-interface Receipt {
-  id: string;
-  date: string;
-  entries: TrackEntry[];
-  totalCO2e: number;
+interface RecommendationResponse {
+  success: boolean;
+  data: {
+    recommendations: any[];
+    footprintSummary: {
+      total: number;
+      transport: number;
+      homeEnergy: number;
+      food: number;
+      date: string;
+    };
+    cached: boolean;
+    generatedAt: string;
+    processingTime?: number;
+  };
 }
 
-export default function TrackCarbon() {
-  // auth / sessions
-  const { toast } = useToast();
+const makeId = () =>
+  `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+const ANIM = { initial: { opacity: 0, y: 6 }, enter: { opacity: 1, y: 0 } };
+
+const TrackCarbon = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { sessions, isPending, isError } = useSessions();
   const { user } = useAuth() as { user: { _id?: string } };
 
-  // state for blended UI
-  const [entries, setEntries] = useState<TrackEntry[]>([]);
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [entryType, setEntryType] = useState<EntryType>("distance");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // distance form states
-  const [distanceMode, setDistanceMode] = useState<"tracked" | "manual">("tracked");
-  const [selectedTrackedIds, setSelectedTrackedIds] = useState<string[]>([]);
-  const [distanceCategory, setDistanceCategory] = useState("private");
-  const [distanceSubtype, setDistanceSubtype] = useState("diesel");
-  const [distance, setDistance] = useState("");
+  // entries
+  const [entries, setEntries] = useState<Entry[]>([]);
 
-  // food form states
-  const [foodType, setFoodType] = useState("meat");
-  const [foodName, setFoodName] = useState("");
+  // modal & dialogs
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
-  // activity tracking hook (if available)
-  const { activities, isLoading: activitiesLoading, isError: activitiesError, error: activitiesErrorObj, refetch: refetchActivities } = useActivityTrack();
+  // editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Category>("transport");
 
-  // local UI flags
-  const [loadingStatus, setLoadingStatus] = useState<'idle'|'loading'|'success'|'error'>('idle');
-  const [footprintData, setFootprintData] = useState<any | null>(null); // saved response data from /api/footprint/submit
+  // forms inside modal
+  const [transportForm, setTransportForm] = useState<Partial<TransportEntry>>({
+    mode: "car",
+    distanceKm: 0,
+    flightType: undefined,
+  });
+  const [homeForm, setHomeForm] = useState<Partial<HomeEntry>>({
+    homeType: "apartment",
+    occupants: 0,
+    appliances: "none",
+  });
+  const [foodForm, setFoodForm] = useState<Partial<FoodEntry>>({
+    mealSlot: "breakfast",
+    mealType: "meat",
+    description: "",
+  });
+
+  // activity tracking
+  const {
+    activities,
+    isLoading: isActivitiesLoading,
+    isError: activitiesError,
+    refetch: refetchActivities,
+  } = useActivityTrack();
+
+  // footprint & recommendations
+  const [footprintData, setFootprintData] =
+    useState<FootprintResponse["data"] | null>(null);
+  const [footprintId, setFootprintId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [isFetchingRecommendations, setIsFetchingRecommendations] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [todayEntry, setTodayEntry] = useState<any | null>(null);
-  const [isLoadingToday, setIsLoadingToday] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
 
-  // tracked activities mock fallback (if hook returns none)
-  const trackedActivitiesFallback = [
-    { id: "t1", category: "private", subtype: "diesel", distance: 12, timestamp: new Date().toISOString()},
-    { id: "t2", category: "public", subtype: "jeep", distance: 8.5, timestamp: new Date(Date.now()-3600000).toISOString()},
-    { id: "t3", category: "basic", subtype: "bicycle", distance: 5.2, timestamp: new Date(Date.now()-7200000).toISOString()},
-  ];
-  const trackedActivities = (activities && activities.length > 0) ? activities.map((a: any) => ({ id: a._id || a.id, category: a.category || a.type || "private", subtype: a.subtype, distance: a.totalDistance || a.distance || 0, timestamp: a.createdAt || a.timestamp || new Date().toISOString() })) : trackedActivitiesFallback;
+  // UI animation states for progress bars
+  const [animTransport, setAnimTransport] = useState(0);
+  const [animHome, setAnimHome] = useState(0);
+  const [animFood, setAnimFood] = useState(0);
 
-  const transportTypes: Record<string, string[]> = {
-    private: ["diesel", "electric", "gasoline", "hybrid", "motorcycle"],
-    public: ["tricycle", "jeep", "e-jeep", "train"],
-    basic: ["walk", "bicycle"],
-  };
-
-  // Rehydrate saved session footprint/recommendations if present
+  // restore persisted state
   useEffect(() => {
-    const sessionFootprintId = localStorage.getItem('current_footprint_id');
-    const sessionFootprintData = localStorage.getItem('current_footprint_data');
-    const sessionRecommendations = localStorage.getItem('current_recommendations');
-
-    if (sessionFootprintData) {
+    const savedEntries = localStorage.getItem("current_entries");
+    if (savedEntries) {
       try {
-        const parsed = JSON.parse(sessionFootprintData);
-        setFootprintData(parsed);
-        setIsFetchingRecommendations(false);
-        setLoadingStatus('success');
-      } catch (e) {
-        localStorage.removeItem('current_footprint_data');
-        localStorage.removeItem('current_footprint_id');
-        localStorage.removeItem('current_recommendations');
+        setEntries(JSON.parse(savedEntries));
+      } catch {
+        localStorage.removeItem("current_entries");
       }
     }
-    if (sessionRecommendations) {
+
+    const savedFootprint = localStorage.getItem("current_footprint_data");
+    if (savedFootprint) {
       try {
-        const parsed = JSON.parse(sessionRecommendations);
-        setRecommendations(parsed);
-      } catch (e) {
-        localStorage.removeItem('current_recommendations');
-      }
+        const parsed = JSON.parse(savedFootprint);
+        setFootprintData(parsed);
+        setFootprintId(parsed.footprintId);
+        // set anim values to actuals after a small delay
+        setTimeout(() => {
+          const t = parsed.calculatedFootprint.transport || 0;
+          const h = parsed.calculatedFootprint.homeEnergy || 0;
+          const f = parsed.calculatedFootprint.food || 0;
+          setAnimTransport(t);
+          setAnimHome(h);
+          setAnimFood(f);
+        }, 200);
+      } catch {}
+    }
+
+    const savedRecs = localStorage.getItem("current_recommendations");
+    if (savedRecs) {
+      try {
+        setRecommendations(JSON.parse(savedRecs));
+      } catch {}
     }
   }, []);
 
-  // Sessions & auth redirect logic (kept from original)
+  useEffect(() => {
+    localStorage.setItem("current_entries", JSON.stringify(entries));
+  }, [entries]);
+
+  // session & fetching today/history
   useEffect(() => {
     if (!isPending && sessions.length > 0) {
-      const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-      // keep isLoggedIn state if you have a local state for it (we rely on Navbar prop below)
-      // setIsLoggedIn(loggedIn) // not used here
+      const logged = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(logged);
     }
-
     if (!isPending && (isError || sessions.length === 0)) {
       localStorage.removeItem("isLoggedIn");
       navigate("/", { replace: true });
     }
   }, [isPending, isError, sessions, navigate]);
 
-  // fetch today's entry & history on mount (kept from original)
+  useEffect(() => {
+    if (!isLoggedIn || !user || footprintData) return;
+    (async () => {
+      try {
+        const res = await getTodaysTracking();
+        // don't override entries; keep today's stored footprint separate
+        // you already store today's entry in a separate panel below if needed
+      } catch {}
+    })();
+  }, [isLoggedIn, user, footprintData]);
+
+  // logout
+  const { mutate: signOut } = useMutation({
+    mutationFn: logout,
+    onSettled: () => {
+      localStorage.clear();
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    },
+  });
+  const handleSignOut = () => signOut();
+
+  // API wrappers
+  const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/footprint/submit`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(trackingData),
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to submit footprint");
+    }
+    return response.json();
+  };
+
+  const fetchRecommendations = async (
+    id: string
+  ): Promise<RecommendationResponse> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/recommendations`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ footprintId: id }),
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to fetch recommendations");
+    }
+    return response.json();
+  };
+
+  const resetDailyData = async (): Promise<void> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/footprint/reset-daily`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || "Failed to reset daily data");
+    }
+  };
+
+  // create entries
+  const createTransportEntryFromForm = (): TransportEntry => ({
+    id: makeId(),
+    category: "transport",
+    createdAt: new Date().toISOString(),
+    mode: (transportForm.mode as TransportEntry["mode"]) || "car",
+    distanceKm:
+      transportForm.mode === "no_travel" ? 0 : Number(transportForm.distanceKm || 0),
+    flightType: transportForm.flightType,
+  });
+
+  const createHomeEntryFromForm = (): HomeEntry => ({
+    id: makeId(),
+    category: "home",
+    createdAt: new Date().toISOString(),
+    homeType: (homeForm.homeType as HomeEntry["homeType"]) || "small_house",
+    occupants: Number(homeForm.occupants || 0),
+    appliances: (homeForm.appliances as HomeEntry["appliances"]) || "none",
+  });
+
+  const createFoodEntryFromForm = (): FoodEntry => ({
+    id: makeId(),
+    category: "food",
+    createdAt: new Date().toISOString(),
+    mealSlot: (foodForm.mealSlot as FoodEntry["mealSlot"]) || "breakfast",
+    mealType: (foodForm.mealType as FoodEntry["mealType"]) || "plant",
+    description: foodForm.description || "",
+  });
+
+  const addOrUpdateEntry = (entry: Entry) => {
+    if (editingId) {
+      setEntries((prev) => prev.map((e) => (e.id === editingId ? { ...entry, id: editingId } : e)));
+      setEditingId(null);
+      toast({ title: "Saved", description: "Entry updated." });
+    } else {
+      setEntries((prev) => [entry, ...prev]);
+      toast({ title: "Added", description: "Entry added." });
+    }
+  };
+
+  // add handlers
+  const handleAddTransport = () => {
+    const entry = createTransportEntryFromForm();
+    addOrUpdateEntry(entry);
+    setTransportForm({ mode: "car", distanceKm: 0, flightType: undefined });
+    setIsAddOpen(false);
+  };
+  const handleAddHome = () => {
+    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 1) {
+      toast({ title: "Invalid", description: "Choose home type & occupants.", variant: "destructive" });
+      return;
+    }
+    const entry = createHomeEntryFromForm();
+    addOrUpdateEntry(entry);
+    setHomeForm({ homeType: "small_house", occupants: 0, appliances: "none" });
+    setIsAddOpen(false);
+  };
+  const handleAddFood = () => {
+    const entry = createFoodEntryFromForm();
+    addOrUpdateEntry(entry);
+    setFoodForm({ mealSlot: "breakfast", mealType: "meat", description: "" });
+    setIsAddOpen(false);
+  };
+
+  // edit flow: open modal pre-filled
+  const handleEditEntry = (id: string) => {
+    const e = entries.find((x) => x.id === id);
+    if (!e) return;
+    setEditingId(id);
+    setIsAddOpen(true);
+    setActiveTab(e.category);
+    if (e.category === "transport") {
+      const t = e as TransportEntry;
+      setTransportForm({ mode: t.mode, distanceKm: t.distanceKm || 0, flightType: t.flightType });
+    } else if (e.category === "home") {
+      const h = e as HomeEntry;
+      setHomeForm({ homeType: h.homeType, occupants: h.occupants, appliances: h.appliances });
+    } else {
+      const f = e as FoodEntry;
+      setFoodForm({ mealSlot: f.mealSlot, mealType: f.mealType, description: f.description });
+    }
+  };
+
+  // delete flow: open dialog per-item
+  const confirmDelete = (id: string) => {
+    setDeleteTargetId(id);
+    setIsDeleteConfirmOpen(true);
+  };
+  const executeDelete = () => {
+    if (!deleteTargetId) return;
+    setEntries((prev) => prev.filter((e) => e.id !== deleteTargetId));
+    setIsDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
+    toast({ title: "Deleted", description: "Entry removed." });
+  };
+
+  // import from live tracking
+  const handleImportFromLiveTracking = () => {
+    if (!activities || activities.length === 0) {
+      toast({ title: "No live data", description: "No tracked activities to import.", variant: "destructive" });
+      return;
+    }
+    const imported = activities.map((act: any) => {
+      const subtype = String(act.subtype || "").toLowerCase();
+      let mode: TransportEntry["mode"] = "walking";
+      if (["walk", "walking"].includes(subtype)) mode = "walking";
+      else if (["bicycle", "bike"].includes(subtype)) mode = "bicycle";
+      else if (["diesel", "gasoline", "car"].includes(subtype)) mode = "car";
+      else if (["motorcycle"].includes(subtype)) mode = "motorcycle";
+      else if (["public", "bus", "jeep", "train", "tricycle", "e-jeep"].includes(subtype)) mode = "public_transport";
+      const distance = Number(act.totalDistance || 0);
+      return {
+        id: makeId(),
+        category: "transport",
+        createdAt: new Date().toISOString(),
+        mode,
+        distanceKm: distance,
+      } as TransportEntry;
+    });
+    setEntries((prev) => [...imported, ...prev]);
+    setIsAddOpen(false);
+    toast({ title: "Imported", description: `Imported ${imported.length} activities.` });
+  };
+
+  // calculate payload & call API
+  const handleCalculate = async () => {
+    if (entries.length === 0) {
+      toast({ title: "No entries", description: "Add entries before calculating.", variant: "destructive" });
+      return;
+    }
+
+    const transportAgg: Record<string, number> = {};
+    let flightsToday: "none" | "short-haul" | "long-haul" = "none";
+
+    entries.forEach((e) => {
+      if (e.category === "transport") {
+        const t = e as TransportEntry;
+        if (t.mode === "flight") {
+          if (t.flightType === "long-haul") flightsToday = "long-haul";
+          else if (flightsToday !== "long-haul" && t.flightType === "short-haul") flightsToday = "short-haul";
+        } else {
+          transportAgg[t.mode] = (transportAgg[t.mode] || 0) + Number(t.distanceKm || 0);
+        }
+      }
+    });
+
+    const transportModes = Object.entries(transportAgg).map(([id, distance]) => ({ id, distance: Number(distance.toFixed(2)) }));
+
+    const homeEntries = entries.filter((e) => e.category === "home") as HomeEntry[];
+    let homeEnergyPayload = { homeType: "small_house", occupants: 0, appliances: ["none"] as any[] };
+    if (homeEntries.length > 0) {
+      const latest = homeEntries.sort((a,b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+      homeEnergyPayload = { homeType: latest.homeType, occupants: latest.occupants, appliances: [latest.appliances] };
+    }
+
+    const foodEntries = entries.filter((e) => e.category === "food") as FoodEntry[];
+    const foodPayload: any = { breakfast: "skipped", lunch: "skipped", dinner: "skipped", breakfastFood: "", lunchFood: "", dinnerFood: "" };
+    if (foodEntries.length > 0) {
+      const latestBySlot: Record<string, FoodEntry> = {};
+      foodEntries.forEach((f) => {
+        const prev = latestBySlot[f.mealSlot];
+        if (!prev || new Date(f.createdAt) > new Date(prev.createdAt)) latestBySlot[f.mealSlot] = f;
+      });
+      if (latestBySlot.breakfast) { foodPayload.breakfast = latestBySlot.breakfast.mealType; foodPayload.breakfastFood = latestBySlot.breakfast.description || ""; }
+      if (latestBySlot.lunch) { foodPayload.lunch = latestBySlot.lunch.mealType; foodPayload.lunchFood = latestBySlot.lunch.description || ""; }
+      if (latestBySlot.dinner) { foodPayload.dinner = latestBySlot.dinner.mealType; foodPayload.dinnerFood = latestBySlot.dinner.description || ""; }
+    }
+
+    const payload = {
+      transport: { modes: transportModes, distances: Object.assign({}, ...transportModes.map((m:any) => ({ [m.id]: m.distance }))) },
+      flightsToday: flightsToday === "none" ? "none" : flightsToday,
+      homeEnergy: homeEnergyPayload,
+      food: foodPayload,
+      rawEntries: entries,
+    };
+
+    try {
+      setLoadingStatus("loading");
+      setErrorMessage(null);
+      const res = await submitFootprint(payload);
+      setFootprintData(res.data);
+      setFootprintId(res.data.footprintId);
+      localStorage.setItem("current_footprint_data", JSON.stringify(res.data));
+      // animate progress bars to category values (raw)
+      const t = res.data.calculatedFootprint.transport || 0;
+      const h = res.data.calculatedFootprint.homeEnergy || 0;
+      const f = res.data.calculatedFootprint.food || 0;
+      // smooth animation: incrementally step up
+      setAnimTransport(0); setAnimHome(0); setAnimFood(0);
+      const dur = 600;
+      const steps = 30;
+      for (let i=1;i<=steps;i++){
+        setTimeout(()=> {
+          setAnimTransport(Number(((t * i) / steps).toFixed(2)));
+          setAnimHome(Number(((h * i) / steps).toFixed(2)));
+          setAnimFood(Number(((f * i) / steps).toFixed(2)));
+        }, Math.round((i * dur)/steps));
+      }
+      setLoadingStatus("success");
+      toast({ title: "Calculated", description: `Total: ${res.data.calculatedFootprint.total} kg CO₂e.` });
+    } catch (err: any) {
+      console.error(err);
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to calculate footprint");
+      toast({ title: "Error", description: err.message || "Calculation failed", variant: "destructive" });
+    }
+  };
+
+  const [isLoadingToday, setIsLoadingToday] = useState(false);
+  const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchToday = async () => {
       try {
@@ -170,6 +555,7 @@ export default function TrackCarbon() {
         setIsLoadingToday(false);
       }
     };
+
     const fetchHistory = async () => {
       try {
         setIsLoadingHistory(true);
@@ -184,740 +570,639 @@ export default function TrackCarbon() {
 
     fetchToday();
     fetchHistory();
-  }, []);
+  }, [isLoggedIn, user]);
 
-  // logout mutation (kept from original)
-  const { mutate: signOut } = useMutation({
-    mutationFn: logout,
-    onSettled: () => {
-      localStorage.clear();
-      queryClient.clear();
-      navigate("/login", { replace: true });
-    }
-  });
 
-  const handleSignOut = () => signOut();
 
-  // Helper: compute local co2e for an entry
-  const computeEntryCO2e = (entry: TrackEntry) => {
-    const factor = EMISSION_FACTORS[entry.subtype] ?? 0;
-    return +(entry.value * factor);
-  };
-
-  // Add entry handler (from copy)
-  const handleAddEntry = () => {
-    if (entryType === "distance") {
-      if (distanceMode === "tracked") {
-        if (selectedTrackedIds.length === 0) {
-          toast({
-            title: "Please select at least one tracked activity",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        const newEntries = selectedTrackedIds.map(id => {
-          const tracked = trackedActivities.find((t: any) => t.id === id)!;
-          const e: TrackEntry = {
-            id: Date.now().toString() + id,
-            type: "distance",
-            category: tracked.category,
-            subtype: tracked.subtype,
-            value: tracked.distance,
-            timestamp: tracked.timestamp,
-            co2e: +(tracked.distance * (EMISSION_FACTORS[tracked.subtype] ?? 0)),
-          };
-          return e;
-        });
-
-        setEntries(prev => [...newEntries, ...prev]);
-        setSelectedTrackedIds([]);
-        toast({ title: `${newEntries.length} tracked ${newEntries.length === 1 ? 'activity' : 'activities'} added!` });
-      } else {
-        const distanceValue = parseFloat(distance);
-        if (!distanceValue || distanceValue <= 0) {
-          toast({ title: "Please enter a valid distance", variant: "destructive" });
-          return;
-        }
-
-        const newEntry: TrackEntry = {
-          id: Date.now().toString(),
-          type: "distance",
-          category: distanceCategory,
-          subtype: distanceSubtype,
-          value: distanceValue,
-          timestamp: new Date().toISOString(),
-          co2e: +(distanceValue * (EMISSION_FACTORS[distanceSubtype] ?? 0)),
-        };
-
-        setEntries(prev => [newEntry, ...prev]);
-        toast({ title: "Distance entry added!" });
-      }
-    } else {
-      if (!foodName.trim()) {
-        toast({ title: "Please enter the food name", variant: "destructive" });
-        return;
-      }
-
-      const newEntry: TrackEntry = {
-        id: Date.now().toString(),
-        type: "food",
-        subtype: foodType,
-        value: 1,
-        timestamp: new Date().toISOString(),
-        co2e: +(1 * (EMISSION_FACTORS[foodType] ?? 0)),
-      };
-
-      setEntries(prev => [newEntry, ...prev]);
-      toast({ title: "Food entry added!" });
-    }
-
-    // reset dialog fields
-    setDialogOpen(false);
-    setDistance("");
-    setFoodName("");
-    // don't auto-show recommendations (user requested manual trigger)
-  };
-
-  // Format date helper
-  const formatDate = (ts: string) => {
-    const d = new Date(ts);
-    return d.toLocaleString();
-  };
-
-  const getEntryIcon = (entry: TrackEntry) => entry.type === 'distance' ? <Car className="h-4 w-4" /> : <Utensils className="h-4 w-4" />;
-
-  // BUILD PAYLOAD: preserve original payload structure from your earlier file
-  // We group distances into modes[] and distances map; flightsToday default 'none'; homeEnergy placeholders; food aggregated
-  const buildPayloadFromEntries = (entriesList: TrackEntry[]) => {
-    // transport: group by backend ids used previously: car, public_transport, motorcycle, bicycle, walking, no_travel
-    const modes: Array<{ id: string; distance?: number }> = [];
-    const distances: Record<string, number> = {};
-
-    // Keep totals per backend id
-    let carTotal = 0;
-    let publicTransportTotal = 0;
-    let motorcycleTotal = 0;
-    let bicycleTotal = 0;
-    let walkingTotal = 0;
-
-    // food aggregation counts by subtype
-    const foodCounts: Record<string, number> = {};
-
-    for (const e of entriesList) {
-      if (e.type === 'distance') {
-        // map subtypes to backend ids
-        const subtype = e.subtype;
-        const val = Number(e.value || 0) || 0;
-        if (['diesel', 'electric', 'gasoline', 'hybrid'].includes(subtype)) {
-          carTotal += val;
-        } else if (['jeep', 'tricycle', 'e-jeep', 'train'].includes(subtype)) {
-          publicTransportTotal += val;
-        } else if (subtype === 'motorcycle') {
-          motorcycleTotal += val;
-        } else if (subtype === 'bicycle') {
-          bicycleTotal += val;
-        } else if (subtype === 'walk') {
-          walkingTotal += val;
-        } else {
-          // fallback to carTotal if unknown
-          carTotal += val;
-        }
-      } else if (e.type === 'food') {
-        foodCounts[e.subtype] = (foodCounts[e.subtype] || 0) + (e.value || 1);
-      }
-    }
-
-    if (carTotal > 0) {
-      modes.push({ id: 'car', distance: +carTotal });
-      distances['car'] = +carTotal;
-    }
-    if (publicTransportTotal > 0) {
-      modes.push({ id: 'public_transport', distance: +publicTransportTotal });
-      distances['public_transport'] = +publicTransportTotal;
-    }
-    if (motorcycleTotal > 0) {
-      modes.push({ id: 'motorcycle', distance: +motorcycleTotal });
-      distances['motorcycle'] = +motorcycleTotal;
-    }
-    if (bicycleTotal > 0) {
-      modes.push({ id: 'bicycle', distance: +bicycleTotal });
-      distances['bicycle'] = +bicycleTotal;
-    }
-    if (walkingTotal > 0) {
-      modes.push({ id: 'walking', distance: +walkingTotal });
-      distances['walking'] = +walkingTotal;
-    }
-
-    // If no transport modes present, send no_travel mode
-    if (modes.length === 0) {
-      modes.push({ id: 'no_travel' });
-    }
-
-    // Build a "food" object that matches prior shape, but we only have aggregated counts.
-    // To preserve compatibility, we'll set breakfast/lunch/dinner to 'mixed' if there is any food entry,
-    // and place a JSON-string summary into breakfastFood/lunchFood/dinnerFood fields.
-    const hasFood = Object.keys(foodCounts).length > 0;
-    const foodSummaryString = JSON.stringify(foodCounts);
-
-    const food = {
-      breakfast: hasFood ? 'mixed' : 'skipped',
-      lunch: hasFood ? 'mixed' : 'skipped',
-      dinner: hasFood ? 'mixed' : 'skipped',
-      breakfastFood: foodSummaryString,
-      lunchFood: foodSummaryString,
-      dinnerFood: foodSummaryString,
-    };
-
-    // homeEnergy placeholders (since the activity UI doesn't collect them)
-    const homeEnergy = {
-      homeType: 'apartment',
-      occupants: 1,
-      appliances: ['none'],
-    };
-
-    const payload = {
-      transport: { modes, distances },
-      flightsToday: 'none',
-      homeEnergy,
-      food,
-    };
-
-    return payload;
-  };
-
-  // Send footprint to backend
-  const submitFootprint = async (payload: any) => {
-    const url = `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/submit`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Failed to submit footprint' }));
-      throw new Error(err?.message || 'Failed to submit footprint');
-    }
-
-    return response.json();
-  };
-
-  // Fetch recommendations from backend
-  const fetchRecommendations = async (footprintId: string) => {
-    const url = `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/recommendations`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ footprintId }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Failed to fetch recommendations' }));
-      throw new Error(err?.message || 'Failed to fetch recommendations');
-    }
-
-    return response.json();
-  };
-
-  // Reset daily data endpoint
-  const resetDailyData = async (): Promise<void> => {
-    const url = `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/footprint/reset-daily`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Failed to reset daily data' }));
-      throw new Error(err?.message || 'Failed to reset daily data');
-    }
-  };
-
-  // Handler: Calculate CO2 locally, then submit to backend (preserve original payload)
-  const handleCalculateFootprint = async () => {
-    if (entries.length === 0) {
-      toast({ title: "No entries to calculate", variant: "destructive" });
-      return;
-    }
-
-    try {
-      setLoadingStatus('loading');
-      setErrorMessage(null);
-
-      // compute local per-entry co2e (if not computed yet)
-      const updatedEntries = entries.map(e => ({ ...e, co2e: computeEntryCO2e(e) }));
-      // Build receipt and show locally
-      const totalCO2e = updatedEntries.reduce((s, it) => s + (it.co2e || 0), 0);
-      const newReceipt: Receipt = { id: Date.now().toString(), date: new Date().toISOString(), entries: updatedEntries, totalCO2e };
-      setReceipts(prev => [newReceipt, ...prev]);
-      setEntries([]); // clear entries for the day after creating a receipt
-
-      // Build backend payload preserving original structure
-      const payload = buildPayloadFromEntries(updatedEntries);
-
-      // Submit to backend
-      const footprintResponse = await submitFootprint(payload);
-
-      // Save footprint data (structure depends on backend) and today's entry
-      const respData = footprintResponse.data ?? footprintResponse;
-      setFootprintData(respData);
-      localStorage.setItem('current_footprint_id', respData.footprintId ?? respData.id ?? '');
-      localStorage.setItem('current_footprint_data', JSON.stringify(respData));
-
-      // set todayEntry for display
-      setTodayEntry({
-        date: new Date().toISOString(),
-        calculatedFootprint: respData.calculatedFootprint ?? { total: newReceipt.totalCO2e, transport: 0, homeEnergy: 0, food: 0 },
-      });
-
-      setLoadingStatus('success');
-      toast({ title: "Carbon footprint calculated!", description: `Total: ${(respData.calculatedFootprint?.total ?? newReceipt.totalCO2e).toFixed ? (respData.calculatedFootprint.total).toFixed(2) : newReceipt.totalCO2e.toFixed(2)} kg CO₂e` });
-    } catch (err: any) {
-      console.error('Error calculating/submitting footprint', err);
-      setErrorMessage(err?.message || 'Failed to calculate footprint');
-      setLoadingStatus('error');
-      toast({ title: "Error", description: err?.message || "Failed to submit footprint", variant: "destructive" });
-    }
-  };
-
-  // Handler: Manual fetch recommendations using today's footprint data
+  // get AI recommendations (separate)
   const handleGetRecommendations = async () => {
-    if (!footprintData?.footprintId && !localStorage.getItem('current_footprint_id')) {
-      toast({ title: "No today's footprint found", description: "Please calculate your carbon footprint first", variant: "destructive" });
+    const id = footprintId || footprintData?.footprintId;
+    if (!id) {
+      toast({ title: "No footprint", description: "Calculate first.", variant: "destructive" });
       return;
     }
-
-    const footprintId = footprintData?.footprintId ?? localStorage.getItem('current_footprint_id')!;
     try {
-      setIsFetchingRecommendations(true);
-      setErrorMessage(null);
-
-      const recResp = await fetchRecommendations(footprintId);
-      const recData = recResp.data ?? recResp;
-      setRecommendations(recData.recommendations ?? recData.recommendations ?? []);
-      localStorage.setItem('current_recommendations', JSON.stringify(recData.recommendations ?? recData.recommendations ?? []));
-
-      setIsFetchingRecommendations(false);
-      toast({ title: "Recommendations ready", description: `Generated ${ (recData.recommendations ?? []).length } recommendations` });
+      setLoadingStatus("loading");
+      const rec = await fetchRecommendations(id);
+      setRecommendations(rec.data.recommendations);
+      localStorage.setItem("current_recommendations", JSON.stringify(rec.data.recommendations));
+      setLoadingStatus("success");
+      toast({ title: "Recommendations ready", description: `Generated ${rec.data.recommendations.length} recommendations.` });
     } catch (err: any) {
-      console.error('Error fetching recommendations', err);
-      setErrorMessage(err?.message || 'Failed to fetch recommendations');
-      setIsFetchingRecommendations(false);
-      toast({ title: "Recommendation Error", description: err?.message || "Failed to fetch recommendations", variant: "destructive" });
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to fetch recommendations");
+      toast({ title: "Error", description: err.message || "Failed to fetch recommendations", variant: "destructive" });
     }
   };
 
-  // Edit/reset footprint
-  const handleEditFootprint = async () => {
-    const confirmReset = window.confirm("⚠️ Warning: Editing your footprint will reset today's carbon tracking and uncheck all completed eco-challenges. Do you want to continue?");
-    if (!confirmReset) return;
-
+  // reset footprint (dialog)
+  const handleConfirmReset = async () => {
+    setIsResetConfirmOpen(false);
     try {
       await resetDailyData();
-
-      // Reset frontend state
-      setReceipts([]);
-      setEntries([]);
-      setRecommendations([]);
       setFootprintData(null);
-      setTodayEntry(null);
-      setLoadingStatus('idle');
-      setErrorMessage(null);
-
-      localStorage.removeItem('current_footprint_id');
-      localStorage.removeItem('current_footprint_data');
-      localStorage.removeItem('current_recommendations');
-
-      toast({ title: "Daily data reset", description: "Your carbon tracking and eco-challenges have been reset." });
+      setFootprintId(null);
+      setRecommendations([]);
+      setLoadingStatus("idle");
+      localStorage.removeItem("current_footprint_data");
+      localStorage.removeItem("current_recommendations");
+      toast({ title: "Reset", description: "Daily data reset. You can add new entries." });
     } catch (err: any) {
-      console.error('Reset failed', err);
-      toast({ title: "Reset failed", description: err?.message || "Failed to reset your daily data.", variant: "destructive" });
+      toast({ title: "Reset failed", description: err.message || "Reset failed", variant: "destructive" });
     }
   };
 
-  // Retry recommendations using same footprint
-  const handleRetryRecommendations = async () => {
-    // same as handleGetRecommendations but keeps previous recommendations if fails
-    await handleGetRecommendations();
-  };
+  // computed totals (use footprintData if available)
+  const totals = useMemo(() => {
+    if (!footprintData) return { transport: 0, homeEnergy: 0, food: 0, total: 0 };
+    return {
+      transport: Number(footprintData.calculatedFootprint.transport || 0),
+      homeEnergy: Number(footprintData.calculatedFootprint.homeEnergy || 0),
+      food: Number(footprintData.calculatedFootprint.food || 0),
+      total: Number(footprintData.calculatedFootprint.total || 0),
+    };
+  }, [footprintData]);
 
-  // UI loading guard on initial auth check
+  // distinct accent colors for progress bars: transport-blue, home-green, food-amber
+  const transportColor = "bg-primary";
+  const homeColor = "bg-green-500";
+  const foodColor = "bg-amber-500";
+
   if (isPending) return <LoadingSpinner />;
-  if (activitiesLoading) { /* we can still render UI while activities load */ }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      {/* Navbar kept from original approach - pass isLoggedIn prop if desired */}
-      {/* @ts-ignore - your Navbar accepts isLoggedIn and onLogout in original file */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Leaf className="h-8 w-8 text-primary" />
-                Track
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* If recommendations exist -> show recommendations view */}
+        {recommendations && recommendations.length > 0 ? (
+          <div>
+            <RecommendationView recommendations={recommendations} footprintData={footprintData} onRetry={async () => {
+              const id = footprintId || (footprintData as any)?.footprintId;
+              if (!id) return;
+              try {
+                setLoadingStatus("loading");
+                const rec = await fetchRecommendations(id);
+                setRecommendations(rec.data.recommendations);
+                setLoadingStatus("success");
+              } catch (err:any) {
+                setLoadingStatus("error");
+              }
+            }} />
+          </div>
+        ) : (
+          // Main add/entries view or dashboard when footprint exists
+          <>
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+                <Calculator className="h-8 w-8 text-primary" />
+                Add Entries — Track Your Carbon
               </h1>
-              <p className="text-muted-foreground mt-1">Monitor your carbon footprint</p>
+              <p className="text-muted-foreground">
+                Add Transport, Home Energy, and Food entries. Import live-tracked activities or add manually.
+              </p>
             </div>
 
-            <div className="flex gap-3 items-center">
-              <Button onClick={() => refetchActivities()} variant="ghost" className="hidden sm:inline">Refresh Activities</Button>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="lg" className="gap-2 shadow-lg hover:shadow-xl transition-shadow">
-                    <Plus className="h-5 w-5" />
-                    Add Entry
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[650px]">
-                  <DialogHeader className="space-y-3">
-                    <DialogTitle className="text-2xl">Add New Entry</DialogTitle>
-                    <p className="text-sm text-muted-foreground">Track your daily activities and food consumption</p>
-                  </DialogHeader>
+            {/* Top controls */}
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => { setEditingId(null); setActiveTab("transport"); }}>
+                      <Plus className="w-5 h-5" /> Add Entry
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader><DialogTitle>{editingId ? "Edit Entry" : "Add New Entry"}</DialogTitle></DialogHeader>
 
-                  <Tabs value={entryType} onValueChange={(v) => setEntryType(v as EntryType)} className="mt-2">
-                    <TabsList className="grid w-full grid-cols-2 h-12">
-                      <TabsTrigger value="distance" className="text-base gap-2">
-                        <Car className="h-4 w-4" />
-                        Distance
-                      </TabsTrigger>
-                      <TabsTrigger value="food" className="text-base gap-2">
-                        <Utensils className="h-4 w-4" />
-                        Food
-                      </TabsTrigger>
-                    </TabsList>
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Category)}>
+                      <TabsList>
+                        <TabsTrigger value="transport">Transport</TabsTrigger>
+                        <TabsTrigger value="home">Home Energy</TabsTrigger>
+                        <TabsTrigger value="food">Food</TabsTrigger>
+                      </TabsList>
 
-                    <TabsContent value="distance" className="space-y-5 mt-6">
-                      <Tabs value={distanceMode} onValueChange={(v) => setDistanceMode(v as "tracked" | "manual")}>
-                        <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/50">
-                          <TabsTrigger value="tracked" className="text-sm">From Tracked</TabsTrigger>
-                          <TabsTrigger value="manual" className="text-sm">Manual Entry</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="tracked" className="space-y-4 mt-5">
-                          <Label className="text-base font-semibold">Select Tracked Activities</Label>
-                          {trackedActivities.length === 0 ? (
-                            <div className="text-sm text-muted-foreground text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed">
-                              <Car className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                              <p className="font-medium mb-1">No tracked activities found</p>
-                              <p className="text-xs">Use Track Distance first or switch to manual entry</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                              {trackedActivities.map((activity: any) => (
-                                <div
-                                  key={activity.id}
-                                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md ${ selectedTrackedIds.includes(activity.id) ? "bg-primary/10 border-primary shadow-sm" : "hover:bg-muted/50 border-border" }`}
-                                  onClick={() => {
-                                    setSelectedTrackedIds(prev => prev.includes(activity.id) ? prev.filter(id => id !== activity.id) : [...prev, activity.id]);
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedTrackedIds.includes(activity.id)}
-                                        readOnly
-                                        className="h-5 w-5 rounded border-2"
-                                      />
-                                      <Badge variant="secondary" className="text-xs font-semibold">
-                                        {String(activity.category).toUpperCase()}
-                                      </Badge>
-                                      <span className="font-semibold text-base">{activity.subtype}</span>
-                                    </div>
-                                    <span className="font-bold text-lg text-primary">{(activity.distance || 0).toFixed(2)} km</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="manual" className="space-y-5 mt-5">
-                          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                            <Label className="text-base font-semibold">Category</Label>
-                            <Select
-                              value={distanceCategory}
-                              onValueChange={(v) => {
-                                setDistanceCategory(v);
-                                setDistanceSubtype(transportTypes[v as keyof typeof transportTypes][0]);
-                              }}
-                            >
-                              <SelectTrigger className="h-12 text-base">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="private">🚗 Private</SelectItem>
-                                <SelectItem value="public">🚌 Public</SelectItem>
-                                <SelectItem value="basic">🚶 Basic</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                            <Label className="text-base font-semibold">Type</Label>
-                            <Select value={distanceSubtype} onValueChange={setDistanceSubtype}>
-                              <SelectTrigger className="h-12 text-base">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {transportTypes[distanceCategory as keyof typeof transportTypes].map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                            <Label className="text-base font-semibold">Distance (km)</Label>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="Enter distance"
-                              value={distance}
-                              onChange={(e) => setDistance(e.target.value)}
-                              className="h-12 text-base"
-                            />
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-
-                      <Button onClick={handleAddEntry} className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow">
-                        Add Distance Entry
-                      </Button>
-                    </TabsContent>
-
-                    <TabsContent value="food" className="space-y-5 mt-6">
-                      <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                        <Label className="text-base font-semibold">Food Type</Label>
-                        <Select value={foodType} onValueChange={setFoodType}>
-                          <SelectTrigger className="h-12 text-base">
-                            <SelectValue />
+                  <TabsContent value="transport" className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      {/* Mode */}
+                      <div>
+                        <Label>Mode</Label>
+                        <Select
+                          value={transportForm.mode}
+                          onValueChange={(v) =>
+                            setTransportForm((prev) => ({ ...prev, mode: v as any }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose mode" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="meat">🥩 Meat</SelectItem>
-                            <SelectItem value="fish">🐟 Fish</SelectItem>
-                            <SelectItem value="dairy">🥛 Dairy</SelectItem>
-                            <SelectItem value="mixed">🥗 Mixed</SelectItem>
-                            <SelectItem value="skipped">⏭️ Skipped</SelectItem>
+                            <SelectItem value="car">Personal Car</SelectItem>
+                            <SelectItem value="public_transport">Public Transport</SelectItem>
+                            <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                            <SelectItem value="bicycle">Bicycle / E-bike</SelectItem>
+                            <SelectItem value="walking">Walking</SelectItem>
+                            <SelectItem value="flight">Flight</SelectItem>
+                            <SelectItem value="no_travel">Didn't commute today</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                        <Label className="text-base font-semibold">What food?</Label>
+                        
+                      {/* Distance */}
+                      <div>
+                        <Label>Distance (km)</Label>
                         <Input
-                          type="text"
-                          placeholder="e.g., Beef steak, Salmon, Cheese, Vegetable salad"
-                          value={foodName}
-                          onChange={(e) => setFoodName(e.target.value)}
-                          className="h-12 text-base"
+                          type="number"
+                          placeholder="km"
+                          value={transportForm.distanceKm ?? ""}
+                          onChange={(e) =>
+                            setTransportForm((prev) => ({
+                              ...prev,
+                              distanceKm: Number(e.target.value || 0),
+                            }))
+                          }
+                          disabled={
+                            transportForm.mode === "no_travel" ||
+                            transportForm.mode === "flight"
+                          }
                         />
                       </div>
-
-                      <Button onClick={handleAddEntry} className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow">
-                        Add Food Entry
+                        
+                      {/* Only show Flight Type if mode === "flight" */}
+                      {transportForm.mode === "flight" && (
+                        <div>
+                          <Label>Flight type</Label>
+                          <Select
+                            value={transportForm.flightType}
+                            onValueChange={(v) =>
+                              setTransportForm((prev) => ({
+                                ...prev,
+                                flightType: (v as any) || undefined,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select flight type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="short-haul">Short-haul (&lt;3h)</SelectItem>
+                              <SelectItem value="long-haul">Long-haul (&gt;3h)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        onClick={() => {
+                          if (editingId) setIsSaveConfirmOpen(true)
+                          else handleAddTransport()
+                        }}
+                      >
+                        {editingId ? "Save Transport" : "Add Transport"}
                       </Button>
-                    </TabsContent>
-                  </Tabs>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Summary & Today's Entry */}
-          <div className="mt-6 grid grid-cols-1 gap-6">
-            <Card className="shadow-card border-border">
-              <CardHeader>
-                <div className="flex justify-between items-center mb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Today's Entry
-                  </CardTitle>
-                  <div className="flex gap-2 items-center">
-                    <Button variant="outline" onClick={handleEditFootprint} size="sm" className="flex items-center gap-2">
-                      <RotateCcw className="h-4 w-4" />
-                      Edit Footprint
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="text-sm text-muted-foreground">Transport</div>
-                    <div className="text-xl font-bold">{todayEntry?.calculatedFootprint?.transport ?? '-'}</div>
-                    <div className="text-xs text-muted-foreground">kg CO₂e</div>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <div className="text-sm text-muted-foreground">Home Energy</div>
-                    <div className="text-xl font-bold">{todayEntry?.calculatedFootprint?.homeEnergy ?? '-'}</div>
-                    <div className="text-xs text-muted-foreground">kg CO₂e</div>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <div className="text-sm text-muted-foreground">Food</div>
-                    <div className="text-xl font-bold">{todayEntry?.calculatedFootprint?.food ?? '-'}</div>
-                    <div className="text-xs text-muted-foreground">kg CO₂e</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Total</div>
-                    <div className="text-2xl font-bold">{todayEntry?.calculatedFootprint?.total ?? '-' } kg CO₂e</div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {/* Calculate button - enabled when there are entries */}
-                    {entries.length > 0 && (
-                      <Button onClick={handleCalculateFootprint} className="flex items-center gap-2">
-                        <Calculator className="h-4 w-4" />
-                        Calculate Carbon Footprint
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setTransportForm({ mode: "car", distanceKm: 0, flightType: undefined })
+                        }
+                      >
+                        Reset
                       </Button>
-                    )}
-
-                    {/* Get AI Recs button - only appears after a footprint exists */}
-                    {(footprintData || localStorage.getItem('current_footprint_id')) && (
-                      <Button onClick={handleGetRecommendations} className="flex items-center gap-2" disabled={isFetchingRecommendations}>
-                        <Sparkles className="h-4 w-4" />
-                        {isFetchingRecommendations ? 'Generating...' : 'Get AI Recommendations'}
+                      <Button variant="ghost" onClick={handleImportFromLiveTracking}>
+                        Import from Live Tracking
                       </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  </TabsContent>
 
-            {/* Receipts summary */}
-            {receipts.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Receipt className="h-6 w-6 text-primary" />
-                  Summary
-                </h2>
-                <div className="grid gap-4 mt-3">
-                  {receipts.map(receipt => (
-                    <Card key={receipt.id} className="border-2 shadow-lg hover:shadow-xl transition-shadow">
-                      <CardHeader className="pb-3 bg-muted/30">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Calendar className="h-5 w-5" />
-                            {new Date(receipt.date).toLocaleString()}
-                          </CardTitle>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-primary">{receipt.totalCO2e.toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground font-medium">kg CO₂e</p>
+
+                      <TabsContent value="home" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                          <div>
+                            <Label>Home Type</Label>
+                            <Select value={homeForm.homeType} onValueChange={(v) => setHomeForm(prev=>({...prev, homeType: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose home" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="large_house">Large House</SelectItem>
+                                <SelectItem value="small_house">Small House</SelectItem>
+                                <SelectItem value="apartment">Apartment / Condo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Occupants</Label>
+                            <Input type="number" min={1} value={homeForm.occupants ?? 1} onChange={(e)=>setHomeForm(prev=>({...prev, occupants: Number(e.target.value||1)}))} />
+                          </div>
+
+                          <div>
+                            <Label>Appliances</Label>
+                            <Select value={homeForm.appliances as any} onValueChange={(v)=>setHomeForm(prev=>({...prev, appliances: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose appliance" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="aircon">Aircon</SelectItem>
+                                <SelectItem value="laundry">Laundry</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-2">
-                        {receipt.entries.map(entry => (
-                          <div key={entry.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-background rounded-lg">
-                                {getEntryIcon(entry)}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="secondary" className="text-xs">{entry.type === 'distance' ? (entry.category ?? 'TRANSPORT').toUpperCase() : 'FOOD'}</Badge>
-                                  <span className="font-semibold text-sm">{entry.subtype.charAt(0).toUpperCase() + entry.subtype.slice(1)}</span>
-                                </div>
-                                {entry.type === 'distance' && <p className="text-xs text-muted-foreground mt-1">{entry.value.toFixed(2)} km</p>}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-primary">{(entry.co2e ?? 0).toFixed(2)}</p>
-                              <p className="text-xs text-muted-foreground">kg CO₂e</p>
-                            </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <Button onClick={()=>{ if (editingId) setIsSaveConfirmOpen(true); else handleAddHome(); }}>
+                            {editingId ? "Save Home" : "Add Home"}
+                          </Button>
+                          <Button variant="outline" onClick={()=>setHomeForm({homeType:"apartment", occupants:1, appliances:"none"})}>Reset</Button>
+                          <Button variant="ghost" onClick={handleImportFromLiveTracking}>Import from Live Tracking</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="food" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                          <div>
+                            <Label>Meal Slot</Label>
+                            <Select value={foodForm.mealSlot} onValueChange={(v)=>setFoodForm(prev=>({...prev, mealSlot: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Choose slot" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="breakfast">Breakfast</SelectItem>
+                                <SelectItem value="lunch">Lunch</SelectItem>
+                                <SelectItem value="dinner">Dinner</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Activity Log (current unsent entries) */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Activity Log</h2>
-                {entries.length > 0 && (
-                  <Button onClick={handleCalculateFootprint} size="lg" className="gap-2 shadow-lg hover:shadow-xl transition-shadow">
-                    <Calculator className="h-5 w-5" />
-                    Calculate Carbon Footprint
-                  </Button>
-                )}
+                          <div>
+                            <Label>Type</Label>
+                            <Select value={foodForm.mealType} onValueChange={(v)=>setFoodForm(prev=>({...prev, mealType: v as any}))}>
+                              <SelectTrigger><SelectValue placeholder="Meal type" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="meat">Meat-based</SelectItem>
+                                <SelectItem value="fish">Fish-based</SelectItem>
+                                <SelectItem value="plant">Plant-based</SelectItem>
+                                <SelectItem value="dairy">Dairy</SelectItem>
+                                <SelectItem value="mixed">Mixed</SelectItem>
+                                <SelectItem value="skipped">Skipped</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label>Description</Label>
+                            <Input value={foodForm.description || ""} onChange={(e)=>setFoodForm(prev=>({...prev, description: e.target.value}))} placeholder="e.g., tuna, rice" />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <Button onClick={()=>{ if (editingId) setIsSaveConfirmOpen(true); else handleAddFood(); }}>
+                            {editingId ? "Save Food" : "Add Food"}
+                          </Button>
+                          <Button variant="outline" onClick={()=>setFoodForm({mealSlot:"breakfast", mealType:"plant", description:""})}>Reset</Button>
+                          <Button variant="ghost" onClick={handleImportFromLiveTracking}>Import from Live Tracking</Button>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Save confirm dialog (when editing) */}
+                <Dialog open={isSaveConfirmOpen} onOpenChange={setIsSaveConfirmOpen}>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader><DialogTitle>Save changes?</DialogTitle></DialogHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">Save edits to this entry?</p>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={()=>setIsSaveConfirmOpen(false)}>Cancel</Button>
+                        <Button onClick={()=>{
+                          if (!editingId) { setIsSaveConfirmOpen(false); return; }
+                          const newEntry = activeTab === "transport" ? createTransportEntryFromForm() :
+                                           activeTab === "home" ? createHomeEntryFromForm() :
+                                           createFoodEntryFromForm();
+                          const updated = { ...newEntry, id: editingId, createdAt: new Date().toISOString() } as Entry;
+                          setEntries(prev => prev.map(e => e.id === editingId ? updated : e));
+                          setEditingId(null);
+                          setIsSaveConfirmOpen(false);
+                          setIsAddOpen(false);
+                          toast({ title: "Saved", description: "Entry updated." });
+                        }}>Save</Button>
+                      </div>
+                    </CardContent>
+                  </DialogContent>
+                </Dialog>
               </div>
 
-              {entries.length === 0 ? (
-                <Card className="border-2 border-dashed">
-                  <CardContent className="pt-6 text-center py-16">
-                    <Leaf className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                    <p className="text-xl font-semibold mb-2">No entries yet</p>
-                    <p className="text-sm text-muted-foreground mb-6">Start tracking your activities and food consumption</p>
+              <div className="flex gap-2">
+                <Button onClick={handleCalculate} disabled={loadingStatus === "loading"}>
+                 <Calculator /> Calculate Carbon Footprint
+                </Button>
+                <Button onClick={handleGetRecommendations} disabled={!footprintData && !footprintId}>
+                  <Lightbulb/> Get AI Recommendations
+                </Button>
+              </div>
+            </div>
+
+            {/* Dashboard summary (if footprint calculated OR restored) */}
+            {footprintData && (
+              <motion.div initial="initial" animate="enter" variants={ANIM} className="mb-6">
+                <Card className="shadow-card border-border">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="h-6 w-6 text-warning" />
+                          Your Footprint Summary
+                        </CardTitle>
+                        <CardDescription className="text-sm">Detailed breakdown of your latest calculated footprint</CardDescription>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Total CO₂e</div>
+                        <div className="text-2xl font-bold">{footprintData.calculatedFootprint.total} kg</div>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Transport */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Car className="h-6 w-6 text-primary" />
+                        <div>
+                          <div className="text-sm font-medium">Transport</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 md:col-span-1">
+                        <div className="text-sm font-semibold">{animTransport.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animTransport / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+
+                      <div className="hidden md:block text-sm text-muted-foreground">
+                        {/* Optional extra info */}
+                      </div>
+                    </div>
+
+                    {/* Home Energy */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Zap className="h-6 w-6 text-green-600" />
+                        <div>
+                          <div className="text-sm font-medium">Home Energy</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-semibold">{animHome.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animHome / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Food */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Utensils className="h-6 w-6 text-amber-600" />
+                        <div>
+                          <div className="text-sm font-medium">Food</div>
+                          <div className="text-xs text-muted-foreground">Raw kg CO₂e</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-semibold">{animFood.toFixed(2)} kg</div>
+                        <div className="mt-2">
+                          <Progress value={Math.min(100, (animFood / Math.max(footprintData.calculatedFootprint.total, 1)) * 100)} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edit button below */}
+                    <div className="flex justify-end">
+                      <Button variant="outline" onClick={() => { setIsResetConfirmOpen(true); }}>
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Edit My Footprint
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
-              ) : (
-                <div className="space-y-3">
-                  {entries.map(entry => (
-                    <Card key={entry.id} className="hover:shadow-md transition-shadow border-2">
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="p-3 bg-primary/10 rounded-xl">{getEntryIcon(entry)}</div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="secondary" className="text-xs">{entry.type === "distance" ? (entry.category ?? "TRANSPORT").toUpperCase() : "FOOD"}</Badge>
-                                <span className="font-bold text-base">{entry.subtype.charAt(0).toUpperCase() + entry.subtype.slice(1)}</span>
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {formatDate(entry.timestamp)}
-                                </div>
-                                {entry.type === "distance" && <span className="font-semibold">{entry.value.toFixed(2)} km</span>}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+              </motion.div>
+            )}
+
+            {/* Entries list (cards) */}
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {entries.length === 0 && (
+                <Card className="shadow-card border-border p-6">
+                  <CardContent className="text-center text-muted-foreground">No entries yet. Add entries using the pop-up above.</CardContent>
+                </Card>
               )}
+
+              {entries.map((e) => (
+                <Card key={e.id} className="shadow-card border-border">
+                  <CardHeader className="flex flex-row justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                        {e.category === "transport" && <Car className="h-5 w-5 text-muted-foreground" />}
+                        {e.category === "home" && <Home className="h-5 w-5 text-muted-foreground" />}
+                        {e.category === "food" && <Utensils className="h-5 w-5 text-muted-foreground" />}
+                        <span className="capitalize">{e.category}</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground mt-1">
+                        {new Date(e.createdAt).toLocaleString()}
+                      </CardDescription>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-28">
+                        <DropdownMenuItem onClick={() => handleEditEntry(e.id)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            setIsDeleteConfirmOpen(true)
+                            setDeleteTargetId(e.id)
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                        
+                    <Dialog
+                      open={isDeleteConfirmOpen && deleteTargetId === e.id}
+                      onOpenChange={(v) => {
+                        if (!v) {
+                          setIsDeleteConfirmOpen(false)
+                          setDeleteTargetId(null)
+                        }
+                      }}
+                    >
+                      <DialogContent className="sm:max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>Delete Entry</DialogTitle>
+                        </DialogHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Are you sure you want to delete this entry? This action cannot be undone.
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setIsDeleteConfirmOpen(false)
+                                setDeleteTargetId(null)
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={executeDelete}>
+                              Delete
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                            
+                  <CardContent className="mt-2 text-sm">
+                    {e.category === "food" && (
+                      <div className="flex flex-row justify-between items-center">
+                        <div>
+                          <p className="text-muted-foreground">Meal Slot: <span className="font-semibold uppercase text-primary mt-2">{e.mealSlot}</span></p>
+                          <p className="text-muted-foreground">Meal Type: <span className="font-semibold uppercase text-primary mt-2">{e.mealType}</span></p>
+                        </div>
+
+                        <div>
+                          <p className="text-muted-foreground">Description: <span className="font-semibold text-xl uppercase text-primary mx-4">{e.description || "-"}</span></p>
+                        </div>
+                  
+                      </div>
+                    )}
+
+                    {e.category === "transport" && (
+                      <div className="flex flex-row justify-between items-center">
+                        <div>
+                          <p className="text-muted-foreground">Mode: <span className="font-semibold uppercase text-primary mt-2">{e.mode}</span></p>
+                        </div>
+                    
+                        <div>
+                          <p className="text-muted-foreground"> Distance (km) <span className="font-semibold text-xl uppercase text-primary mx-4">{(e.distanceKm ?? 0).toFixed(2)}</span></p>
+                        </div>
+                    
+                        {e.mode === "flight" && (
+                          <>
+                            <div className="text-muted-foreground mt-2">Flight Type</div>
+                            <div>{e.flightType ?? "-"}</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {e.category === "home" && (
+                      <div className="grid grid-cols-2 items-center">
+                        <div className="text-muted-foreground">Home Type</div>
+                        <div>{e.homeType}</div>
+                    
+                        <div className="text-muted-foreground mt-2">Occupants</div>
+                        <div>{e.occupants}</div>
+                    
+                        <div className="text-muted-foreground mt-2">Appliances</div>
+                        <div className="font-semibold text-base text-primary mt-2">
+                          {e.appliances}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            {/* Recommendations view (if fetched) */}
-            {recommendations.length > 0 && (
-              <div className="mt-6">
-                <RecommendationView recommendations={recommendations} footprintData={footprintData} onRetry={handleRetryRecommendations} />
+              <div>
+                <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={()=>setIsResetConfirmOpen(true)}>Reset Daily Data</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader><DialogTitle>Reset Daily Data</DialogTitle></DialogHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">Resetting will clear today's footprint and eco-challenges. Continue?</p>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={()=>setIsResetConfirmOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleConfirmReset}>Reset</Button>
+                      </div>
+                    </CardContent>
+                  </DialogContent>
+                </Dialog>
               </div>
-            )}
 
-            {/* Error state */}
-            {loadingStatus === 'error' && (
-              <Card className="shadow-card border-border border-destructive">
+                        {/* Show existing data cards only in form view */}
+            <div className="mt-10 grid grid-cols-1 gap-6">
+              <Card className="shadow-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-5 w-5" />
-                    Error
+                  <CardTitle className="flex items-center gap-2">
+                    <Home className="h-6 w-6 text-primary" />
+                    Today's Entry
                   </CardTitle>
+                  <CardDescription>
+                    {isLoadingToday ? "Loading today's entry..." : todayEntry ? `Date: ${todayEntry.date}` : 'No entry for today'}
+                  </CardDescription>
+                </CardHeader>
+                {todayEntry && (
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between"><span>Transport</span><span>{todayEntry.calculatedFootprint?.transport ?? '-'} kg</span></div>
+                    <div className="flex justify-between"><span>Home Energy</span><span>{todayEntry.calculatedFootprint?.homeEnergy ?? '-'} kg</span></div>
+                    <div className="flex justify-between"><span>Food</span><span>{todayEntry.calculatedFootprint?.food ?? '-'} kg</span></div>
+                    <div className="flex justify-between font-medium"><span>Total</span><span>{todayEntry.calculatedFootprint?.total ?? '-'} kg</span></div>
+                  </CardContent>
+                )}
+              </Card>
+
+              <Card className="shadow-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plane className="h-6 w-6 text-muted-foreground" />
+                    Recent History (7 days)
+                  </CardTitle>
+                  <CardDescription>
+                    {isLoadingHistory ? 'Loading history...' : `Entries: ${historyEntries.length}`}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{errorMessage}</p>
+                  <div className="space-y-2 text-sm">
+                    {historyEntries.length === 0 && !isLoadingHistory && (
+                      <div className="text-muted-foreground">No recent entries</div>
+                    )}
+                    {historyEntries.map((e) => (
+                      <div key={e.id} className="flex justify-between">
+                        <span>{e.date}{e.isToday ? ' (Today)' : ''}</span>
+                        <span>{(e.footprint && e.footprint.total) ?? e.footprint ?? '-'} kg</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-        </div>
-      </div>
+            </div>
+          </>
+
+        )}
+      </main>
     </div>
   );
-}
+};
+
+export default TrackCarbon;

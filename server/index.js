@@ -72,7 +72,8 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 NotificationService.setSocketIoInstance(io);
-
+const activitylogRoutes = require("./routes/activity.route");
+app.use("/activitylogs", activitylogRoutes);
 // Authentication routes
 app.use("/auth", auth_route_1.default);
 

@@ -23,7 +23,7 @@ const dailyTrackingSchema = new mongoose.Schema({
     modes: [{
       id: {
         type: String,
-        enum: ['car', 'public_transport', 'motorcycle', 'bicycle', 'walking', 'no_travel'],
+        enum: ['diesel', 'gasoline', 'motorcycle', 'train', 'bicycle', 'walking', 'no_travel'],
         required: true
       },
       distance: {
