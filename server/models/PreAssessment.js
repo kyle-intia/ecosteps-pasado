@@ -50,6 +50,25 @@ const preAssessmentSchema = new mongoose.Schema({
       type: String,
       enum: ['High meat intake (more than 3 times a week)', 'Moderate meat intake (2–3 times a week)', 'Low meat intake (about once a week)', 'Pescetarian (fish but no meat)', 'Vegetarian or Vegan (no meat or fish)'],
       required: true
+    },
+    // NEW: Question 9 - Travel Context (for AI recommendations only, NOT required)
+    Q9_travelContext: {
+      type: String,
+      enum: ['commute_fixed', 'professional_driver', 'delivery_rider', 'remote_work', 'non_standard_hours', 'student', 'other_context'],
+      required: false
+    },
+    // NEW: Question 10 - Mobility Considerations (for AI recommendations only, NOT required)
+    Q10_mobilityConsiderations: {
+      type: [String],
+      enum: ['respiratory', 'wheelchair', 'walking_difficulty', 'heart_condition', 'visual_impairment', 'none_mobility'],
+      required: false,
+      default: []
+    },
+    // NEW: Question 10 - Additional mobility details (optional text field)
+    Q10_mobilityDetails: {
+      type: String,
+      required: false,
+      maxlength: 500 // Limit to 500 characters for privacy and storage
     }
   },
   results: {
