@@ -6,8 +6,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Leaf, Car, Zap, Utensils, ArrowRight, ArrowLeft, Shield } from "lucide-react";
+import { Leaf, Car, Zap, Utensils, User, ArrowRight, ArrowLeft, Shield } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import useSessionStatus from "../hooks/useSessionStatus";
 import useAuth from "../hooks/useAuth";
@@ -112,6 +113,41 @@ const questions = [
       },
     ],
   },
+  {
+    id: "personal_context",
+    title: "Personal Context",
+    icon: User,
+    questions: [
+      {
+        id: "travel_context",
+        question: "Which of these best describes your primary daily travel context?",
+        type: "radio",
+        options: [
+          { value: "commute_fixed", label: "I commute to a fixed workplace. (e.g., Office Worker, Teacher, Nurse)" },
+          { value: "professional_driver", label: "I am a professional driver for my job. (e.g., Bus, Jeepney, Taxi, Grab Driver)" },
+          { value: "delivery_rider", label: "I use a vehicle as part of my job. (e.g., Food/Grocery Delivery Rider)" },
+          { value: "remote_work", label: "I work remotely or from home." },
+          { value: "student", label: "I am a student." },
+          { value: "other_context", label: "None of the above / My situation is different." },
+        ],
+      },
+      {
+        id: "mobility_considerations",
+        question: "Do you have any mobility considerations or health conditions we should be aware of?",
+        type: "checkbox",
+        options: [
+          { value: "respiratory", label: 'Respiratory condition (e.g., asthma / "hika")' },
+          { value: "wheelchair", label: "Uses a wheelchair / mobility scooter" },
+          { value: "walking_difficulty", label: "Has difficulty walking long distances" },
+          { value: "heart_condition", label: "Heart condition" },
+          { value: "visual_impairment", label: "Visual impairment" },
+          { value: "none_mobility", label: "None of the above" },
+        ],
+        hasTextField: true,
+        textFieldLabel: "Please share any other relevant details:",
+      },
+    ],
+  },
 ];
 
 export default function PreAssessment() {
@@ -161,6 +197,12 @@ export default function PreAssessment() {
   const handleAnswer = (value: any) => {
     const questionId = getCurrentQuestion().id;
     setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleTextFieldChange = (value: string) => {
+    const questionId = getCurrentQuestion().id;
+    const textFieldKey = `${questionId}_details`;
+    setAnswers(prev => ({ ...prev, [textFieldKey]: value }));
   };
 
   const canProceed = () => {
@@ -258,7 +300,25 @@ export default function PreAssessment() {
           vegetarian: "Vegetarian or Vegan (no meat or fish)"
         };
         return mapping[frontendAnswers.diet_type] || "Moderate meat intake (2–3 times a week)";
-      })()
+      })(),
+
+      // NEW: Question 9 - Travel Context (for AI recommendations only)
+      Q9_travelContext: (() => {
+        const mapping: Record<string, string> = {
+          commute_fixed: "commute_fixed",
+          professional_driver: "professional_driver",
+          delivery_rider: "delivery_rider",
+          remote_work: "remote_work",
+          non_standard_hours: "non_standard_hours",
+          student: "student",
+          other_context: "other_context"
+        };
+        return mapping[frontendAnswers.travel_context] || "other_context";
+      })(),
+
+      // NEW: Question 10 - Mobility Considerations (for AI recommendations only)
+      Q10_mobilityConsiderations: frontendAnswers.mobility_considerations || [],
+      Q10_mobilityDetails: frontendAnswers.mobility_considerations_details || ""
     };
   };
 
@@ -500,28 +560,57 @@ export default function PreAssessment() {
 
             {question.type === "checkbox" && (
               <div className="space-y-3">
-                {question.options?.map((option) => (
-                  <div key={option.value} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={option.value}
-                      checked={answers[question.id]?.includes?.(option.value) || false}
-                      onCheckedChange={(checked) => {
-                        const currentValues = answers[question.id] || [];
-                        if (checked) {
-                          handleAnswer([...currentValues, option.value]);
-                        } else {
-                          handleAnswer(currentValues.filter((v: string) => v !== option.value));
-                        }
-                      }}
-                    />
-                    <Label 
-                      htmlFor={option.value} 
-                      className="flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth"
-                    >
-                      {option.label}
+                {question.options?.map((option) => {
+                  const isNoneSelected = answers[question.id]?.includes?.("none_mobility");
+                  const isDisabled = isNoneSelected && option.value !== "none_mobility";
+                  return (
+                    <div key={option.value} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={option.value}
+                        checked={answers[question.id]?.includes?.(option.value) || false}
+                        disabled={isDisabled}
+                        onCheckedChange={(checked) => {
+                          const currentValues = answers[question.id] || [];
+                          if (checked) {
+                            if (option.value === "none_mobility") {
+                              // Selecting "None of the above" clears all others
+                              handleAnswer(["none_mobility"]);
+                            } else {
+                              // Selecting another option removes "None of the above" if selected
+                              const newValues = currentValues.filter((v: string) => v !== "none_mobility");
+                              handleAnswer([...newValues, option.value]);
+                            }
+                          } else {
+                            // Unchecking removes the option
+                            handleAnswer(currentValues.filter((v: string) => v !== option.value));
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={option.value}
+                        className={`flex-1 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-smooth ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {option.label}
+                      </Label>
+                    </div>
+                  );
+                })}
+
+                {/* Optional text field for additional details */}
+                {(question as any).hasTextField && (
+                  <div className="pt-4 space-y-2">
+                    <Label htmlFor="additional_details" className="text-sm text-muted-foreground">
+                      {(question as any).textFieldLabel}
                     </Label>
+                    <Input
+                      id="additional_details"
+                      placeholder="Optional: Share any other relevant information..."
+                      value={answers[`${question.id}_details`] || ""}
+                      onChange={(e) => handleTextFieldChange(e.target.value)}
+                      className="w-full"
+                    />
                   </div>
-                ))}
+                )}
               </div>
             )}
 
@@ -529,21 +618,21 @@ export default function PreAssessment() {
               <div className="space-y-4">
                 <div className="text-center">
                   <span className="text-3xl font-bold text-foreground">
-                    {answers[question.id] || question.min}
+                    {answers[question.id] || (question as any).min}
                   </span>
-                  <span className="text-muted-foreground ml-2">{question.unit}</span>
+                  <span className="text-muted-foreground ml-2">{(question as any).unit}</span>
                 </div>
                 <Slider
-                  value={[answers[question.id] || question.min]}
+                  value={[answers[question.id] || (question as any).min]}
                   onValueChange={(value) => handleAnswer(value[0])}
-                  max={question.max}
-                  min={question.min}
+                  max={(question as any).max}
+                  min={(question as any).min}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{question.min} {question.unit}</span>
-                  <span>{question.max}+ {question.unit}</span>
+                  <span>{(question as any).min} {(question as any).unit}</span>
++                 <span>{(question as any).max}+ {(question as any).unit}</span>
                 </div>
               </div>
             )}

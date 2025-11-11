@@ -77,7 +77,7 @@ class AIRecommendationService {
    * @returns {string} Formatted prompt for AI
    */
 static buildRecommendationPrompt(footprintData) {
-  const { breakdown, transportModes, homeType, occupants, appliances, meals } = footprintData;
+  const { breakdown, transportModes, homeType, occupants, appliances, meals, travelContext, mobilityConsiderations, mobilityDetails } = footprintData;
   let { breakfastFood, lunchFood, dinnerFood } = footprintData.food || {};
 
   const foodKeywords = [
@@ -128,12 +128,52 @@ static buildRecommendationPrompt(footprintData) {
 
   const mealContext = `Breakfast: ${breakfastFood}, Lunch: ${lunchFood}, Dinner: ${dinnerFood}`;
 
+  // NEW: Build travel context string
+  const travelContextDescriptions = {
+    'commute_fixed': 'Commutes to a fixed workplace (e.g., Office Worker, Teacher, Nurse)',
+    'professional_driver': 'Professional driver (e.g., Bus, Jeepney, Taxi, Grab Driver)',
+    'delivery_rider': 'Delivery rider using own vehicle',
+    'remote_work': 'Works remotely or from home',
+    'non_standard_hours': 'Works non-standard hours (late night/early morning)',
+    'student': 'Student',
+    'other_context': 'Other/unspecified work context'
+  };
+  const travelContextStr = travelContext 
+    ? travelContextDescriptions[travelContext] || 'No travel context specified'
+    : 'No travel context specified';
+
+  // NEW: Build mobility considerations string
+  const mobilityDescriptions = {
+    'respiratory': 'Has respiratory condition (e.g., asthma)',
+    'wheelchair': 'Uses wheelchair/mobility scooter',
+    'walking_difficulty': 'Has difficulty walking long distances',
+    'heart_condition': 'Has heart condition',
+    'visual_impairment': 'Has visual impairment',
+    'none_mobility': 'No mobility considerations'
+  };
+  
+  let mobilityStr = 'No mobility considerations specified';
+  if (mobilityConsiderations && mobilityConsiderations.length > 0) {
+    const mobilityList = mobilityConsiderations
+      .filter(item => item !== 'none_mobility')
+      .map(item => mobilityDescriptions[item] || item);
+    
+    if (mobilityList.length > 0) {
+      mobilityStr = mobilityList.join('; ');
+      if (mobilityDetails && mobilityDetails.trim() !== '') {
+        mobilityStr += `; Additional details: ${mobilityDetails}`;
+      }
+    } else if (mobilityConsiderations.includes('none_mobility')) {
+      mobilityStr = 'No mobility considerations';
+    }
+  }
+
   console.log(mealContext)
 
   return `
 You are a sustainability advisor specializing in low-carbon Filipino lifestyles. Your job is to give down-to-earth, practical advice that makes sense in the Philippine context.
 
-User’s carbon footprint summary:
+User's carbon footprint summary:
 - Total emissions: ${total.toFixed(2)} kg CO2e
 - Transport: ${breakdown.transport.toFixed(2)} kg CO2e (${transportPercent}%)
 - Home energy: ${breakdown.homeEnergy.toFixed(2)} kg CO2e (${homePercent}%)
@@ -144,23 +184,36 @@ User context:
 - Appliances: ${applianceContext}
 - Transport modes and distances: ${transportContext}
 - Meals consumed: ${mealContext}
-
-Pre-assessment context: data
-
-Has private car
-has health condition
-has mobility considerations
+- Travel context: ${travelContextStr}
+- Mobility/health considerations: ${mobilityStr}
 
 Your task:
-Generate exactly 3 personalized, practical, and culturally Filipino-specific recommendations to reduce this user’s carbon footprint.
+Generate exactly 3 personalized, practical, and culturally Filipino-specific recommendations to reduce this user's carbon footprint.
 
-❗Only suggest actions relevant to the Philippines — e.g., jeepneys, tricycles, rice-heavy meals, AC use, local fast food (Jollibee, etc.). Avoid Western references (like electric cars or quinoa). Focus on daily habits common in urban or rural areas of the Philippines.
+IMPORTANT CONTEXTUAL CONSIDERATIONS:
+1. Travel Context: Consider the user's work situation when making transportation recommendations. For example:
+   - Professional drivers or delivery riders may have limited flexibility to change their primary transport mode
+   - Remote workers may benefit from different advice than daily commuters
+   - Students may have different transportation options and constraints
+   - Non-standard hours workers may have limited public transport options
+
+2. Mobility/Health Considerations: CRITICAL - When suggesting any transportation or physical activity recommendations:
+   - If the user has respiratory conditions: Avoid suggesting cycling/walking in heavy traffic; prioritize air-conditioned or well-ventilated transport
+   - If the user uses wheelchair/mobility aids: Only suggest accessible transport options (e.g., specific ride-sharing, accessible public transport)
+   - If the user has difficulty walking: Don't suggest walking or cycling; focus on optimizing current transport
+   - If the user has heart conditions: Avoid strenuous physical activity recommendations
+   - If the user has visual impairment: Consider safety and accessibility in all suggestions
+   - Always be respectful and provide practical alternatives that accommodate their situation
+
+■Only suggest actions relevant to the Philippines – e.g., jeepneys, tricycles, rice-heavy meals, AC use, local fast food (Jollibee, etc.). Avoid Western references (like electric cars or quinoa). Focus on daily habits common in urban or rural areas of the Philippines.
 
 Each recommendation should:
   1. Focus on the highest emission categories.
-  2. Suggest realistic daily changes.
+  2. Suggest realistic daily changes that respect the user's context and constraints.
   3. Include an estimate of potential CO2 savings.
   4. Reference the user's specific habits and items (e.g., transport modes, meals, appliances).
+  5. Be sensitive to mobility and health considerations without being patronizing.
+  
 ✅ Return ONLY a clean JSON array like this:
 [
   {
@@ -366,22 +419,40 @@ static parseAIResponse(aiResponse, footprintData) {
    * @returns {Array<Object>} Structured recommendations
    */
   static createFallbackRecommendations(footprintData) {
-    const { breakdown, transportModes, homeType, appliances, meals } = footprintData;
+    const { breakdown, transportModes, homeType, appliances, meals, mobilityConsiderations } = footprintData;
     const recommendations = [];
+    
+    // Check if user has mobility constraints that limit transportation options
+    const hasMobilityConstraints = mobilityConsiderations && mobilityConsiderations.some(
+      item => ['wheelchair', 'walking_difficulty', 'respiratory', 'heart_condition'].includes(item)
+    );
     
     // Transport recommendations
     if (breakdown.transport > 2) {
       if (transportModes.some(mode => mode.id === 'car')) {
-        recommendations.push({
-          id: 'fallback_transport_1',
-          title: 'Switch to Public Transportation',
-          description: 'Replace car trips with public transport, cycling, or walking for short distances to significantly reduce your transport emissions.',
-          category: 'transport',
-          estimatedSavings: Math.min(Math.round(breakdown.transport * 0.4 * 100) / 100, 50),
-          priority: 1,
-          source: 'rule_based',
-          actionable: true
-        });
+        if (hasMobilityConstraints) {
+          recommendations.push({
+            id: 'fallback_transport_mobility',
+            title: 'Optimize Your Car Usage',
+            description: 'Combine multiple errands into single trips, maintain proper tire pressure, and consider carpooling when possible to reduce your transport emissions while maintaining your mobility needs.',
+            category: 'transport',
+            estimatedSavings: Math.min(Math.round(breakdown.transport * 0.2 * 100) / 100, 50),
+            priority: 1,
+            source: 'rule_based',
+            actionable: true
+          });
+        } else {
+          recommendations.push({
+            id: 'fallback_transport_1',
+            title: 'Switch to Public Transportation',
+            description: 'Replace car trips with public transport, cycling, or walking for short distances to significantly reduce your transport emissions.',
+            category: 'transport',
+            estimatedSavings: Math.min(Math.round(breakdown.transport * 0.4 * 100) / 100, 50),
+            priority: 1,
+            source: 'rule_based',
+            actionable: true
+          });
+        }
       } else {
         recommendations.push({
           id: 'fallback_transport_2',
