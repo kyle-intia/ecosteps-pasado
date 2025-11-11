@@ -23,22 +23,15 @@ class ChallengeService {
   }
 
   /**
-   * Check if user has completed daily tracking for today
+   * Check if user has completed daily tracking
    * @param {string} userId - User identifier
-   * @returns {Promise<boolean>} Whether user has daily tracking entry
+   * @returns {Promise<boolean>} Whether user has any daily tracking entry
    */
   static async hasCompletedDailyTracking(userId) {
-    const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
-    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    
     const trackingEntry = await DailyTracking.findOne({
-      userId: userId,
-      date: { $gte: today, $lt: tomorrow }
+      userId: userId
     });
-    
+
     return !!trackingEntry;
   }
 
@@ -191,24 +184,24 @@ class ChallengeService {
   static async getTodaysChallenges(userId) {
     // Check if user has completed daily tracking first
     const hasTracking = await this.hasCompletedDailyTracking(userId);
-    
+
     // Get today's date in Philippines timezone
     const now = new Date();
     const phOffset = 8 * 60 * 60 * 1000;
     const phNow = new Date(now.getTime() + phOffset);
     const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    
+
     // Check if challenges already exist for today
     let challengeDoc = await Challenge.findOne({
       userId: userId,
       date: { $gte: today, $lt: tomorrow }
     });
-    
+
     if (!challengeDoc) {
       // Use the rotation-based selection for maximum daily variety
       const selectedChallenges = await this.selectDailyChallengesByRotation(userId);
-      
+
       challengeDoc = new Challenge({
         userId: userId,
         date: today,
@@ -224,10 +217,10 @@ class ChallengeService {
           completed: false
         }))
       });
-      
+
       await challengeDoc.save();
     }
-    
+
     // Add tracking status to the response
     challengeDoc.hasCompletedTracking = hasTracking;
     challengeDoc.trackingRequired = !hasTracking;
