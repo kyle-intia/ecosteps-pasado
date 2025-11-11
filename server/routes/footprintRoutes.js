@@ -102,18 +102,24 @@ router.post('/submit', async (req, res) => {
     const transformedHomeEnergy = transformHomeEnergyData(trackingData.homeEnergy);
     const email = req.email
 
-    // Get today's date in Philippines timezone (matching existing logic)
-    const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
-    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+// Get current PH time
+const now = new Date();
+const phOffset = 8 * 60; // minutes
+const phNow = new Date(now.getTime() + phOffset * 60 * 1000);
 
-    // Check if entry already exists
-    let existingEntry = await DailyTracking.findOne({
-      userId: userId,
-      date: { $gte: today, $lt: tomorrow }
-    });
+// Set start of today in PH timezone
+const today = new Date(phNow);
+today.setHours(0, 0, 0, 0);
+
+// Set start of tomorrow in PH timezone
+const tomorrow = new Date(today);
+tomorrow.setDate(today.getDate() + 1);
+
+// Mongo query
+let existingEntry = await DailyTracking.findOne({
+  userId: userId,
+  date: { $gte: today, $lt: tomorrow }
+});
 
     const isUpdate = !!existingEntry;
 
