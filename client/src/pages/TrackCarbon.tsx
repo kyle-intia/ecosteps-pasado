@@ -650,12 +650,14 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
         else if (transportTypes.public.includes(subtype)) group = "public";
         else group = "basic";
         const payload: Partial<TransportEntry> = {
+          id: `temp_${makeId()}`,
           category: "transport",
           transportGroup: group,
           subtype,
           distanceKm: Number(item.distanceKm || 0),
         };
         const created = await submitEntry(payload);
+        
         createdList.push(created);
       }
       // replace temps with created entries (best-effort matching by subtype & distance)
