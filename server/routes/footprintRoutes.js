@@ -245,11 +245,18 @@ router.post('/reset-daily', async (req, res) => {
     console.log('Daily reset requested for user:', userId);
 
     // Get today's date in Philippines timezone
-    const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
-    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+// Get current PH time
+const now = new Date();
+const phOffset = 8 * 60; // minutes
+const phNow = new Date(now.getTime() + phOffset * 60 * 1000);
+
+// Set start of today in PH timezone
+const today = new Date(phNow);
+today.setHours(0, 0, 0, 0);
+
+// Set start of tomorrow in PH timezone
+const tomorrow = new Date(today);
+tomorrow.setDate(today.getDate() + 1);
 
     // Track what was reset for user feedback
     const resetResults = {
@@ -324,11 +331,18 @@ router.get('/today', async (req, res) => {
     const userId = req.userId;
 
     // Get today's date in Philippines timezone
-    const now = new Date();
-    const phOffset = 8 * 60 * 60 * 1000;
-    const phNow = new Date(now.getTime() + phOffset);
-    const today = new Date(Date.UTC(phNow.getFullYear(), phNow.getMonth(), phNow.getDate()));
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+// Get current PH time
+const now = new Date();
+const phOffset = 8 * 60; // minutes
+const phNow = new Date(now.getTime() + phOffset * 60 * 1000);
+
+// Set start of today in PH timezone
+const today = new Date(phNow);
+today.setHours(0, 0, 0, 0);
+
+// Set start of tomorrow in PH timezone
+const tomorrow = new Date(today);
+tomorrow.setDate(today.getDate() + 1);
 
     const footprint = await DailyTracking.findOne({
       userId: userId,

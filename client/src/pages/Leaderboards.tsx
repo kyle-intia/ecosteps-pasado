@@ -351,7 +351,9 @@ const Leaderboards = () => {
                     </div>
               
                   </div>
-              
+
+                  <div className="flex justify-center gap-4">
+
                   <Button variant="hero" asChild>
                     <Link
                       className="transition-all duration-300 ease-out"
@@ -360,6 +362,18 @@ const Leaderboards = () => {
                       Track More
                     </Link>
                   </Button>
+                  <Button variant="secondary" asChild>
+                    <Link
+                      className="transition-all duration-300 ease-out"
+                      to="/certificates-rewards"
+                    >
+                      View Certificate and Rewards
+                    </Link>
+                  </Button>
+
+                  </div>
+              
+
                 </>
               ) : (
                 <>

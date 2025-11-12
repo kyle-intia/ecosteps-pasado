@@ -39,6 +39,7 @@ import BadgeAchievements from "./ecosteps-admin/BadgeAchievement";
 import EcoChallenges from "./ecosteps-admin/EcoChallenge";
 import UserTrackDistance from "./pages/TrackDistance";
 import UserTrackHistory from "./pages/TrackHistory";
+import CertificateRewards from "./pages/CertificateRewards";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ const App: React.FC = () => {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/sessions" element={<UserSession />} />
                   <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/certificates-rewards" element={<CertificateRewards />} />
                 </Route>
               </Route>
           </Route>

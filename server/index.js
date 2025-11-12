@@ -39,7 +39,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const communityRoutes = require("./routes/communityRoute");
 const leaderboardRoutes = require("./routes/leaderboardsRoutes");
 const activityRoutes = require("./routes/ActivityRoute");
-
+const stravaRoutes = require("./routes/stravaRoutes");
 // Import new AI recommendation routes
 const footprintRoutes = require("./routes/footprintRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
@@ -89,6 +89,7 @@ app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 
 app.use("/api/activities", activityRoutes);
+app.use("/api/strava", stravaRoutes);
 
 // ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
@@ -112,6 +113,7 @@ app.use("/footprint", authenticate_1.default, footprintRoutes);
 app.use("/api/footprint", authenticate_1.default, footprintRoutes);
 app.use("/recommendations", authenticate_1.default, recommendationRoutes);
 app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
+
 
 
 // Achievement routes 

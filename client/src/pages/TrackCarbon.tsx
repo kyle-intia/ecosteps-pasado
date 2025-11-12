@@ -32,13 +32,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout, getTodaysTracking, getDailyTrackingHistory } from "../lib/api";
+import { logout, getTodaysTracking, getDailyTrackingHistory, getTodayEntries, addActivityEntry, updateActivityEntry, deleteActivityEntry, submitDailyTracking, getRecommendations, clearDailyData } from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
 import RecommendationView from "../components/RecommendationView";
 import LoadingSpinner from "../components/LoadingSpinner";
 import useActivityTrack from "@/hooks/useActivityTrack";
+import useStravaTrack from "@/hooks/useStravaTrack";
 import {
   Dialog,
   DialogContent,
@@ -226,6 +227,7 @@ export default function TrackCarbonDynamic() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  
 
   // editing
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -256,6 +258,18 @@ export default function TrackCarbonDynamic() {
     refetch: refetchActivities,
   } = useActivityTrack();
 
+const {
+  activities: stravaActivities,
+  isLoading: isStravaLoading,
+  error: stravaError,
+  refetch: refetchStrava,
+  isConnected,
+} = useStravaTrack();
+
+
+  const [isStravaImportOpen, setIsStravaImportOpen] = useState(false);
+  const [stravaSelection, setStravaSelection] = useState<Record<string, boolean>>({});
+
   // import selection state (key -> boolean)
   const [importSelection, setImportSelection] = useState<Record<string, boolean>>({});
   // group open/closed state for accordion (optional)
@@ -276,58 +290,37 @@ export default function TrackCarbonDynamic() {
 
   // ---------- Server CRUD helpers ----------
   const fetchTodayEntries = async (): Promise<Entry[]> => {
-    const res = await fetch(`${API_BASE}/activitylogs/fetch/today`, {
-      method: "GET",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Failed to fetch entries" }));
-      throw new Error(err.message || "Failed to fetch entries");
+    try {
+      const payload = await getTodayEntries();
+      return payload;
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to fetch entries");
     }
-    const payload = await res.json();
-    return payload;
   };
 
   const submitEntry = async (entry: Partial<Entry>): Promise<Entry> => {
-    const res = await fetch(`${API_BASE}/activitylogs/submit/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(entry),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Failed to submit entry" }));
-      throw new Error(err.message || "Failed to submit entry");
+    try {
+      const payload = await addActivityEntry(entry);
+      return payload;
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to submit entry");
     }
-    const payload = await res.json();
-    return payload;
   };
 
   const updateEntry = async (id: string, entry: Partial<Entry>): Promise<Entry> => {
-    const res = await fetch(`${API_BASE}/activitylogs/patch/${id}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entry),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Failed to update entry" }));
-      throw new Error(err.message || "Failed to update entry");
+    try {
+      const payload = await updateActivityEntry(id, entry);
+      return payload;
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to submit entry");
     }
-    const payload = await res.json();
-    return payload;
   };
-
+  
   const deleteEntry = async (id: string): Promise<void> => {
-    const res = await fetch(`${API_BASE}/activitylogs/delete/${id}`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Failed to delete entry" }));
-      throw new Error(err.message || "Failed to delete entry");
+    try {
+      await deleteActivityEntry(id);
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to delete entry");
     }
   };
 
@@ -600,6 +593,18 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     });
   }, [activities]);
 
+const stravaCandidates = useMemo(() => {
+  if (!stravaActivities || stravaActivities.length === 0) return [];
+  return stravaActivities.map((act: any, idx: number) => ({
+    key: `${idx}_${act.id}`,
+    subtype: String(act.type || "unknown").toLowerCase(),
+    distanceKm: Number((act.distance || 0) / 1000),
+    createdAt: act.start_date || new Date().toISOString(),
+    label: `${act.name || "Activity"} — ${Math.round((act.distance || 0) / 1000)} km`,
+  }));
+}, [stravaActivities]);
+
+
   // reset import selection when candidates change
   useEffect(() => {
     const s: Record<string, boolean> = {};
@@ -683,44 +688,86 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
+
+  const toggleStravaSelection = (key: string) => {
+  setStravaSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+};
+
+const handleAddStravaImports = async () => {
+  const selectedKeys = Object.entries(stravaSelection).filter(([, v]) => v).map(([k]) => k);
+  if (selectedKeys.length === 0) {
+    toast({ title: "No selection", description: "Select Strava items to import.", variant: "destructive" });
+    return;
+  }
+
+  const selectedItems = stravaCandidates.filter((c) => selectedKeys.includes(c.key));
+
+  const tempEntries: Entry[] = selectedItems.map((item) => ({
+    id: `temp_${makeId()}`,
+    category: "transport",
+    createdAt: new Date().toISOString(),
+    transportGroup: "basic",
+    subtype: item.subtype,
+    distanceKm: item.distanceKm,
+    isTemp: true,
+  }));
+
+  setEntries((prev) => [...tempEntries, ...prev]);
+  setIsSubmittingEntry(true);
+
+  try {
+    const createdList: Entry[] = [];
+    for (const item of selectedItems) {
+      const payload: Partial<TransportEntry> = {
+        id: `temp_${makeId()}`,
+        category: "transport",
+        transportGroup: "basic",
+        subtype: item.subtype,
+        distanceKm: Number(item.distanceKm || 0),
+      };
+      const created = await submitEntry(payload);
+      createdList.push(created);
+    }
+
+    setEntries((prev) => [
+      ...createdList,
+      ...prev.filter((e) => !e.isTemp),
+    ]);
+    toast({ title: "Imported", description: `Imported ${createdList.length} Strava activities.` });
+    setIsStravaImportOpen(false);
+  } catch (err: any) {
+    setEntries((prev) => prev.filter((e) => !e.isTemp));
+    toast({ title: "Error", description: err.message || "Strava import failed", variant: "destructive" });
+  } finally {
+    setIsSubmittingEntry(false);
+  }
+};
+
+
   // ---------- Footprint calculation & recommendations ----------
   const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
-    const response = await fetch(`${API_BASE}/api/footprint/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(trackingData),
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(()=>({message:"Failed to submit footprint"}));
-      throw new Error(err.message || "Failed to submit footprint");
+    try {
+      const payload = await submitDailyTracking(trackingData);
+      return payload;
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to submit footprint");
     }
-    return response.json();
   };
 
   const fetchRecommendations = async (id: string): Promise<RecommendationResponse> => {
-    const response = await fetch(`${API_BASE}/api/recommendations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ footprintId: id }),
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(()=>({message:"Failed to fetch recommendations"}));
-      throw new Error(err.message || "Failed to fetch recommendations");
-    }
-    return response.json();
+  try {
+    const payload = await getRecommendations(id);
+    return payload;
+  } catch (err: any) {
+    throw new Error(err?.message || "Failed to fetch recommendations");
+  }
   };
 
   const resetDailyData = async (): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/footprint/reset-daily`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(()=>({message:"Failed to reset daily"}));
-      throw new Error(err.message || "Failed to reset daily data");
+    try {
+      await clearDailyData();
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to reset daily data");
     }
   };
 
@@ -1025,24 +1072,24 @@ const handleConfirmReset = async () => {
                 >
                   <DialogTrigger asChild>
                     <Button
-  size="lg"
-  onClick={() => {
-    if (recommendations.length > 0) {
-      toast({
-        title: "Action disabled",
-        description: "You already have recommendations. Reset daily to add new entries.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setEditingId(null);
-    setActiveTab("transport");
-  }}
-  variant="default"
-  disabled={recommendations.length > 0}
->
-  <Plus className="w-5 h-5 mr-2" /> {editingId ? "Edit Entry" : "Add Entry"}
-</Button>
+                      size="lg"
+                      onClick={() => {
+                        if (recommendations.length > 0) {
+                          toast({
+                            title: "Action disabled",
+                            description: "You already have recommendations. Reset daily to add new entries.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setEditingId(null);
+                        setActiveTab("transport");
+                      }}
+                      variant="default"
+                      disabled={recommendations.length > 0}
+                    >
+                      <Plus className="w-5 h-5 mr-2" /> {editingId ? "Edit Entry" : "Add Entry"}
+                    </Button>
 
                   </DialogTrigger>
 
@@ -1139,6 +1186,9 @@ const handleConfirmReset = async () => {
                           </Button>
                           <Button variant="ghost" onClick={() => setIsImportOpen(true)}>
                             Import from Live Tracking
+                          </Button>
+                          <Button variant="ghost" onClick={() => setIsStravaImportOpen(true)}>
+                            Import from Strava
                           </Button>
                         </div>
                       </TabsContent>
@@ -1582,6 +1632,68 @@ const handleConfirmReset = async () => {
                 </CardFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Strava Import Modal */}
+            <Dialog open={isStravaImportOpen} onOpenChange={setIsStravaImportOpen}>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Import from Strava</DialogTitle>
+                </DialogHeader>
+                  <CardContent className="space-y-4">
+                    {!isConnected ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          You are not connected to Strava yet.
+                        </p>
+                        <Button
+                          variant="eco"
+                          onClick={() => window.open(`${API_BASE}/api/strava/auth`, "_blank")}
+                        >
+                          Connect Strava
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 text-green-600 font-medium">
+                          ✅ Connected to Strava
+                        </div>
+                    
+                        {isStravaLoading ? (
+                          <div className="text-sm text-muted-foreground">Loading activities...</div>
+                        ) : stravaCandidates.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">No recent Strava activities found.</div>
+                        ) : (
+                          <div className="space-y-2 p-2">
+                            {stravaCandidates.map((c) => (
+                              <label key={c.key} className="flex items-center gap-3 p-2 rounded hover:bg-muted">
+                                <Checkbox
+                                  checked={!!stravaSelection[c.key]}
+                                  onCheckedChange={() => toggleStravaSelection(c.key)}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium capitalize">{c.label}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(c.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                  
+                  
+                <CardFooter className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsStravaImportOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddStravaImports} disabled={isSubmittingEntry}>
+                    {isSubmittingEntry ? "Importing..." : "Add Selected"}
+                  </Button>
+                </CardFooter>
+              </DialogContent>
+            </Dialog>
+
 
             {/* Delete confirm */}
             <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
