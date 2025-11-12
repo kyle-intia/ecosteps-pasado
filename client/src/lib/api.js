@@ -22,22 +22,30 @@ export const updateProfile = (data) => API.patch("/profile/update", data);
 
 // ========== DAILY TRACKING ==========
 export const submitDailyTracking = (trackingData) =>
-  API.post("/daily-tracking/submit", trackingData);
+  API.post("/api/footprint/submit", trackingData);
 
 export const checkResubmission = () =>
-  API.post("/daily-tracking/check-resubmission");
+  API.post("/api/footprint/check-resubmission");
 
 export const getDailyTrackingHistory = (limit = 30, offset = 0) =>
-  API.get(`/daily-tracking?limit=${limit}&offset=${offset}`);
+  API.get(`/api/footprint?limit=${limit}&offset=${offset}`);
 
 export const getTodaysTracking = () =>
-  API.get(`/daily-tracking/today`);
+  API.get(`/api/footprint/today`);
 
 export const getDailyTrackingStats = (days = 7) =>
-  API.get(`/daily-tracking/stats?days=${days}`);
+  API.get(`/api/footprint/stats?days=${days}`);
 
 export const deleteDailyTracking = (entryId) =>
-  API.delete(`/daily-tracking/${entryId}`);
+  API.delete(`/api/footprint/${entryId}`);
+
+export const getTodayEntries = () => API.get("/activitylogs/fetch/today");
+
+export const addActivityEntry = (data) => API.post("/activitylogs/submit", data);
+
+export const updateActivityEntry = (id, data) => API.patch(`/activitylogs/patch/${id}`, data);
+
+export const deleteActivityEntry = (id) => API.post(`/activitylogs/delete/${id}`);
 
 // ========== CHALLENGES ==========
 export const getTodaysChallenges = () =>
@@ -129,10 +137,9 @@ export const togglePushNotification = (data) => API.post(`/api/notifications/pus
 export const getUserSettings = (userId) => API.get(`/api/user-settings/notification/${userId}`);
 export const updateUserSettings = (userId, data) => API.put(`/api/user-settings/notification/${userId}`, data);
 
-//======== Footprin
+//======== Footprint Live Tracking
 
-export const calculateFootprint = (data) => API.post("/api/footprint/submit", data);
-export const getTodayFootprint = () => API.get('/api/footprint/today');
+export const submitLivetracking = (trackingData) => API.post("/api/activities", trackingData);
 
 //======== PUSH NOTIFICATIONS ==============
 export const pushSubscribe = (userId, subscription) => API.post("/api/push/subscribe", { userId, subscription });
@@ -148,6 +155,11 @@ export const getDashboardTrends = (months = 6) =>
 // ========== RECOMMENDATIONS ==========
 export const regenerateRecommendations = () =>
   API.post("/dashboard/recommendations/regenerate");
+
+export const getRecommendations = (footprintId) =>
+  API.post("/api/recommendations", { footprintId });
+
+export const clearDailyData = () => API.post("/api/footprint/reset-daily");
 
 // ========== ACHIEVEMENTS ==========
 export const getUserAchievements = () => API.get("/achievements");

@@ -30,6 +30,8 @@ import {
   MapPin
 } from "lucide-react";
 
+import { submitLivetracking } from "../lib/api";
+
 type Category = "private" | "public" | "basic";
 
 const transportTypes = {
@@ -151,79 +153,66 @@ const UserTrackDistance = () => {
     }
   }, [calcDistance, toast]);
 
-  const stopTracking = useCallback(async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    setTracking(false);
+const stopTracking = useCallback(async () => {
+  if (timerRef.current) clearInterval(timerRef.current);
+  if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+  setTracking(false);
 
-    if (positions.length < 2) {
-      toast({
-        title: "Tracking Too Short",
-        description: "Not enough data to save activity.",
-        variant: "destructive",
-      });
+  if (positions.length < 2) {
+    toast({
+      title: "Tracking Too Short",
+      description: "Not enough data to save activity.",
+      variant: "destructive",
+    });
 
-      setPositions([]);
-      setTotalDistance(0);
-      setElapsedTime(0);
-      return;
-    }
+    setPositions([]);
+    setTotalDistance(0);
+    setElapsedTime(0);
+    return;
+  }
 
-    if (totalDistance < 0.10) {
-      toast({
-        title: "Distance Too Short",
-        description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 100 m.`,
-        variant: "destructive",
-      });
-    
-      setPositions([]);
-      setTotalDistance(0);
-      setElapsedTime(0);
-      return;
-    }
+  if (totalDistance < 0.10) {
+    toast({
+      title: "Distance Too Short",
+      description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 100 m.`,
+      variant: "destructive",
+    });
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/activities`, {
-        method: "POST",
-        headers: {
-        'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          category,
-          subtype,
-          points: positions,
-          totalDistance,
-          duration: elapsedTime,
-        }),
-      });
+    setPositions([]);
+    setTotalDistance(0);
+    setElapsedTime(0);
+    return;
+  }
 
-      const data = await res.json();
-      if (res.ok) {
-        toast({
-          title: "Activity Saved",
-          description: "Your tracking data has been saved!",
-          variant: "success"
-        });
-        setPositions([]);
-        setTotalDistance(0);
-        setElapsedTime(0);
-      } else {
-        toast({
-          title: "Save Failed",
-          description: data.message || "Something went wrong saving your activity.",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Network Error",
-        description: "Unable to connect to server. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  }, [positions, totalDistance, elapsedTime, category, subtype, toast]);
+  try {
+    // Use your API helper instead of fetch
+    const data = await submitLivetracking({
+      category,
+      subtype,
+      points: positions,
+      totalDistance,
+      duration: elapsedTime,
+    });
+
+    toast({
+      title: "Activity Saved",
+      description: "Your tracking data has been saved!",
+      variant: "success",
+    });
+
+    setPositions([]);
+    setTotalDistance(0);
+    setElapsedTime(0);
+  } catch (err: any) {
+    console.error(err);
+    toast({
+      title: "Save Failed",
+      description: err?.message || "Something went wrong saving your activity.",
+      variant: "destructive",
+    });
+  }
+}, [positions, totalDistance, elapsedTime, category, subtype, toast]);
+
 
   const handleToggleTracking = () => {
     tracking ? stopTracking() : startTracking();
