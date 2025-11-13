@@ -26,6 +26,7 @@ const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
 const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
 
 const adminRoutes = require('./routes/adminRoute');
+const emailRoutes = require("./routes/email");
 const emissionFactorRoute = require('./routes/emissionFactorRoute');
 const isAdmin = require("./middleware/isAdmin");
 const notificationRoutes = require('./routes/notificationRoute');
@@ -99,6 +100,7 @@ app.use('/api/user-settings', userSettingsRoute);
 app.use('/api/push', pushNotificationRoutes);
 app.use("/api/admin/achievements", badgeAchievementRoutes);
 app.use('/api/admin/eco-challenges', ecoChallengeRoutes);
+app.use("/api/send-email", emailRoutes);
 
 // Challenge routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
@@ -125,18 +127,20 @@ app.use('/api/leaderboard', leaderboardRoutes);
 // Error handling middleware
 app.use(errorHandler_1.default);
 
-cron.schedule('10 0 * * *', () => {
+cron.schedule('0 9-21/4 * * *', () => {
   sendDailyTrackingReminders()
-    .then(() => console.log('Daily tracking reminders sent at 8:00 AM.'))
-    .catch((err) => console.error('Failed to send daily reminders:', err));
+    .then(() => console.log('Tracking reminder sent (every 4 hours starting 9 AM).'))
+    .catch((err) => console.error('Failed to send tracking reminders:', err));
 }, {
-  timezone: 'Asia/Manila' 
+  timezone: 'Asia/Manila'
 });
  
 const now = new Date();
-if (now.getHours() >= 20) {
+const hour = now.getHours();
+
+if (hour >= 9 && (hour - 9) % 4 === 0) {
   sendDailyTrackingReminders()
-    .then(() => console.log('Reminder sent on server start (after 8 PM).'))
+    .then(() => console.log('Reminder sent on server start (aligned with 4-hour schedule).'))
     .catch((err) => console.error('Failed to send reminder on server start:', err));
 }
 

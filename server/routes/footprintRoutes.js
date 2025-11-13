@@ -176,8 +176,6 @@ let existingEntry = await DailyTracking.findOne({
         }
       });
 
-      await NotificationService.createNotification(userId, `${email}} logged his/her daily carbon footprint`, "daily-tracking");
-
       await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
 
       savedEntry = await newEntry.save();

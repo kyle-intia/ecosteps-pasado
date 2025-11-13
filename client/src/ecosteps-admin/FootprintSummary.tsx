@@ -4,19 +4,11 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { Trophy,} from "lucide-react"
-import { getDailyFootprintByCategory } from "../lib/api"
+import { getDailyFootprintByCategory, getLeaderboard } from "../lib/api"
 import { useEffect, useRef, useState } from "react"
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Button } from "@/components/ui/button"
-
-const leaderboardData = [
-  { rank: 1, user: "alex.smith@email.com", footprint: 6.2, change: -15 },
-  { rank: 2, user: "sarah.j@email.com", footprint: 8.5, change: -8 },
-  { rank: 3, user: "mike.chen@email.com", footprint: 9.1, change: -12 },
-  { rank: 4, user: "lisa.brown@email.com", footprint: 11.8, change: +2 },
-  { rank: 5, user: "david.wilson@email.com", footprint: 13.2, change: -5 },
-]
 
 const months = [
   { value: 1, label: "January" },
@@ -37,6 +29,11 @@ const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
 
 const FootprintSummary = () => {
+
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [dailyTrends, setDailyTrends] = useState<any[]>([]);
@@ -207,6 +204,33 @@ useEffect(() => {
       </ul>
     );
   };
+
+    useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await getLeaderboard();
+    
+        const leaderboardData = response?.data || [];
+        if (leaderboardData.length > 0) {
+          setLeaderboard(leaderboardData);
+        } else {
+          throw new Error("Leaderboard is empty or API response unexpected");
+        }
+      } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+
+
+  if (loading) return <p>Loading leaderboard...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="space-y-6">
@@ -425,45 +449,49 @@ useEffect(() => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="leaderboard" className="space-y-4">
-          <Card className="shadow-sm border-admin-border" ref={leaderboardRef}>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-chart-3" />
-                Carbon Footprint Leaderboard
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Lowest footprint users (best performers)</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {leaderboardData.map((user) => (
-                  <div key={user.rank} className="flex items-center justify-between p-3 rounded-lg border border-admin-border hover:bg-admin-hover transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        user.rank === 1 ? 'bg-chart-3 text-chart-3-foreground' :
-                        user.rank === 2 ? 'bg-muted text-muted-foreground' :
-                        user.rank === 3 ? 'bg-warning/20 text-warning' :
-                        'bg-admin-hover text-foreground'
-                      }`}>
-                        {user.rank}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{user.user}</p>
-                        <p className="text-xs text-muted-foreground">Daily average: {user.footprint} kg CO₂</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={user.change < 0 ? "default" : "secondary"} className="text-xs">
-                        {user.change > 0 ? '+' : ''}{user.change}%
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">this month</p>
-                    </div>
+    <TabsContent value="leaderboard" className="space-y-4">
+      <Card className="shadow-sm border-admin-border" ref={leaderboardRef}>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-chart-3" />
+            Carbon Footprint Leaderboard
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Active EcoSteps users (best performers)</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {leaderboard.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-admin-hover transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    user.rank === 1 ? 'bg-chart-3 text-chart-3-foreground' :
+                    user.rank === 2 ? 'bg-muted text-muted-foreground' :
+                    user.rank === 3 ? 'bg-warning/20 text-warning' :
+                    'bg-admin-hover text-foreground'
+                  }`}>
+                    {user.rank}
                   </div>
-                ))}
+                  <div>
+                    <p className="font-medium text-sm">{user.user.firstName} {user.user.lastName} ({user.user.username})</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Eco Score: {user.totalScore}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Badge variant="default" className="text-xs">Tier: {user.tier}</Badge>
+                  <div className="flex flex-row gap-5">
+                    <p className="text-xs text-muted-foreground mt-1">Activity: {user.Activity}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Post: {user.Posts}</p>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            ))}
+
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
       </Tabs>
     </div>
   )

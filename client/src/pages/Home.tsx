@@ -59,7 +59,7 @@ const Home = () => {
   const { metrics } = dashboardData?.data || {};
 
   // Check if data is loaded and accessible
-  const todaysSaving = metrics?.todaysCO2Saved || 0;
+  const C02Saved = metrics?.c02Saved || 0;
 
   const profile = user as UserProfile | undefined;
 
@@ -280,7 +280,7 @@ const Home = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-success">
-                    {savingsLoading ? <Spinner /> : savingsError ? 'N/A' : `${todaysSaving}kg`}
+                    {savingsLoading ? <Spinner /> : `${C02Saved}kg`|| 'N/A'}
                   </div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
                   <div className="text-xs text-green-600 mt-1">

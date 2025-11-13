@@ -6,7 +6,8 @@ import {
   Settings,
   LogOut,
   Award,
-  Target
+  Target,
+  Mail,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -35,6 +36,7 @@ const navigationItems = [
   { title: "Activity Logs", url: "/admin/logs", icon: FileText },
   { title: "Badge Achievements", url: "/admin/badges", icon: Award },
   { title: "Eco Challenges", url: "/admin/eco-challenges", icon: Target },
+  { title: "Email", url: "/admin/email", icon: Mail },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ]
 
