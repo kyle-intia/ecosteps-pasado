@@ -107,6 +107,8 @@ class DashboardService {
     // Calculate trees saved (1 tree = ~22kg CO2 per year)
     const annualSavings = (lastEmissions - currentEmissions) * 12 * 1000; // kg per year
     const treesSaved = Math.max(0, Math.round(annualSavings / 22));
+
+    const c02Saved = Math.max(0, (lastEmissions - currentEmissions) * 1000); 
     
     return {
       currentEmissions: Math.round(currentEmissions * 100) / 100,
@@ -114,6 +116,7 @@ class DashboardService {
       reductionPercentage: Math.round(reductionPercentage * 10) / 10,
       ecoScore: Math.round(ecoScore),
       treesSaved,
+      c02Saved: Math.round(c02Saved),
       trend: reductionPercentage > 0 ? 'improving' : 'worsening'
     };
   }

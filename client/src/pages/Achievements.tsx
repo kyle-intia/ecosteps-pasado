@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Trophy,
@@ -12,7 +13,8 @@ import {
   Star,
   CheckCircle,
   Plus,
-  X
+  X,
+  ArrowLeft
 } from "lucide-react";
 import { getUserAchievements, equipAchievement, unequipAchievement } from "../lib/api";
 
@@ -59,6 +61,7 @@ const tierColors = {
 };
 
 const Achievements = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const { toast } = useToast();
@@ -429,6 +432,20 @@ const Achievements = () => {
             </CardContent>
           </Card>
         )}
+
+        <div className="sticky bottom-0 left-0 right-0 backdrop-blur-sm border-t border-[hsl(240,6%,90%)] p-4 shadow-lg z-50">
+          <div className="container mx-auto max-w-7xl">
+            <Button
+              onClick={() => navigate(-1)}
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto group border-[hsl(240,6%,90%)] text-[hsl(240,10%,10%)] hover:bg-[hsl(240,5%,96%)]"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              Go Back
+            </Button>
+          </div>
+        </div>
       </main>
     </div>
   );

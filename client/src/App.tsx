@@ -40,6 +40,7 @@ import EcoChallenges from "./ecosteps-admin/EcoChallenge";
 import UserTrackDistance from "./pages/TrackDistance";
 import UserTrackHistory from "./pages/TrackHistory";
 import CertificateRewards from "./pages/CertificateRewards";
+import EmailManagement from "./ecosteps-admin/AdminEmail";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -94,6 +95,7 @@ const App: React.FC = () => {
             <Route index element={<AdminDashboard />} />
             <Route path="/admin/users" element={<Users />} />
             <Route path="/admin/logs" element={<ActivityLogs />} />
+            <Route path="/admin/email" element={< EmailManagement/>} />
             <Route path="/admin/badges" element={<BadgeAchievements />} />
             <Route path="/admin/eco-challenges" element={<EcoChallenges />} />
             <Route path="/admin/footprint" element={<FootprintSummary />} />

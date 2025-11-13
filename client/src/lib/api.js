@@ -25,16 +25,16 @@ export const submitDailyTracking = (trackingData) =>
   API.post("/api/footprint/submit", trackingData);
 
 export const checkResubmission = () =>
-  API.post("/api/footprint/check-resubmission");
+  API.post("/api/daily-tracking/check-resubmission");
 
 export const getDailyTrackingHistory = (limit = 30, offset = 0) =>
-  API.get(`/api/footprint?limit=${limit}&offset=${offset}`);
+  API.get(`/api/daily-tracking?limit=${limit}&offset=${offset}`);
 
 export const getTodaysTracking = () =>
   API.get(`/api/footprint/today`);
 
 export const getDailyTrackingStats = (days = 7) =>
-  API.get(`/api/footprint/stats?days=${days}`);
+  API.get(`/api/daily-tracking/stats?days=${days}`);
 
 export const deleteDailyTracking = (entryId) =>
   API.delete(`/api/footprint/${entryId}`);

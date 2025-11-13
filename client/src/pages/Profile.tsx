@@ -141,7 +141,6 @@ const Profile = () => {
           reposts: 0,
           followers: 0,
           following: 0,
-          carbonSaved: "0 tons",
         }
       });
     }
@@ -568,10 +567,6 @@ const Profile = () => {
                   <div className="text-center">
                     <p className="text-2xl font-bold text-primary">{currentUser.stats.reposts}</p>
                     <p className="text-sm text-muted-foreground">Reposts</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-success">{currentUser.stats.carbonSaved}</p>
-                    <p className="text-sm text-muted-foreground">CO₂ Saved</p>
                   </div>
                 </div>
               </div>
