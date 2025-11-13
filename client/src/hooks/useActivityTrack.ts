@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { getActivityTrack } from "../lib/api"; // Assuming this is the API function to fetch the data
+import { getActivityTrack } from "../lib/api";
 
 export const ACTIVITY_TRACK = "activityTrack";
 
-// Define the shape of the data returned from the API
 interface Point {
   latitude: number;
   longitude: number;
@@ -19,8 +18,7 @@ export interface ActivityData {
   points: Point[];
   totalDistance: number;
   duration: number;
-  avgSpeed?: number;
-  pace?: number;
+  isImported: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,15 +26,16 @@ export interface ActivityData {
 const useActivityTrack = (opts: { enabled?: boolean } = {}) => {
   const { enabled = true } = opts;
 
-  const queryKey = [ACTIVITY_TRACK];
+  const queryKey = [ACTIVITY_TRACK, { isImported: false }];
 
-  const queryFn = () => getActivityTrack({ params: {} });  // No filters, get all activities
+  const queryFn = () => getActivityTrack({ params: {} }); // fetch all (filter client-side)
 
   const { data, error, isLoading, isError, refetch } = useQuery<ActivityData[]>({
     queryKey,
     queryFn,
-    staleTime: 1000 * 60 * 5, // Cache the data for 5 minutes
-    enabled, // You can control whether the query runs
+    select: (activities) => activities.filter((a) => !a.isImported),
+    staleTime: 1000 * 60 * 5,
+    enabled,
   });
 
   return {

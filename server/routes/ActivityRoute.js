@@ -39,4 +39,21 @@ router.get("/", async (req, res) => {
 });
 
 
+router.patch("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updatedActivity = await ActivityService.updateActivity(id, updates);
+    if (!updatedActivity) {
+      return res.status(404).json({ message: "Activity not found" });
+    }
+
+    res.json(updatedActivity);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 module.exports = router;
