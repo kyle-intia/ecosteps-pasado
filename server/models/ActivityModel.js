@@ -18,8 +18,10 @@ const activitySchema = new mongoose.Schema(
     points: [pointSchema],
     totalDistance: Number,
     duration: Number,
-    avgSpeed: Number,
-    pace: Number,
+isImported: {
+  type: Boolean,
+  default: false,
+},
   },
   { timestamps: true }
 );

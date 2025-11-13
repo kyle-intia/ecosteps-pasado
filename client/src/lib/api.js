@@ -141,6 +141,9 @@ export const updateUserSettings = (userId, data) => API.put(`/api/user-settings/
 
 export const submitLivetracking = (trackingData) => API.post("/api/activities", trackingData);
 
+export const updateLivetracking = (id, data) =>
+  API.patch(`/api/activities/${id}`, data);
+
 //======== PUSH NOTIFICATIONS ==============
 export const pushSubscribe = (userId, subscription) => API.post("/api/push/subscribe", { userId, subscription });
 

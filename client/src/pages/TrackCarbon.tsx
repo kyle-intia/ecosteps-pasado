@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout, getTodaysTracking, getDailyTrackingHistory, getTodayEntries, addActivityEntry, updateActivityEntry, deleteActivityEntry, submitDailyTracking, getRecommendations, clearDailyData } from "../lib/api";
+import { logout, updateLivetracking, getTodaysTracking, getDailyTrackingHistory, getTodayEntries, addActivityEntry, updateActivityEntry, deleteActivityEntry, submitDailyTracking, getRecommendations, clearDailyData } from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
@@ -319,6 +319,16 @@ const {
   const deleteEntry = async (id: string): Promise<void> => {
     try {
       await deleteActivityEntry(id);
+      console.log("Deleted entry", id);
+
+      try {
+        await updateLivetracking(id, { isImported: false });
+        
+      } catch (err) {
+        console.warn(`Failed to mark ${id} as imported`, err);
+      }
+
+      window.location.reload();
     } catch (err: any) {
       throw new Error(err?.message || "Failed to delete entry");
     }
@@ -444,6 +454,16 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
 
   // create home
   const handleCreateHome = async () => {
+
+    if (hasHomeEntry) {
+    toast({
+      title: "Already added",
+      description: "You can only add one home entry per day. Please edit the existing one instead.",
+      variant: "destructive",
+    });
+    return;
+  }
+
     if (!homeForm.homeType || Number(homeForm.occupants || 0) < 0) {
       toast({ title: "Invalid", description: "Choose home type & occupants.", variant: "destructive" });
       return;
@@ -469,6 +489,16 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
 
   // create food
   const handleCreateFood = async () => {
+
+    if (submittedFoodSlots.size >= 3) {
+      toast({
+        title: "All meals added",
+        description: "You've already logged breakfast, lunch, and dinner for today.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!foodForm.mealSlot) {
       toast({ title: "Invalid", description: "Choose a meal slot.", variant: "destructive" });
       return;
@@ -616,77 +646,110 @@ const stravaCandidates = useMemo(() => {
     setImportSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleAddSelectedImports = async () => {
-    const selectedKeys = Object.entries(importSelection).filter(([, v]) => v).map(([k]) => k);
-    if (selectedKeys.length === 0) {
-      toast({ title: "No selection", description: "Select items to import.", variant: "destructive" });
-      return;
-    }
-    const selectedItems = importCandidates.filter((c) => selectedKeys.includes(c.key));
-    // optimistic: add all selected as temp entries
-    const tempEntries: Entry[] = selectedItems.map((item) => {
+
+const handleAddSelectedImports = async () => {
+  const selectedKeys = Object.entries(importSelection)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+
+  if (selectedKeys.length === 0) {
+    toast({
+      title: "No selection",
+      description: "Select items to import.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const selectedItems = importCandidates.filter((c) => selectedKeys.includes(c.key));
+
+  // optimistic: add all selected as temp entries
+  const tempEntries: Entry[] = selectedItems.map((item) => {
+    const subtype = item.subtype;
+    let group: TransportGroup = "basic";
+    if (transportTypes.private.includes(subtype)) group = "private";
+    else if (transportTypes.public.includes(subtype)) group = "public";
+
+    return {
+      id: `temp_${makeId()}`,
+      category: "transport",
+      createdAt: new Date().toISOString(),
+      transportGroup: group,
+      subtype,
+      distanceKm: Number(item.distanceKm || 0),
+      isTemp: true,
+    } as TransportEntry;
+  });
+
+  setEntries((prev) => [...tempEntries, ...prev]);
+  setIsSubmittingEntry(true);
+
+  try {
+    const createdList: Entry[] = [];
+
+    for (const item of selectedItems) {
       const subtype = item.subtype;
-      // detect group
       let group: TransportGroup = "basic";
       if (transportTypes.private.includes(subtype)) group = "private";
       else if (transportTypes.public.includes(subtype)) group = "public";
-      else group = "basic";
-      return {
-        id: `temp_${makeId()}`,
+
+      const payload: Partial<TransportEntry> = {
+        id: item.raw._id,
         category: "transport",
-        createdAt: new Date().toISOString(),
         transportGroup: group,
         subtype,
         distanceKm: Number(item.distanceKm || 0),
-        isTemp: true,
-      } as TransportEntry;
+      };
+
+      // ✅ Step 1: Submit the entry
+      const created = await submitEntry(payload);
+      createdList.push(created);
+
+      // ✅ Step 2: Mark original as imported in DB
+      try {
+        await updateLivetracking(item.raw._id, { isImported: true });
+      } catch (err) {
+        console.warn(`Failed to mark ${item.raw._id} as imported`, err);
+      }
+    }
+
+    // replace temps with created entries
+    setEntries((prev) => {
+      let remaining = prev.filter(
+        (p) =>
+          !(
+            p.isTemp &&
+            createdList.some(
+              (c) =>
+                (c as any).subtype === (p as any).subtype &&
+                (c as any).distanceKm === (p as any).distanceKm
+            )
+          )
+      );
+      return [...(createdList as Entry[]), ...remaining];
     });
 
-    setEntries((prev) => [...tempEntries, ...prev]);
-    setIsSubmittingEntry(true);
-
-    try {
-      // submit each sequentially to avoid server bursts (you can change to Promise.all)
-      const createdList: Entry[] = [];
-      for (const item of selectedItems) {
-        const subtype = item.subtype;
-        let group: TransportGroup = "basic";
-        if (transportTypes.private.includes(subtype)) group = "private";
-        else if (transportTypes.public.includes(subtype)) group = "public";
-        else group = "basic";
-        const payload: Partial<TransportEntry> = {
-          id: `temp_${makeId()}`,
-          category: "transport",
-          transportGroup: group,
-          subtype,
-          distanceKm: Number(item.distanceKm || 0),
-        };
-        const created = await submitEntry(payload);
-        
-        createdList.push(created);
-      }
-      // replace temps with created entries (best-effort matching by subtype & distance)
-      setEntries((prev) => {
-        // remove all old temp entries with subtype in createdList
-        let remaining = prev.filter((p) => !(p.isTemp && createdList.some((c) => (c as any).subtype === (p as any).subtype && (c as any).distanceKm === (p as any).distanceKm)));
-        // prepend createdList
-        return [...(createdList as Entry[]), ...remaining];
-      });
-
-      toast({ title: "Imported", description: `Imported ${createdList.length} activities.` });
-      setIsImportOpen(false);
-    } catch (err: any) {
-      // rollback: remove the temp entries we added
-      setEntries((prev) => prev.filter((e) => !e.isTemp));
-      toast({ title: "Error", description: err.message || "Import failed", variant: "destructive" });
-    } finally {
-      setIsSubmittingEntry(false);
-      // reset import selection
-      const s: Record<string, boolean> = {};
-      importCandidates.forEach((c) => (s[c.key] = false));
-      setImportSelection(s);
-    }
-  };
+    toast({
+      title: "Imported",
+      description: `Imported ${createdList.length} activities.`,
+    });
+    setIsImportOpen(false);
+    setIsAddOpen(false);
+    window.location.reload();
+  } catch (err: any) {
+    setEntries((prev) => prev.filter((e) => !e.isTemp));
+    toast({
+      title: "Error",
+      description: err.message || "Import failed",
+      variant: "destructive",
+    });
+  } finally {
+    setIsSubmittingEntry(false);
+    const s: Record<string, boolean> = {};
+    importCandidates.forEach((c) => (s[c.key] = false));
+    setImportSelection(s);
+  }
+};
 
 
   const toggleStravaSelection = (key: string) => {
@@ -1007,6 +1070,12 @@ const handleConfirmReset = async () => {
     return { transport: t, homeEnergy: h, food: f, total: t + h + f };
   }, [footprintData, entries]);
 
+
+  const hasHomeEntry = useMemo(
+    () => entries.some((e) => e.category === "home"),
+    [entries]
+  );
+
   const submittedFoodSlots = useMemo(() => {
     const setSlots = new Set<string>();
     entries.forEach((e) => {
@@ -1014,6 +1083,11 @@ const handleConfirmReset = async () => {
     });
     return setSlots;
   }, [entries]);
+
+  const allFoodSlotsTaken = useMemo(
+    () => submittedFoodSlots.size >= 3,
+    [submittedFoodSlots]
+  );
 
   if (isPending || isLoadingEntries) return <LoadingSpinner />;
 
@@ -1174,16 +1248,6 @@ const handleConfirmReset = async () => {
                           >
                             {editingId ? "Save Transport" : "Add Transport"}
                           </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => setTransportForm({
-                              transportGroup: "private",
-                              subtype: transportTypes.private[0],
-                              distanceKm: 0,
-                            })}
-                          >
-                            Reset
-                          </Button>
                           <Button variant="ghost" onClick={() => setIsImportOpen(true)}>
                             Import from Live Tracking
                           </Button>
@@ -1201,6 +1265,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={homeForm.homeType}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, homeType: v as any }))}
+                              disabled={hasHomeEntry}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose home" /></SelectTrigger>
                               <SelectContent>
@@ -1220,6 +1285,7 @@ const handleConfirmReset = async () => {
                               onChange={(e) =>
                                 setHomeForm(prev => ({ ...prev, occupants: Number(e.target.value || 1) }))
                               }
+                              disabled={hasHomeEntry}
                             />
                           </div>
 
@@ -1228,6 +1294,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={homeForm.appliances as any}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, appliances: v as any }))}
+                              disabled={hasHomeEntry}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose appliance" /></SelectTrigger>
                               <SelectContent>
@@ -1245,13 +1312,15 @@ const handleConfirmReset = async () => {
                               if (editingId) setIsSaveConfirmOpen(true);
                               else handleCreateHome();
                             }}
-                            disabled={isSubmittingEntry}
+                            disabled={isSubmittingEntry || hasHomeEntry}
                           >
                             {editingId ? "Save Home" : "Add Home"}
                           </Button>
-                          <Button variant="outline" onClick={() => setHomeForm({ homeType: "apartment", occupants: 1, appliances: "none" })}>
-                            Reset
-                          </Button>
+                          {hasHomeEntry && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              You can only add one home entry per day. Use “Edit” to update it.
+                            </p>
+                          )}
                         </div>
                       </TabsContent>
 
@@ -1278,6 +1347,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={foodForm.mealType}
                               onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealType: v as any }))}
+                              disabled={allFoodSlotsTaken} 
                             >
                               <SelectTrigger><SelectValue placeholder="Meal type" /></SelectTrigger>
                               <SelectContent>
@@ -1297,6 +1367,7 @@ const handleConfirmReset = async () => {
                               value={foodForm.description || ""}
                               onChange={(e) => setFoodForm(prev => ({ ...prev, description: e.target.value }))}
                               placeholder="e.g., tuna, rice"
+                              disabled={allFoodSlotsTaken} 
                             />
                           </div>
                         </div>
@@ -1307,13 +1378,15 @@ const handleConfirmReset = async () => {
                               if (editingId) setIsSaveConfirmOpen(true);
                               else handleCreateFood();
                             }}
-                            disabled={isSubmittingEntry}
+                            disabled={isSubmittingEntry || allFoodSlotsTaken}
                           >
                             {editingId ? "Save Food" : "Add Food"}
                           </Button>
-                          <Button variant="outline" onClick={() => setFoodForm({ mealSlot: "breakfast", mealType: "plant", description: "" })}>
-                            Reset
-                          </Button>
+                          {allFoodSlotsTaken && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              You’ve already logged all three meals for today.
+                            </p>
+                          )}
                         </div>
                       </TabsContent>
                     </Tabs>
