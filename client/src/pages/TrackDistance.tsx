@@ -171,7 +171,7 @@ const stopTracking = useCallback(async () => {
     return;
   }
 
-  if (totalDistance < 0.10) {
+  if (totalDistance < 0) {
     toast({
       title: "Distance Too Short",
       description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 100 m.`,

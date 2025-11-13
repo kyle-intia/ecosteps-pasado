@@ -72,7 +72,7 @@ type TransportGroup = "private" | "public" | "basic";
 const transportTypes: Record<TransportGroup, string[]> = {
   private: ["diesel", "electric", "gasoline", "hybrid", "motorcycle"],
   public: ["tricycle", "jeep", "e-jeep", "train"],
-  basic: ["walking", "bicycle"],
+  basic: ["walk", "bicycle"],
 };
 
 type BaseEntry = {
