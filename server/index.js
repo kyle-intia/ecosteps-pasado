@@ -26,6 +26,8 @@ const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
 const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
 
 const adminRoutes = require('./routes/adminRoute');
+const adminCertificateRoute = require('./routes/adminCertificateRoute');
+const adminRewardRoute = require('./routes/adminRewardRoute');
 const emailRoutes = require("./routes/email");
 const emissionFactorRoute = require('./routes/emissionFactorRoute');
 const isAdmin = require("./middleware/isAdmin");
@@ -41,12 +43,15 @@ const communityRoutes = require("./routes/communityRoute");
 const leaderboardRoutes = require("./routes/leaderboardsRoutes");
 const activityRoutes = require("./routes/ActivityRoute");
 const stravaRoutes = require("./routes/stravaRoutes");
+
 // Import new AI recommendation routes
 const footprintRoutes = require("./routes/footprintRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 
 // Import achievement routes
 const achievementRoutes = require("./routes/achievementRoutes");
+const rewardRoute = require('./routes/rewardRoute');
+const certificateRoute = require('./routes/certificateRoute');
 
 const app = (0, express_1.default)();
 const socketIo = require('socket.io');
@@ -94,6 +99,8 @@ app.use("/api/strava", stravaRoutes);
 
 // ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
+app.use('/api/admin/certificates', authenticate_1.default, isAdmin, adminCertificateRoute);
+app.use('/api/admin/rewards', authenticate_1.default, isAdmin, adminRewardRoute);
 app.use('/api/admin/emissionfactor', authenticate_1.default, isAdmin, emissionFactorRoute);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user-settings', userSettingsRoute);
@@ -123,6 +130,13 @@ app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+
+app.use("/api/certificates", certificateRoute);
+app.use("/api/rewards", rewardRoute);
+
+app.use("/api/admin/certificates", require("./routes/adminCertificateRoute"));
+app.use("/api/admin/rewards", require("./routes/adminRewardRoute"));
+app.use("/api/user", require("./routes/userCertificateRewardRoute"));
 
 // Error handling middleware
 app.use(errorHandler_1.default);

@@ -39,6 +39,9 @@ export const getDailyTrackingStats = (days = 7) =>
 export const deleteDailyTracking = (entryId) =>
   API.delete(`/api/footprint/${entryId}`);
 
+
+export const getRecipes = (params) => API.get("/api/recipes/food", { params });
+
 export const getTodayEntries = () => API.get("/activitylogs/fetch/today");
 
 export const addActivityEntry = (data) => API.post("/activitylogs/submit", data);
@@ -122,7 +125,22 @@ export const getChallengeId= (id) => API.get(`/api/admin/eco-challenges/${id}`);
 export const updateChallenge = (id, data) => API.patch(`/api/admin/eco-challenges/${id}`, data);
 export const deleteChallenge = (id) => API.delete(`/api/admin/eco-challenges/${id}`);
 
+export const createCertificate = (data) => API.post("/api/admin/certficates/create", data);
+export const getCertificates = () => API.get("/api/admin/certificates/");
+export const getCertificateById= (id) => API.get(`/api/admin/certificates/${id}`);
+export const updateCertificate = (id, data) => API.patch(`/api/admin/certificates/${id}`, data);
+export const deleteCertificate = (id) => API.delete(`/api/admin/certificates/${id}`);
+
+export const createReward = (data) => API.post("/api/admin/rewards/create", data);
+export const getRewards = () => API.get("/api/admin/rewards/");
+export const getRewardsById= (id) => API.get(`/api/admin/rewards/${id}`);
+export const updateReward = (id, data) => API.patch(`/api/admin/rewards/${id}`, data);
+export const deleteReward = (id) => API.delete(`/api/admin/rewards/${id}`);
+
+
 //======== NOTIFICATIONS ==============
+
+export const getUserSettingsNotificationEnabled = () => API.get("/api/user-settings/notification-enabled");
 
 export const getAllNotification = () => API.get("/api/notifications/admin/all");
 export const markAsReadNotification = (id) => API.put(`/api/notifications/${id}/read`);

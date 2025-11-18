@@ -26,11 +26,14 @@ import {
   Bike,
   Footprints,
   Zap,
-  Fuel,
-  MapPin
+  MapPin,
+  History,
+  Shield,
+  AlertCircle
 } from "lucide-react";
 
 import { submitLivetracking } from "../lib/api";
+import { Link } from "react-router-dom";
 
 type Category = "private" | "public" | "basic";
 
@@ -71,10 +74,19 @@ const UserTrackDistance = () => {
   const [positions, setPositions] = useState<any[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [isBackgroundMode, setIsBackgroundMode] = useState(false);
 
   const timerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastPositionTimeRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const stateRef = useRef({ positions, totalDistance, elapsedTime, category, subtype });
+
+  // Update state ref
+  useEffect(() => {
+    stateRef.current = { positions, totalDistance, elapsedTime, category, subtype };
+  }, [positions, totalDistance, elapsedTime, category, subtype]);
 
   const calcDistance = useCallback((p1: any, p2: any) => {
     const point1 = point([p1.longitude, p1.latitude]);
@@ -90,19 +102,181 @@ const UserTrackDistance = () => {
     return `${m}:${s.toString().padStart(2, "0")}`;
   }, []);
 
+  // Wake Lock Management
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        setWakeLockActive(true);
+        console.log('Wake Lock acquired - screen will stay on');
+        
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('Wake Lock released');
+          setWakeLockActive(false);
+        });
+
+        toast({
+          title: "Screen Lock Disabled",
+          description: "Your screen will stay on during tracking",
+        });
+      }
+    } catch (err) {
+      console.error('Wake Lock error:', err);
+    }
+  }, [toast]);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        setWakeLockActive(false);
+      } catch (err) {
+        console.error('Wake Lock release error:', err);
+      }
+    }
+  }, []);
+
+  // Background State Management
+  const saveState = useCallback(() => {
+    if (tracking && stateRef.current.positions.length > 0) {
+      try {
+        localStorage.setItem('tracking_state', JSON.stringify({
+          ...stateRef.current,
+          savedAt: Date.now(),
+          tracking: true
+        }));
+        console.log('State saved:', stateRef.current.positions.length, 'points');
+      } catch (err) {
+        console.error('Failed to save state:', err);
+      }
+    }
+  }, [tracking]);
+
+  const restoreState = useCallback(() => {
+    const savedState = localStorage.getItem('tracking_state');
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        const savedAt = parsed.savedAt;
+        const now = Date.now();
+        
+        // Restore if saved within last 4 hours
+        if (now - savedAt < 4 * 60 * 60 * 1000 && parsed.tracking) {
+          console.log('Restoring tracking session');
+          setPositions(parsed.positions);
+          setTotalDistance(parsed.totalDistance);
+          setElapsedTime(parsed.elapsedTime);
+          setCategory(parsed.category);
+          setSubtype(parsed.subtype);
+          
+          toast({
+            title: "Session Restored",
+            description: `Restored ${parsed.positions.length} tracking points`,
+          });
+          
+          return true;
+        } else {
+          localStorage.removeItem('tracking_state');
+        }
+      } catch (err) {
+        console.error('Failed to restore state:', err);
+        localStorage.removeItem('tracking_state');
+      }
+    }
+    return false;
+  }, [toast]);
+
+  // Auto-save every 3 seconds
+  useEffect(() => {
+    let interval: number | null = null;
+    
+    if (tracking) {
+      interval = window.setInterval(saveState, 3000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [tracking, saveState]);
+
+  // Handle visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('App went to background');
+        setIsBackgroundMode(true);
+        if (tracking) {
+          saveState();
+        }
+      } else {
+        console.log('App came to foreground');
+        setIsBackgroundMode(false);
+        
+        // Re-acquire wake lock if tracking
+        if (tracking && 'wakeLock' in navigator && !wakeLockRef.current) {
+          requestWakeLock();
+        }
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      if (tracking) {
+        saveState();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
+  }, [tracking, saveState, requestWakeLock]);
+
+  // Restore on mount
+  useEffect(() => {
+    const restored = restoreState();
+    if (restored) {
+      // Ask user if they want to continue
+      const continueTracking = window.confirm(
+        "You have an active tracking session. Do you want to continue?"
+      );
+      
+      if (continueTracking) {
+        startTracking(true); // Resume tracking
+      } else {
+        // Clear restored state
+        setPositions([]);
+        setTotalDistance(0);
+        setElapsedTime(0);
+        localStorage.removeItem('tracking_state');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      releaseWakeLock();
     };
-  }, []);
+  }, [releaseWakeLock]);
 
-  const startTracking = useCallback(() => {
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
+  const startTracking = useCallback((resume = false) => {
+    if (!resume) {
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+    }
+    
     setTracking(true);
+    requestWakeLock();
 
+    // Timer continues from current elapsed time
     timerRef.current = window.setInterval(() => {
       setElapsedTime((t) => t + 1);
     }, 1000);
@@ -118,14 +292,21 @@ const UserTrackDistance = () => {
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
               timestamp: new Date(pos.timestamp),
+              accuracy: pos.coords.accuracy
             };
 
             setPositions((prev) => {
+              const updated = [...prev, newCoord];
+              
               if (prev.length > 0) {
                 const dist = calcDistance(prev[prev.length - 1], newCoord);
-                setTotalDistance((d) => d + dist);
+                // Only add distance if movement is significant (more than accuracy)
+                if (dist > 0.001) { // 1 meter
+                  setTotalDistance((d) => d + dist);
+                }
               }
-              return [...prev, newCoord];
+              
+              return updated;
             });
           }
         },
@@ -142,7 +323,11 @@ const UserTrackDistance = () => {
             variant: "destructive",
           });
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+        { 
+          enableHighAccuracy: true, 
+          maximumAge: 0, 
+          timeout: 15000 
+        }
       );
     } else {
       toast({
@@ -151,68 +336,68 @@ const UserTrackDistance = () => {
         variant: "destructive",
       });
     }
-  }, [calcDistance, toast]);
+  }, [calcDistance, toast, requestWakeLock]);
 
-const stopTracking = useCallback(async () => {
-  if (timerRef.current) clearInterval(timerRef.current);
-  if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-  setTracking(false);
+  const stopTracking = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    setTracking(false);
+    releaseWakeLock();
+    localStorage.removeItem('tracking_state');
 
-  if (positions.length < 2) {
-    toast({
-      title: "Tracking Too Short",
-      description: "Not enough data to save activity.",
-      variant: "destructive",
-    });
+    if (positions.length < 2) {
+      toast({
+        title: "Tracking Too Short",
+        description: "Not enough data to save activity.",
+        variant: "destructive",
+      });
 
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-    return;
-  }
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+      return;
+    }
 
-  if (totalDistance < 0) {
-    toast({
-      title: "Distance Too Short",
-      description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 100 m.`,
-      variant: "destructive",
-    });
+    if (totalDistance < 0.01) {
+      toast({
+        title: "Distance Too Short",
+        description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 10 m.`,
+        variant: "destructive",
+      });
 
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-    return;
-  }
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+      return;
+    }
 
-  try {
-    // Use your API helper instead of fetch
-    const data = await submitLivetracking({
-      category,
-      subtype,
-      points: positions,
-      totalDistance,
-      duration: elapsedTime,
-    });
+    try {
+      const data = await submitLivetracking({
+        category,
+        subtype,
+        points: positions,
+        totalDistance,
+        duration: elapsedTime,
+      });
 
-    toast({
-      title: "Activity Saved",
-      description: "Your tracking data has been saved!",
-      variant: "success",
-    });
+      toast({
+        title: "Activity Saved",
+        description: "Your tracking data has been saved!",
+        variant: "success",
+      });
 
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-  } catch (err: any) {
-    console.error(err);
-    toast({
-      title: "Save Failed",
-      description: err?.message || "Something went wrong saving your activity.",
-      variant: "destructive",
-    });
-  }
-}, [positions, totalDistance, elapsedTime, category, subtype, toast]);
-
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Save Failed",
+        description: err?.message || "Something went wrong saving your activity.",
+        variant: "destructive",
+      });
+    }
+  }, [positions, totalDistance, elapsedTime, category, subtype, toast, releaseWakeLock]);
 
   const handleToggleTracking = () => {
     tracking ? stopTracking() : startTracking();
@@ -238,6 +423,31 @@ const stopTracking = useCallback(async () => {
           <p className="text-gray-600">
             Track your journey in real-time and contribute to a greener planet
           </p>
+          
+          {/* Background Mode Indicator */}
+          {isBackgroundMode && tracking && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
+              <AlertCircle className="w-4 h-4" />
+              Background tracking active - data being saved
+            </div>
+          )}
+          
+          {/* Wake Lock Status */}
+          {tracking && (
+            <div className="mt-2 flex items-center gap-2 text-sm">
+              {wakeLockActive ? (
+                <span className="text-green-600 flex items-center gap-1">
+                  <Shield className="w-4 h-4" />
+                  Screen lock prevented
+                </span>
+              ) : (
+                <span className="text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  Keep screen on for best results
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -441,6 +651,15 @@ const stopTracking = useCallback(async () => {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div>
+              <Button variant="link" className="mt-4 text-sm text-gray-500 hover:text-gray-700">
+                <History className="w-12 h-12" />
+                <Link to="/track-history">
+                   View Tracking History
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
