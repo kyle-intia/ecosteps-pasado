@@ -24,7 +24,13 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
     { name: "Leaderboards", href: "/leaderboards", icon: Trophy },
   ];
 
-  const isActivePath = (path: string) => location.pathname === path;
+  const isActivePath = (path: string) => {
+    // If the nav item is "/track-distance", also mark it active when on "/track-history"
+    if (path === "/track-distance" && location.pathname === "/track-history") {
+      return true;
+    }
+    return location.pathname === path;
+  };
 
   return (
     <nav className="bg-card shadow-card border-b border-border sticky top-0 z-50">

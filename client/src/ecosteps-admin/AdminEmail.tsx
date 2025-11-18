@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Send, Sparkles, Clock, Award, Bell, CheckCircle, Gift } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getUserSettingsNotificationEnabled } from "../lib/api"
+
 
 interface EmailTemplate {
   id: string;
@@ -181,67 +183,132 @@ The Support Team`,
   }
 ];
 
+interface User {
+  email: string;
+  name: string;
+}
+
 export default function AdminEmail_v02() {
   const [to, setTo] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+
+  // Fetch users with email notifications enabled
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const data = await getUserSettingsNotificationEnabled();
+        console.log("Fetched users:", data);
+        setUsers(data);
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users",
+          variant: "destructive",
+        });
+      }
+    }
+    fetchUsers();
+  }, []);
 
   const handleTemplateSelect = (template: EmailTemplate) => {
     setSelectedTemplate(template.id);
     setSubject(template.subject);
     setMessage(template.message);
-    
+
     toast({
       title: "Template Applied",
       description: `${template.name} template loaded successfully`,
     });
   };
 
-const handleSendEmail = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!to || !subject || !message) {
-    toast({
-      title: "Missing fields",
-      description: "Please fill in all fields",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (!to || !subject || !message) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  try {
-    const res = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to, subject, message }),
-    });
+    const recipients = to === "ALL" ? users.map((u) => u.email) : [to];
 
-    if (!res.ok) throw new Error("Failed to send email");
+    if (recipients.length === 0) {
+      toast({
+        title: "No recipients",
+        description: "There are no users to send emails to.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    toast({
-      title: "Email Sent! 🎉",
-      description: `Successfully sent to ${to}`,
-    });
+    setIsSending(true); // start loading
 
-    setTo("");
-    setSubject("");
-    setMessage("");
-    setSelectedTemplate(null);
-  } catch (err) {
-    toast({
-      title: "Error sending email",
-      description: (err as Error).message,
-      variant: "destructive",
-    });
-  }
-};
+    try {
+      const results = await Promise.all(
+        recipients.map(async (email) => {
+          const res = await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: email, subject, message }),
+          });
 
+          if (!res.ok) {
+            const errText = await res.text();
+            return { email, success: false, error: errText };
+          }
+          return { email, success: true };
+        })
+      );
+
+      const successCount = results.filter((r) => r.success).length;
+      const failureCount = results.length - successCount;
+
+      if (successCount > 0) {
+        toast({
+          title: `Email Sent! 🎉`,
+          description: `Successfully sent to ${successCount} recipient(s).`,
+        });
+      }
+
+      if (failureCount > 0) {
+        toast({
+          title: `Some emails failed`,
+          description: `${failureCount} recipient(s) failed to receive the email.`,
+          variant: "destructive",
+        });
+        console.error("Failed emails:", results.filter(r => !r.success));
+      }
+
+      if (successCount > 0) {
+        setTo("");
+        setSubject("");
+        setMessage("");
+        setSelectedTemplate(null);
+      }
+    } catch (err) {
+      toast({
+        title: "Error sending emails",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false); // end loading
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex items-center gap-3 mb-8 animate-fade-in">
           <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
             <Mail className="h-8 w-8 text-white" />
@@ -283,12 +350,8 @@ const handleSendEmail = async (e: React.FormEvent) => {
                           {template.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm mb-1 truncate">
-                            {template.name}
-                          </h3>
-                          <Badge variant="secondary" className="text-xs">
-                            {template.category}
-                          </Badge>
+                          <h3 className="font-semibold text-sm mb-1 truncate">{template.name}</h3>
+                          <Badge variant="secondary" className="text-xs">{template.category}</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -304,32 +367,36 @@ const handleSendEmail = async (e: React.FormEvent) => {
               <CardHeader>
                 <CardTitle>Compose Email</CardTitle>
                 <CardDescription>
-                  {selectedTemplate 
-                    ? `Editing: ${templates.find(t => t.id === selectedTemplate)?.name}` 
+                  {selectedTemplate
+                    ? `Editing: ${templates.find(t => t.id === selectedTemplate)?.name}`
                     : "Fill in the details below or select a template"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSendEmail} className="space-y-6">
+                  {/* Recipient */}
                   <div className="space-y-2">
-                    <Label htmlFor="to" className="text-base font-semibold">
-                      Recipient Email
-                    </Label>
-                    <Input
+                    <Label htmlFor="to" className="text-base font-semibold">Recipient Email</Label>
+                    <select
                       id="to"
-                      type="email"
-                      placeholder="user@example.com"
                       value={to}
                       onChange={(e) => setTo(e.target.value)}
-                      className="h-12 text-base"
+                      className="h-12 w-full text-base border rounded-md p-2"
                       required
-                    />
+                    >
+                      <option value="">Select a user</option>
+                      <option value="ALL">Send to all users</option>
+                      {users.map((user) => (
+                        <option key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
+                  {/* Subject */}
                   <div className="space-y-2">
-                    <Label htmlFor="subject" className="text-base font-semibold">
-                      Subject Line
-                    </Label>
+                    <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
                     <Input
                       id="subject"
                       type="text"
@@ -341,10 +408,9 @@ const handleSendEmail = async (e: React.FormEvent) => {
                     />
                   </div>
 
+                  {/* Message */}
                   <div className="space-y-2">
-                    <Label htmlFor="message" className="text-base font-semibold">
-                      Email Message
-                    </Label>
+                    <Label htmlFor="message" className="text-base font-semibold">Email Message</Label>
                     <Textarea
                       id="message"
                       placeholder="Write your message here..."
@@ -353,18 +419,28 @@ const handleSendEmail = async (e: React.FormEvent) => {
                       required
                       className="min-h-[300px] text-base leading-relaxed resize-none"
                     />
-                    <p className="text-xs text-slate-500">
-                      {message.length} characters
-                    </p>
+                    <p className="text-xs text-slate-500">{message.length} characters</p>
                   </div>
 
                   <div className="flex gap-3 pt-4">
                     <Button
                       type="submit"
-                      className="flex-1 h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className={`flex-1 h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                        isSending ? "opacity-60 cursor-not-allowed" : ""
+                      }`}
+                      disabled={isSending}
                     >
-                      <Send className="mr-2 h-5 w-5" />
-                      Send Email
+                      {isSending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Send className="h-5 w-5 animate-spin" />
+                          Sending...
+                        </span>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-5 w-5" />
+                          Send Email
+                        </>
+                      )}
                     </Button>
                     {selectedTemplate && (
                       <Button
@@ -386,7 +462,7 @@ const handleSendEmail = async (e: React.FormEvent) => {
               </CardContent>
             </Card>
 
-            {/* Preview Card */}
+            {/* Preview */}
             {message && (
               <Card className="mt-6 border-2 shadow-lg animate-fade-in bg-gradient-to-br from-white to-slate-50">
                 <CardHeader>
@@ -400,60 +476,13 @@ const handleSendEmail = async (e: React.FormEvent) => {
                       <h3 className="text-xl font-bold text-slate-900">{subject || "Subject Line"}</h3>
                     </div>
                     <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                        {message}
-                      </p>
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{message}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
           </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <Card className="border-2 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 animate-fade-in">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600 rounded-xl">
-                  <Mail className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-blue-700 font-medium">Templates Available</p>
-                  <p className="text-3xl font-bold text-blue-900">{templates.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 shadow-lg bg-gradient-to-br from-green-50 to-green-100 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-600 rounded-xl">
-                  <CheckCircle className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-green-700 font-medium">Mock Mode</p>
-                  <p className="text-3xl font-bold text-green-900">Active</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-600 rounded-xl">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-purple-700 font-medium">Quick Start</p>
-                  <p className="text-3xl font-bold text-purple-900">Ready</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
