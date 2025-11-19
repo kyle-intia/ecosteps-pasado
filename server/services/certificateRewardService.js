@@ -148,18 +148,31 @@ class CertificateRewardService {
     return { certificates: certs, rewards };
   }
 
-  // Claim a reward
   static async claimReward(userId, rewardId) {
+
     const ur = await UserReward.findOne({ userId, rewardId });
     if (!ur) return { ok: false, code: "not_found" };
     if (ur.status !== "claimable") return { ok: false, code: "not_claimable" };
+
+    const reward = await Reward.findById(rewardId).lean();
+    if (!reward) return { ok: false, code: "not_found" };
 
     ur.status = "claimed";
     ur.claimedAt = new Date();
     await ur.save();
 
-    return { ok: true, claimedAt: ur.claimedAt };
+    return {
+      ok: true,
+      claimedAt: ur.claimedAt,
+      rewardId: reward._id,
+
+      rewardItem: reward.rewardItem,      
+      title: reward.title,               
+      rewardType: reward.rewardType,      
+      body: reward.body                   
+    };
   }
+
 
   // Fetch user certificates with progress
   static async getUserCertificates(userId) {

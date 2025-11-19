@@ -44,65 +44,62 @@ export default function CertificateRewards() {
   const [claimedRewardTitle, setClaimedRewardTitle] = useState("");
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loadingRewardId, setLoadingRewardId] = useState<string | null>(null);
 
   const claimedRewards = rewards.filter(r => r.claimed).length;
   const earnedCertificates = certificates.filter(c => c.earned).length;
 
-const fetchCertificates = async () => {
-  try {
-    const res = await fetch("/api/user/certificates");
-    const data = await res.json();
+  const fetchCertificates = async () => {
+    try {
+      const res = await fetch("/api/user/certificates");
+      const data = await res.json();
 
-    const fixed = data.map((c: any) => {
-      const IconComponent =
-        LucideIcons[c.icon as keyof typeof LucideIcons] || LucideIcons.Medal;
+      const fixed = data.map((c: any) => {
+        const IconComponent =
+          LucideIcons[c.icon as keyof typeof LucideIcons] || LucideIcons.Medal;
 
-      return {
-        ...c,
-        icon: IconComponent,
-        unlockRequirement: c.unlockRequirement
-          ? `${c.unlockRequirement.type}: ${c.unlockRequirement.value}`
-          : "",
-      };
-    });
+        return {
+          ...c,
+          icon: IconComponent,
+          unlockRequirement: c.unlockRequirement
+            ? `${c.unlockRequirement.type}: ${c.unlockRequirement.value}`
+            : "",
+        };
+      });
 
-    setCertificates(fixed);
+      setCertificates(fixed);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load certificates");
+    }
+  };
 
-    console.log("Certificates fetched:", fixed);
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to load certificates");
-  }
-};
+  const fetchRewards = async () => {
+    try {
+      const res = await fetch("/api/user/rewards");
+      const data = await res.json();
 
+      const fixed = data.map((r: any) => {
+        const IconComponent =
+          LucideIcons[r.icon as keyof typeof LucideIcons] || LucideIcons.Gift;
 
+        return {
+          ...r,
+          icon: IconComponent,
 
-const fetchRewards = async () => {
-  try {
-    const res = await fetch("/api/user/rewards");
-    const data = await res.json();
+          // Convert {type: 'streak', value: 7} → "streak: 7"
+          claimRequirement: r.claimRequirement?.type
+            ? `${r.claimRequirement.type}: ${r.claimRequirement.value}`
+            : r.claimRequirement,
+        };
+      });
 
-    const fixed = data.map((r: any) => {
-      const IconComponent =
-        LucideIcons[r.icon as keyof typeof LucideIcons] || LucideIcons.Gift;
-
-      return {
-        ...r,
-        icon: IconComponent,
-
-        // Convert {type: 'streak', value: 7} → "streak: 7"
-        claimRequirement: r.claimRequirement?.type
-          ? `${r.claimRequirement.type}: ${r.claimRequirement.value}`
-          : r.claimRequirement,
-      };
-    });
-
-    setRewards(fixed);
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to load rewards");
-  }
-};
+      setRewards(fixed);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load rewards");
+    }
+  };
 
   useEffect(() => {
     fetchCertificates();
@@ -178,36 +175,38 @@ const fetchRewards = async () => {
     toast.success(`Certificate downloaded successfully!`);
   };
 
-  const handleClaim = async (reward: Reward) => {
-    if (!reward.claimable) {
-      toast.info(`Requirement: ${reward.claimRequirement}`);
+const handleClaim = async (reward: Reward) => {
+  if (!reward.claimable) {
+    toast.info(`Requirement: ${reward.claimRequirement}`);
+    return;
+  }
+
+  setLoadingRewardId(reward.id); // start loading
+
+  try {
+    const res = await fetch(`/api/user/rewards/${reward.id}/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+      toast.error("Failed to claim reward");
       return;
     }
 
-    console.log("CLAIMING WITH ID:", reward.id);
-    console.log("FULL REWARD OBJECT:", reward);
+    setClaimedRewardTitle(reward.title);
+    setShowClaimDialog(true);
 
-    try {
-      const res = await fetch(`/api/user/rewards/${reward.id}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      });
+    toast.success("Reward claimed!");
+    fetchRewards();
+  } catch (err) {
+    console.error(err);
+    toast.error("Server error");
+  } finally {
+    setLoadingRewardId(null); // stop loading
+  }
+};
 
-      if (!res.ok) {
-        toast.error("Failed to claim reward");
-        return;
-      }
-
-      setClaimedRewardTitle(reward.title);
-      setShowClaimDialog(true);
-
-      toast.success("Reward claimed!");
-      fetchRewards(); // refresh the list
-    } catch (err) {
-      console.error(err);
-      toast.error("Server error");
-    }
-  };
 
   return (
     <>
@@ -712,12 +711,21 @@ const fetchRewards = async () => {
                       <CardFooter>
                         <Button
                           onClick={() => handleClaim(reward)}
-                          disabled={reward.claimed || !reward.claimable}
+                          disabled={
+                            reward.claimed ||
+                            !reward.claimable ||
+                            loadingRewardId === reward.id
+                          }
                           className="w-full"
                           variant={reward.claimable && !reward.claimed ? "default" : "outline"}
                           size="lg"
                         >
-                          {reward.claimed ? (
+                          {loadingRewardId === reward.id ? (
+                            <>
+                              <LucideIcons.Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Claiming...
+                            </>
+                          ) : reward.claimed ? (
                             <>
                               <LucideIcons.Trophy className="w-4 h-4 mr-2" />
                               Already Claimed
@@ -734,6 +742,7 @@ const fetchRewards = async () => {
                             </>
                           )}
                         </Button>
+
                       </CardFooter>
                     </Card>
                   </motion.div>
