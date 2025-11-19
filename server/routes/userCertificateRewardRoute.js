@@ -55,8 +55,6 @@ router.post("/check", async (req, res) => {
   }
 });
 
-
-
 // Claim a reward
 router.post("/rewards/:id/claim", async (req, res) => {
   try {
