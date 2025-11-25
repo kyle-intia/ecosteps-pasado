@@ -125,7 +125,7 @@ export const getChallengeId= (id) => API.get(`/api/admin/eco-challenges/${id}`);
 export const updateChallenge = (id, data) => API.patch(`/api/admin/eco-challenges/${id}`, data);
 export const deleteChallenge = (id) => API.delete(`/api/admin/eco-challenges/${id}`);
 
-export const createCertificate = (data) => API.post("/api/admin/certficates/create", data);
+export const createCertificate = (data) => API.post("/api/admin/certificates/create", data);
 export const getCertificates = () => API.get("/api/admin/certificates/");
 export const getCertificateById= (id) => API.get(`/api/admin/certificates/${id}`);
 export const updateCertificate = (id, data) => API.patch(`/api/admin/certificates/${id}`, data);
@@ -204,22 +204,79 @@ export const checkAchievements = (triggerEvent, context = {}) =>
 //============= COMMUNITY =================
 
 
-export const getCommunityPosts = () => API.get("api/community/posts");
+export const getCommunityPosts = (
+  page = 1,
+  limit = 10,
+  options
+) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
 
-export const getUserCommunityPosts = () => API.get("api/community/user/posts");
+  if (options && options.sort && options.sort !== "recent") {
+    params.append("sort", options.sort);
+  }
 
-export const createCommunityPost = (formData) => API.post("api/community/posts", formData, { headers: { "Content-Type": "multipart/form-data" } });
+  if (options && options.search && options.search.trim()) {
+    params.append("search", options.search.trim());
+  }
 
-export const likePost = (postId) => API.post(`api/community/posts/${postId}/like`);
+  return API.get(`/api/community/posts?${params.toString()}`);
+};
 
-export const repostPost = (postId) => API.post(`api/community/posts/${postId}/repost`);
+export const getCommunityPostById = (postId) =>
+  API.get(`/api/community/posts/${postId}`);
 
+export const getUserPostsAndReposts = (userId, page = 1, limit = 10) =>
+  API.get(`/api/community/user/posts?userId=${userId}&page=${page}&limit=${limit}`);
+
+export const getUserCommunityPosts = (page = 1, limit = 10) =>
+  API.get(`/api/community/user/posts?page=${page}&limit=${limit}`);
+
+export const getFollowingFeed = (page = 1, limit = 10) =>
+  API.get(`/api/community/posts/feed/following?page=${page}&limit=${limit}`);
+
+// FOLLOWING LIST
+export const getFollowingList = (page = 1, limit = 20) =>
+  API.get(`/api/community/following?page=${page}&limit=${limit}`);
+
+export const getFollowers = (userId, page = 1, limit = 20) =>
+  API.get(`/api/community/followers/${userId}?page=${page}&limit=${limit}`);
+
+// CREATE POST
+export const createCommunityPost = (formData) =>
+  API.post(`/api/community/posts`, formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+
+// LIKE / REPOST / SHARE
+export const likePost = (postId) =>
+  API.post(`/api/community/posts/${postId}/like`);
+
+export const repostPost = (postId) =>
+  API.post(`/api/community/posts/${postId}/repost`);
+
+export const sharePost = (postId =>
+  API.post(`/api/community/posts/${postId}/share`));
+
+// COMMENTS
 export const commentOnPost = (postId, content) =>
-  API.post(`api/community/posts/${postId}/comment`, { content });
+  API.post(`/api/community/posts/${postId}/comment`, { content });
 
-export const deleteComment = (postId, commentId) => API.delete(`api/community/posts/${postId}/comment/${commentId}`);
+export const deleteComment = (postId, commentId) =>
+  API.delete(`/api/community/posts/${postId}/comment/${commentId}`);
 
-export const deletePost = (postId) => API.delete(`api/community/posts/${postId}`);
+// DELETE POST
+export const deletePost = (postId) =>
+  API.delete(`/api/community/posts/${postId}`);
+
+// FOLLOW / UNFOLLOW
+export const followUser = (userId =>
+  API.post(`/api/community/user/${userId}/follow`));
+
+export const unfollowUser = (userId) =>
+  API.post(`/api/community/user/${userId}/unfollow`);
 
 export const editPost = (postId, content , imageFile) => {
   const formData = new FormData();

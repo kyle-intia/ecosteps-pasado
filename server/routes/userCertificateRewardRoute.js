@@ -164,7 +164,7 @@ router.post("/rewards/:id/claim", async (req, res) => {
 router.get("/progress", async (req, res) => {
   try {
     // Compute user stats including all subtypes and daily tracking
-    const { totals, activities, dailyStats, monthlyStats } =
+    const { totals, activities, dailyStats, monthlyStats, userInfo  } =
       await CertificateRewardService.computeUserStats(req.userId);
 
     // Compute streak from activity dates
@@ -173,10 +173,10 @@ router.get("/progress", async (req, res) => {
     // Respond with enriched stats
     res.json({
       totals,
-      streak,
       activitiesCount: activities.length,
-      dailyStats,    // last 7 days footprint
-      monthlyStats   // current month footprint
+      dailyStats,    
+      monthlyStats,
+      userInfo   
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

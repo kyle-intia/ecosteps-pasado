@@ -157,8 +157,6 @@ router.post('/submit', async (req, res) => {
       dinner: trackingData.food.dinner
     });
 
-    await NotificationService.createNotification(userId, `${email} logged his/her daily carbon footprint`, "daily-tracking");
-
     if (existingEntry) {
       // Update existing entry
       existingEntry.transport = trackingData.transport;

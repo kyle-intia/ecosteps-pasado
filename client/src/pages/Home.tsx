@@ -1,6 +1,3 @@
-// client/src/pages/Home.tsx
-// Updated Home page with integrated Eco-Challenge section
-
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -151,10 +148,10 @@ const Home = () => {
           <Button 
             variant="outline" 
             className="h-24 flex flex-col space-y-2 transition-all duration-300 ease-out hover:bg-warning/5 hover:border-warning/50"
-            onClick={() => navigate("/dasboard")}
+            onClick={() => navigate("/certificates-rewards")}
           >
             <Lightbulb className="h-6 w-6 text-warning" />
-            <span className="text-sm font-medium">Dashboard</span>
+            <span className="text-sm font-medium">Certificate & Rewards</span>
           </Button>
           
           <Button 
@@ -283,9 +280,9 @@ const Home = () => {
                     {savingsLoading ? <Spinner /> : `${C02Saved}kg`|| 'N/A'}
                   </div>
                   <div className="text-sm text-muted-foreground">CO₂ saved</div>
-                  <div className="text-xs text-green-600 mt-1">
+                  {/*<div className="text-xs text-green-600 mt-1">
                     {savingsLoading ? '' : savingsError ? '' : `+${weeklySavings}kg from challenges!`}
-                  </div>
+                  </div>*/}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-center">

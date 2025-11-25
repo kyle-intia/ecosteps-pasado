@@ -1,4 +1,3 @@
-// client/src/pages/TrackCarbonDynamic.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -64,6 +63,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { CardFooter } from "@/components/ui/card";
 import { create } from "domain";
+import { FoodAutocomplete } from "@/components/FoodAutocomplete";
 
 type TopCategory = "transport" | "home" | "food";
 
@@ -101,7 +101,7 @@ type HomeEntry = BaseEntry & {
 type FoodEntry = BaseEntry & {
   category: "food";
   mealSlot: "breakfast" | "lunch" | "dinner";
-  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed" | "skipped";
+  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed";
   description?: string;
   contribution?: number;
 };
@@ -151,8 +151,6 @@ const ANIM = { initial: { opacity: 0, y: 6 }, enter: { opacity: 1, y: 0 } };
 
 const makeId = () =>
   `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-
-/** RollingNumber - smooth 'slot machine' like number roll */
 
 function RollingNumber({
   value,
@@ -377,10 +375,9 @@ const {
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // Persist to sessionStorage whenever entries change (session-only persistence)
   useEffect(() => {
     try {
       sessionStorage.setItem("carbon_entries_session", JSON.stringify(entries));
@@ -1363,11 +1360,11 @@ const handleConfirmReset = async () => {
 
                           <div>
                             <Label>Description</Label>
-                            <Input
-                              value={foodForm.description || ""}
-                              onChange={(e) => setFoodForm(prev => ({ ...prev, description: e.target.value }))}
-                              placeholder="e.g., tuna, rice"
-                              disabled={allFoodSlotsTaken} 
+                            <FoodAutocomplete
+                              category={foodForm.mealType as any}
+                              value={foodForm.description}
+                              disabled={allFoodSlotsTaken}
+                              onChange={(v) => setFoodForm(prev => ({ ...prev, description: v }))}
                             />
                           </div>
                         </div>

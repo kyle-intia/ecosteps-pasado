@@ -11,29 +11,41 @@ class NotificationService {
   }
 
   // Create a new notification and save it to the DB
-  static async createNotification(userId, message, type) {
-    try {
-    const dateOnly = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+static async createNotification(userId, message, type = 'community', options = {}) {
+  try {
+    const { link, postId, actorId, action } = options;
 
-    const newNotification = new Notification({
+    const dateOnly = new Date().toISOString().slice(0, 10);
+
+    const notification = new Notification({
       userId,
       message,
       type,
       dateOnly,
+      link,                    // save deep link
+      data: { postId, actorId, action }  // structured data
     });
 
-    await newNotification.save();
+    await notification.save();
 
+    // Emit real-time with full data
     if (NotificationService.io) {
-      NotificationService.io.to(userId.toString()).emit('notification', { message });
+      NotificationService.io.to(userId.toString()).emit('notification', {
+        _id: notification._id,
+        message: notification.message,
+        type: notification.type,
+        link: notification.link,
+        data: notification.data,
+        createdAt: notification.createdAt
+      });
     }
 
-    return newNotification;
-    } catch (err) {
-      console.error('Error creating notification:', err);
-      throw new Error('Error creating notification');
-    }
+    return notification;
+  } catch (err) {
+    console.error('Error creating notification:', err);
+    throw new Error('Failed to create notification');
   }
+}
 
   // Fetch unread notifications for a specific user
   static async getUserNotifications(userId) {
@@ -82,6 +94,8 @@ class NotificationService {
             message: 1,
             isRead: 1,
             type: 1,
+            link: 1,
+            data: 1,
             dateOnly: 1,
             createdAt: 1,
             updatedAt: 1,

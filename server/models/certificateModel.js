@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const CertificateSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  body: { type: String }, // matches TS interface
+  body: { type: String },
 
   icon: { type: String },
   color: { type: String },
@@ -12,8 +12,8 @@ const CertificateSchema = new mongoose.Schema({
   earned: { type: Boolean, default: false },
 
   unlockRequirement: {
-    type: { type: String, required: true }, // e.g. "walk"
-    value: { type: Number, required: true }, // e.g. 1000
+    type: { type: String, required: true }, 
+    value: { type: Number, required: true },
   }
 });
 

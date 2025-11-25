@@ -18,7 +18,7 @@ profileRoutes.post("/create", (req, res, next) => {
   });
 });
 profileRoutes.get("/", profile_controller_1.getProfileHandler);
-profileRoutes.patch("/update", (req, res) => {
+profileRoutes.patch("/update", (req, res, next) => {
   multer.uploadProfilePic.single("profilePic")(req, res, (error) => {
     if (error) {
       return res.status(400).json({ error: error.message });

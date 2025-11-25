@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,13 +32,14 @@ import {
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost, commentOnPost, deleteComment } from "../lib/api"; 
+import { getUserPostsAndReposts, likePost, sharePost, repostPost, getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost, commentOnPost, deleteComment } from "../lib/api"; 
 import { Spinner } from "@/components/ui/spinner";
 import  useSessionStatus from "../hooks/useSessionStatus"
 import  useSignOut from "../hooks/useLogout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import UserTrackHistory from "@/components/TrackHistory";
+import PostCard from "@/components/PostCard";
 
 type Achievement = {
   achievementId: string;
@@ -77,6 +78,8 @@ type ProfileType = {
   createdAt: string;
 };
 
+const LIMIT = 6;
+
 const Profile = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState<any[]>([]);
@@ -96,6 +99,7 @@ const Profile = () => {
 
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const userId = currentUser?.userId;
 
   useEffect(() => {
     if (!selectedFile) {
@@ -146,90 +150,56 @@ const Profile = () => {
     }
   }, [profile]);
 
-  useEffect(() => {
-    const fetchUserPosts = async () => {  
-    
-      if (!currentUser?.userId) return;
-    
-      try {
-        const response = await getUserCommunityPosts();
-      
-        const formatted = response.map((post: any) => {
-          const userReposted = post.repostsDetails?.some(
-            (repost: any) => repost.repostedBy.userId === currentUser.userId
-          );
-        
-          const isOriginalPost = post.author?.userId === currentUser.userId;
-        
-          return {
-            id: post._id,
-            content: post.content,
-            image: post.image,
-            timestamp: formatDate(post.createdAt),
-            likes: post.likesCount,
-            reposts: post.repostsCount,
-            commentsCount: post.comments?.length || 0,
-            comments: post.comments || [], // <--- Add this line
-            isOriginalPost,
-            isRepost: userReposted,
-            originalAuthor: {
-              name: `${post.author?.firstName} ${post.author?.lastName}` || "Unknown",
-              avatarUrl: post.author?.profilePic || null,
-              username: post.author?.username || "",
-            },
-          };
-        });
+  const [reposts, setReposts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeTab, setActiveTab] = useState("posts");
 
-        setPosts(formatted);
-
-        const postCount = formatted.filter((p) => p.isOriginalPost).length;
-        const repostCount = formatted.filter((p) => p.isRepost).length;
-
-        setCurrentUser((prevUser) => ({
-            ...prevUser,
-            stats: {
-              ...prevUser.stats,
-              posts: postCount,
-              reposts: repostCount,
-            },
-          }));
-          } catch (error) {
-            console.error("Error fetching user posts:", error);
-          }
-        };
-  
-    fetchUserPosts();
-  }, [currentUser]);
-  
-  const toggleComments = (postId: string) => {
-    setOpenComments(openComments === postId ? null : postId);
-  };
-
-  const handleCommentSubmit = async (e: React.FormEvent<HTMLFormElement>, postId: string) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const input = form.elements.namedItem("comment") as HTMLInputElement;
-    const content = input.value;
-
-    if (!content.trim()) return;
+  const fetchPosts = useCallback(async (tab: "posts" | "reposts", pageNum = 1, append = false) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
 
     try {
-      const res = await commentOnPost(postId, content);
-      const updatedPost = res;  // Use res directly (whole post)
+      const data = await getUserPostsAndReposts(userId, pageNum, LIMIT);
 
-      setPosts(prev =>
-        prev.map(post => (post._id === postId ? { ...post, comments: updatedPost.comments } : post))
-      );
-      (form.elements.namedItem("comment") as HTMLInputElement).value = "";  // Clear input
-    } catch (error) {
-      console.error("Comment error:", error);
-      toast({
-        title: "Comment failed",
-        description: "Couldn't add your comment.",
-        variant: "destructive",
-      });
+      const normalized = (Array.isArray(data) ? data : data.posts || []).map((p: any) => ({
+        ...p,
+        isFollowing: false, // not needed here
+        likesCount: p.likesCount ?? p.likes?.length ?? 0,
+        repostsCount: p.repostsCount ?? p.reposts?.length ?? 0,
+        sharesCount: p.sharesCount ?? p.shares?.length ?? 0,
+      }));
+
+      if (tab === "posts") {
+        setPosts(prev => append ? [...prev, ...normalized] : normalized);
+      } else {
+        setReposts(prev => append ? [...prev, ...normalized] : normalized);
+      }
+
+      setHasMore(normalized.length >= LIMIT);
+      setPage(pageNum);
+    } catch (err: any) {
+      toast({ title: "Failed to load posts", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [userId, toast]);
+
+  // Load initial data
+  useEffect(() => {
+    fetchPosts(activeTab as "posts" | "reposts", 1, false);
+  }, [activeTab, fetchPosts]);
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchPosts(activeTab as "posts" | "reposts", page + 1, true);
     }
   };
+
+  const currentFeed = activeTab === "posts" ? posts : reposts;
 
   const handleDeleteComment = async (postId: string, commentId: string) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
@@ -300,26 +270,6 @@ const Profile = () => {
       });
     }
   });
-
-  const handleDeletePost = async (postId: string) => {
-    try {
-      await deletePost(postId);
-    
-      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
-    
-      toast({
-        title: "Post Deleted",
-        description: "Your post has been successfully deleted.",
-      });
-    
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete the post.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Drag-and-Drop Logic
   const handleAchievementDragStart = (e: React.DragEvent, achievement: Achievement) => {
@@ -761,209 +711,123 @@ const Profile = () => {
         </Card>
 
         {/* Posts and Reposts */}
-        <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="reposts">Reposts</TabsTrigger>
-            <TabsTrigger value="history">Track History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="posts" className="space-y-4 mt-6">
-            {posts.filter(post => post.isOriginalPost).map(post => (
-              <Card key={post.id} className="hover:shadow-elevated transition-smooth">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={currentUser.avatarUrl || undefined} />
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {currentUser.fullName.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-foreground">{currentUser.fullName}</p>
-                        <p className="text-sm text-muted-foreground">@{currentUser.username} · {post.timestamp}</p>
-                      </div>
-                    </div>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="transition-all duration-300 ease-out">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                          <ConfirmDialog
-                            trigger={
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onSelect={(e) => e.preventDefault()} // Prevents the dropdown from closing prematurely
-                              >
-                                <Trash className="h-4 w-4" />
-                                Delete Post
-                              </DropdownMenuItem>
-                            }
-                            title="Delete Post"
-                            description="Are you sure you want to delete this post? This action cannot be undone."
-                            confirmText="Delete"
-                            variant="destructive"
-                            onConfirm={() => handleDeletePost(post.id)}
-                          />
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="reposts">Reposts</TabsTrigger>
+          <TabsTrigger value="history">Track History</TabsTrigger>
+        </TabsList>
 
-                  <div className="mb-4">
-                    <p className="text-foreground leading-relaxed">{post.content}</p>
-                    {post.image && (
-                      <img
-                        src={post.image}
-                        alt="Post content"
-                        className="mt-3 rounded-lg max-w-full h-auto"
-                      />
-                    )}
-                  </div>
+        <TabsContent value="posts" className="space-y-6 mt-6">
+          {loading && <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}
+          {!loading && currentFeed.length === 0 && (
+            <p className="text-center text-muted-foreground py-12">No posts yet</p>
+          )}
+          {currentFeed.map(post => (
+            <PostCard
+              key={post._id}
+              post={post}
+              currentUserId={currentUser?._id}
+              isFollowing={false} // not relevant in profile
+              onLike={async (id) => {
+                const updated = await likePost(id);
+                updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onRepost={async (id) => {
+                const updated = await repostPost(id);
+                updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onShare={async (id) => {
+                const updated = await sharePost(id);
+                updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onComment={async (id, content) => {
+                const updated = await commentOnPost(id, content);
+                updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onDeletePost={async (id) => {
+                await deletePost(id);
+                setPosts(prev => prev.filter(p => p._id !== id));
+                setReposts(prev => prev.filter(p => p._id !== id));
+                toast({ title: "Post deleted" });
+              }}
+              onDeleteComment={async (postId, commentId) => {
+                await deleteComment(postId, commentId);
+                // Optional: refetch or update locally
+              }}
+              onToggleFollow={undefined}// no-op or hide follow button
+              onUpdatePost={(updated) => {
+                setPosts(prev => prev.map(p => p._id === updated._id ? updated : p));
+                setReposts(prev => prev.map(p => p._id === updated._id ? updated : p));
+              }}
+            />
+          ))}
 
-                  <div className="flex items-center space-x-6 text-muted-foreground">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-0 h-auto transition-all duration-300 ease-out"
-                      onClick={() => toggleComments(post.id)}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      {post.commentsCount}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
-                      <Repeat2 className="h-4 w-4 mr-1" />
-                      {post.reposts}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
-                      <Heart className="h-4 w-4 mr-1" />
-                      {post.likes}
-                    </Button>
-                  </div>
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="text-sm text-primary hover:underline"
+              >
+                {loadingMore ? "Loading..." : "Load more"}
+              </button>
+            </div>
+          )}
+        </TabsContent>
 
-                  {openComments === post.id && (
-                    <div className="mt-4 space-y-3 border-t pt-3">
-                      {post.comments.length > 0 ? (
-                        post.comments.map((comment: any) => (
-                          <div className="flex justify-between">
-                            <div key={comment._id} className="flex items-start space-x-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={comment.author?.profilePic || undefined} />
-                                <AvatarFallback>
-                                  {comment.author?.firstName?.[0]}
-                                  {comment.author?.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">{comment.author?.username}</p>
-                                <p className="text-sm text-foreground">{comment.content}</p>
-                              </div>
-                            </div>
-                            <div>
-                              {comment.author.userId === currentUser.userId && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-500"
-                                disabled={deletingCommentId === comment._id}
-                                onClick={() => handleDeleteComment(post.id, comment._id)}
-                                title="Delete comment"
-                              >
-                                {deletingCommentId === comment._id ? (
-                                  <Spinner />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                            </div>
-                          </div>
-                        ))
-                      
+        <TabsContent value="reposts" className="space-y-6 mt-6">
+          {/* Same content as above — automatically uses reposts state */}
+          {loading && <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}
+          {!loading && currentFeed.length === 0 && (
+            <p className="text-center text-muted-foreground py-12">No reposts yet</p>
+          )}
+          {currentFeed.map(post => (
+            <PostCard
+              key={post._id}
+              post={post}
+              currentUserId={currentUser?._id}
+              isFollowing={false}
+              onLike={async (id) => {
+                const updated = await likePost(id);
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onRepost={async (id) => {
+                const updated = await repostPost(id);
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onShare={async (id) => {
+                const updated = await sharePost(id);
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onComment={async (id, content) => {
+                const updated = await commentOnPost(id, content);
+                updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
+              }}
+              onDeletePost={async () => {}} // can't delete others' posts
+              onDeleteComment={async () => {}}
+              onToggleFollow={undefined}
+              onUpdatePost={(updated) => {
+                setReposts(prev => prev.map(p => p._id === updated._id ? updated : p));
+              }}
+            />
+          ))}
 
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No comments yet</p>
-                      )}
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button onClick={loadMore} disabled={loadingMore} className="text-sm text-primary hover:underline">
+                {loadingMore ? "Loading..." : "Load more"}
+              </button>
+            </div>
+          )}
+        </TabsContent>
 
-                      <form
-                        onSubmit={(e) => handleCommentSubmit(e, post.id)} // ✅ use post.id
-                        className="mt-4 flex space-x-2"
-                      >
-                        <Textarea
-                          name="comment"
-                          placeholder="Write a comment..."
-                          className="flex-1 resize-none"
-                        />
-                        <Button type="submit" size="sm">Post</Button>
-                      </form>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-          
-          <TabsContent value="reposts" className="space-y-4 mt-6">
-            {posts.filter(post => post.isRepost).map((post) => (
-              <Card key={post.id} className="hover:shadow-elevated transition-smooth">
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-2 text-muted-foreground text-sm mb-3">
-                    <Repeat2 className="h-4 w-4" />
-                    <span>You reposted</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={post.originalAuthor.avatarUrl || undefined} />
-                        <AvatarFallback>
-                          {post.originalAuthor.name.split(' ').map((n) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-foreground">{post.originalAuthor.name}</p>
-                        <p className="text-sm text-muted-foreground">@{post.originalAuthor.username} · {post.timestamp}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-foreground leading-relaxed">{post.content}</p>
-                    {post.image && (
-                      <img
-                        src={post.image}
-                        alt="Post content"
-                        className="mt-3 rounded-lg max-w-full h-auto"
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-6 text-muted-foreground">
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      {post.comments}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
-                      <Repeat2 className="h-4 w-4 mr-1" />
-                      {post.reposts}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="p-0 h-auto transition-all duration-300 ease-out">
-                      <Heart className="h-4 w-4 mr-1" />
-                      {post.likes}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="history" className="space-y-4 mt-6">
-            <UserTrackHistory />
-          </TabsContent>
-        </Tabs>
+        <TabsContent value="history" className="space-y-4 mt-6">
+          <UserTrackHistory />
+        </TabsContent>
+      </Tabs>
       </main>
     </div>
   );

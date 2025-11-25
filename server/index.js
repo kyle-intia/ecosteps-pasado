@@ -7,6 +7,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
+require("dotenv").config();
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const express_1 = __importDefault(require("express"));
@@ -43,7 +44,7 @@ const communityRoutes = require("./routes/communityRoute");
 const leaderboardRoutes = require("./routes/leaderboardsRoutes");
 const activityRoutes = require("./routes/ActivityRoute");
 const stravaRoutes = require("./routes/stravaRoutes");
-
+const foodRoute = require("./routes/foodRoute");
 // Import new AI recommendation routes
 const footprintRoutes = require("./routes/footprintRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
@@ -87,13 +88,13 @@ app.use("/auth", auth_route_1.default);
 app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
-
+app.use("/api/users", profile_route_1.default);
 // Existing feature routes - both legacy and /api prefixes for compatibility
 app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
-
+app.use("/api/food", foodRoute);
 app.use("/api/activities", activityRoutes);
 app.use("/api/strava", stravaRoutes);
 

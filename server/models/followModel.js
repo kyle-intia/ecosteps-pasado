@@ -1,0 +1,18 @@
+// models/followModel.js
+const mongoose = require('mongoose');
+
+const followSchema = new mongoose.Schema({
+  follower: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // User._id
+  following: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // User._id
+  createdAt: { type: Date, default: Date.now },
+});
+
+// unique compound index prevents duplicates
+followSchema.index({ follower: 1, following: 1 }, { unique: true });
+// index for fast follower/following lookups
+followSchema.index({ following: 1, createdAt: -1 });
+followSchema.index({ follower: 1, createdAt: -1 });
+
+const Follow = mongoose.model('Follow', followSchema);
+
+module.exports = Follow;

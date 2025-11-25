@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const RewardSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  body: { type: String }, // matches TS interface
-  icon: { type: String }, // save icon name, frontend maps it to component
+  body: { type: String },
+  icon: { type: String }, 
   color: { type: String },
 
   rewardItem: { type: String, required: true },
@@ -17,8 +17,8 @@ const RewardSchema = new mongoose.Schema({
   claimed: { type: Boolean, default: false },
   
   claimRequirement: {
-    type: { type: String, required: true }, // e.g. "walk"
-    value: { type: Number, required: true }, // e.g. 1000
+    type: { type: String, required: true }, 
+    value: { type: Number, required: true },
   },
 
   claimable: { type: Boolean, default: false },

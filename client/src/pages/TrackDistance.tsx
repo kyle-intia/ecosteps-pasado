@@ -1,5 +1,3 @@
-"use client";
-
 import {
   MapContainer,
   TileLayer,
@@ -358,10 +356,10 @@ const UserTrackDistance = () => {
       return;
     }
 
-    if (totalDistance < 0.01) {
+    if (totalDistance < 0.00000001) {
       toast({
         title: "Distance Too Short",
-        description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 10 m.`,
+        description: `Tracked distance was only ${totalDistance.toFixed(2)} km.`,
         variant: "destructive",
       });
 

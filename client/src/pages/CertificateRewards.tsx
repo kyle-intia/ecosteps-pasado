@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import useProfile from "@/hooks/useAuthProfile";
 
 interface Certificate {
   id?: string;
@@ -37,6 +38,8 @@ interface Reward {
 }
 
 
+
+
 export default function CertificateRewards() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("certificates");
@@ -48,6 +51,12 @@ export default function CertificateRewards() {
 
   const claimedRewards = rewards.filter(r => r.claimed).length;
   const earnedCertificates = certificates.filter(c => c.earned).length;
+
+  const { user, isLoading, isError, error: profileError } = useProfile();
+
+  const userName = user && typeof user === 'object' && 'firstName' in user && 'lastName' in user
+    ? `${user.firstName} ${user.lastName}`
+    : '';
 
   const fetchCertificates = async () => {
     try {
@@ -143,7 +152,7 @@ export default function CertificateRewards() {
     // Recipient name
     doc.setFontSize(28);
     doc.setTextColor(59, 130, 246);
-    doc.text("John Doe", 148.5, 90, { align: "center" });
+    doc.text(userName, 148.5, 90, { align: "center" });
 
     // Certificate title
     doc.setFontSize(14);

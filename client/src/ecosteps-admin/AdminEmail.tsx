@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Send, Sparkles, Clock, Award, Bell, CheckCircle, Gift } from "lucide-react";
+import { Mail, Send, Sparkles, Clock, Award, Bell, CheckCircle, Gift, Wrench, ShieldCheck, AlertTriangle, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getUserSettingsNotificationEnabled } from "../lib/api"
 
@@ -39,148 +39,105 @@ We noticed you haven't completed your carbon footprint assessment yet. Taking ju
 Click here to complete your assessment now!
 
 Best regards,
-The Green Team`,
+The Ecosteps Team`,
     color: "bg-blue-500"
   },
-  {
-    id: "reward-claim",
-    name: "Claim Your Reward",
-    icon: <Gift className="h-4 w-4" />,
-    category: "Rewards",
-    subject: "🎉 Congratulations! You've Earned a New Reward",
-    message: `Congratulations! 🎊
 
-You've successfully earned a new reward for your amazing eco-friendly efforts!
+{
+  id: "maintenance-notice",
+  name: "Scheduled Maintenance",
+  icon: <Wrench className="h-4 w-4" />,
+  category: "System",
+  subject: "Maintenance: Scheduled Maintenance Notice",
+  message: `Hello!
 
-Reward: Carbon Warrior Certificate
-Points Earned: 500 points
-Achievement Level: Gold
+This is a quick update to let you know that our platform will undergo scheduled maintenance soon.
 
-Your dedication to sustainability is truly inspiring! Click the link below to claim your certificate and share it with your network.
+Maintenance Window:
+• Date: 
+• Duration: 1:00 PM - 4:00 PM
+• Expected Impact: Brief downtime and limited access
 
-[Claim Your Certificate]
+We’re performing these updates to ensure smoother performance and an even better user experience.
 
-Keep up the fantastic work!
+Thank you for your patience and understanding!
 
-Warmly,
-The Sustainability Team`,
-    color: "bg-green-500"
-  },
-  {
-    id: "achievement",
-    name: "Achievement Unlocked",
-    icon: <Award className="h-4 w-4" />,
-    category: "Motivation",
-    subject: "🏆 New Achievement Unlocked!",
-    message: `Amazing work! 🌟
+Best,  
+The Ecosteps Team`,
+  color: "bg-gray-500"
+},
 
-You've just unlocked a new achievement:
+{
+  id: "policy-update",
+  name: "Policy Update",
+  icon: <ShieldCheck className="h-4 w-4" />,
+  category: "System",
+  subject: "Policy Update: Updates to Our Privacy & Data Policies",
+  message: `Hello,
 
-Achievement: "Eco Champion"
-Milestone: 30 Days of Consistent Tracking
+We’ve updated our Privacy Policy and Terms of Service.
 
-This is a huge accomplishment! You're making a real difference in the fight against climate change.
+What’s Changed:
+• 
+•   
+• 
 
-Your Stats:
-• Total CO2 Saved: 125 kg
-• Eco-Challenges Completed: 15
-• Leaderboard Rank: #8
+These changes take effect immediately. You can review the full policies in the platform's settings.
 
-Keep pushing forward - you're inspiring others!
+Your trust is important to us — thank you for staying with the Green Platform!
 
-The Green Squad`,
-    color: "bg-purple-500"
-  },
-  {
-    id: "weekly-update",
-    name: "Weekly Progress Update",
-    icon: <CheckCircle className="h-4 w-4" />,
-    category: "Updates",
-    subject: "Your Weekly Sustainability Report 📊",
-    message: `Hi there!
+Sincerely,  
+The Ecosteps Team`,
+  color: "bg-slate-600"
+},
 
-Here's your weekly sustainability summary:
+{
+  id: "security-alert",
+  name: "Security Alert",
+  icon: <AlertTriangle className="h-4 w-4" />,
+  category: "System",
+  subject: "Security Alert: Security Notice: Account Safety Update",
+  message: `Hello,
 
-This Week's Highlights:
-• Distance Tracked: 45 km (bike & walk)
-• CO2 Emissions Saved: 12.5 kg
-• Eco-Challenges Completed: 3
-• Points Earned: 250
+We’re reaching out to inform you about a recent security update on our platform.
 
-Top Achievement: You're in the top 15% of active users!
+What You Should Know:
+•  
+•  
+• 
 
-Next Week's Goals:
-• Complete 2 more eco-challenges
-• Track 50 km of sustainable transport
-• Reduce carbon footprint by 15 kg
+We recommend reviewing your account security settings to ensure everything is up to date.
 
-View your detailed report in your dashboard.
+Your safety is our priority.  
+The Ecosteps Team`,
+  color: "bg-yellow-600"
+},
+{
+  id: "survey-invitation",
+  name: "Survey Invitation",
+  icon: <ClipboardList className="h-4 w-4" />,
+  category: "Engagement",
+  subject: "Survey: We’d Love Your Feedback!",
+  message: `Hello!
 
-Keep going strong!
-Your Impact Team`,
-    color: "bg-orange-500"
-  },
-  {
-    id: "challenge-invitation",
-    name: "Challenge Invitation",
-    icon: <Sparkles className="h-4 w-4" />,
-    category: "Engagement",
-    subject: "Join Our New Eco-Challenge! 🌱",
-    message: `Hey Eco-Warrior!
+Your input helps us improve, and we’d love to hear what you think.
 
-We're launching an exciting new challenge this month:
+We’ve created a short survey to learn more about your experience with the platform.
 
-"30-Day Plastic-Free Challenge"
+Survey Highlights:
+• Takes less than 3 minutes  
+• Helps improve features and challenges  
+• Direct impact on future updates  
 
-Challenge Details:
-• Duration: 30 days
-• Difficulty: Medium
-• Rewards: 1000 points + Special Badge
-• Participants: 247 users already joined!
+Your voice matters — thank you for helping us grow!
 
-What You'll Do:
-• Reduce single-use plastic consumption
-• Document your journey
-• Share tips with the community
-• Track your plastic-free days
+Warm regards,  
+The Feedback Team`,
+  color: "bg-violet-600"
+},
 
-Join hundreds of users making a difference!
 
-[Accept Challenge]
 
-Together, we're stronger!
-The Challenge Team`,
-    color: "bg-teal-500"
-  },
-  {
-    id: "deadline-reminder",
-    name: "Deadline Reminder",
-    icon: <Clock className="h-4 w-4" />,
-    category: "Urgent",
-    subject: "⏰ Last Chance: Challenge Ends in 48 Hours",
-    message: `Time is running out! ⏰
-
-The "Green Commute Challenge" ends in just 48 hours!
-
-Current Status:
-• Your Progress: 75% complete
-• Remaining Tasks: 2
-• Potential Reward: 500 points
-
-You're so close to completing this challenge! Just a little more effort and you'll earn:
-
-✓ Exclusive "Green Commuter" Badge
-✓ 500 bonus points
-✓ Certificate of Achievement
-
-Don't miss out on this opportunity!
-
-[Complete Challenge Now]
-
-You've got this!
-The Support Team`,
-    color: "bg-red-500"
-  }
 ];
 
 interface User {
@@ -332,7 +289,7 @@ export default function AdminEmail_v02() {
                 </CardTitle>
                 <CardDescription>Choose a pre-made template to get started</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[600px] overflow-y-auto p-3">
                 {templates.map((template, index) => (
                   <Card
                     key={template.id}

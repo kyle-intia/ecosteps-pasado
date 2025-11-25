@@ -42,6 +42,8 @@ import UserTrackHistory from "./pages/TrackHistory";
 import CertificateRewards from "./pages/CertificateRewards";
 import EmailManagement from "./ecosteps-admin/AdminEmail";
 import AdminCertificatesRewards from "./ecosteps-admin/RewardsAndCertificate";
+import CommunityPreview from "./pages/CommunityPreview";
+import PostDetail from "./pages/PostDetail";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -65,6 +67,8 @@ const App: React.FC = () => {
             <Route path="/email/verify/:code" element={<VerifyEmail />} />
             <Route path="/password/forgot" element={<ForgotPassword />} />
             <Route path="/password/reset" element={<ResetPassword />} />
+            <Route path="/community/:userId/post/:postId" element={<CommunityPreview />} />
+            <Route path="/post/:id" element={<PostDetail />} />
             
 
             <Route element={<RoleBasedRoute allowedRoles={['user']} />}>
@@ -78,6 +82,7 @@ const App: React.FC = () => {
                   <Route path="/track-distance" element={<UserTrackDistance />} />
                   <Route path="/track-history" element={<UserTrackHistory />} />
                   <Route path="/community" element={<Community />} />
+                  
                   <Route path="/leaderboards" element={<Leaderboards />} />
                   <Route path="/home" element={<Home />} />
                   <Route path="/profile" element={<Profile />} />
