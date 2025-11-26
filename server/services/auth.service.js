@@ -105,7 +105,6 @@ const verifyEmail = async (code) => {
     }, { new: true });
     (0, appAssert_1.default)(updatedUser, http_1.INTERNAL_SERVER_ERROR, "Failed to verify email");
     await validCode.deleteOne();
-    await NotificationService.createNotification(validCode.userId, `${updatedUser.email} just verified his/her account`, "authentication");
     return {
         user: updatedUser.omitPassword(),
     };
@@ -189,7 +188,6 @@ const resetPassword = async ({ verificationCode, password, }) => {
         password: await (0, bcrypt_1.hashValue)(password),
     });
     (0, appAssert_1.default)(updatedUser, http_1.INTERNAL_SERVER_ERROR, "Failed to reset password");
-    await NotificationService.createNotification(validCode.userId, `${updatedUser.email} reset his/her password`, "authentication");
     await validCode.deleteOne();
     // delete all sessions
     await session_model_1.default.deleteMany({ userId: validCode.userId });
