@@ -6,7 +6,9 @@ const DailyTracking = require('../models/DailyTracking');
 const authenticate = require('../middleware/authenticate');
 const NotificationService = require('../services/notificationService');
 const EmissionFactorService = require('../services/emissionFactorService');
-const LeaderboardService = require('../services/leaderboardService')
+const LeaderboardService = require('../services/leaderboardService');
+const CertificateRewardService = require('../services/certificateRewardService');
+const AchievementService = require('../services/achievementService');
 
 // All routes require authentication
 router.use(authenticate);
@@ -202,6 +204,10 @@ router.post('/submit', async (req, res) => {
       const newAchievements = await DailyTrackingService.handleTrackingAchievements(userId, calculatedFootprint, trackingData);
 
       await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
+
+      await CertificateRewardService.checkCertificatesForUser(userId);
+      await CertificateRewardService.checkRewardsForUser(userId);
+      await AchievementService.checkAchievements(userId, 'daily_tracking_completed');
 
       res.json({
         success: true,

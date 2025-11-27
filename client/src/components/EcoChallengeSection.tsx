@@ -184,7 +184,8 @@ const EcoChallengeSection: React.FC = () => {
       toast({
         title: "Challenge Completed!",
         description,
-        variant: "default"
+        variant: "default",
+        duration: 500,
       });
       
       // Special celebration for completing all challenges
@@ -193,7 +194,8 @@ const EcoChallengeSection: React.FC = () => {
           toast({
             title: "Perfect Day!",
             description: "You've completed all three eco-challenges today! You're making a real difference!",
-            variant: "default"
+            variant: "default",
+            duration: 1000,
           });
         }, 1000);
       }

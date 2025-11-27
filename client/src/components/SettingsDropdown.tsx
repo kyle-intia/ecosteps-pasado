@@ -11,6 +11,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -28,6 +29,9 @@ import {
   MessageCircle,
   Share2,
   Trophy,
+  Award,
+  Sparkles,
+  Gift,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -36,6 +40,8 @@ import { getAllNotification, markAsReadNotification } from "@/lib/api";
 import useAuth from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useSocket } from "@/hooks/useSocket";
+import { unstable_batchedUpdates } from "react-dom";
 
 interface SettingsDropdownProps {
   onLogout: () => void;
@@ -50,6 +56,8 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth() as { user: { _id?: string } };
+
+  const currentUserId = user?._id?.toString();
 
   // Fetch & format notifications
   useEffect(() => {
@@ -107,7 +115,13 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
       case "follow":
         return <UserPlus className="h-4.5 w-4.5 text-indigo-500" />;
       case "achievement":
-        return <Trophy className="h-4.5 w-4.5 text-yellow-500" />;
+        return <Trophy className="h-4.5 w-4.5 text-yellow-500 fill-yellow-500" />;
+      case "certificate":
+        return <Award className="h-4.5 w-4.5 text-amber-600 fill-amber-600" />;
+      case "reward":
+        return <Gift className="h-4.5 w-4.5 text-pink-500 fill-pink-500" />;
+      case "reward_claimed":
+        return <Sparkles className="h-4.5 w-4.5 text-purple-600 fill-purple-600" />;
       default:
         return <Bell className="h-4.5 w-4.5 text-primary" />;
     }
@@ -140,6 +154,61 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
       title: newMode ? "Dark Mode" : "Light Mode",
       description: `Theme switched to ${newMode ? "dark" : "light"}`,
     });
+  };
+
+useSocket((rawNotification) => {
+
+    const incomingUserId = rawNotification.userId?.toString();
+
+    if (!currentUserId || !incomingUserId || incomingUserId !== currentUserId) {
+      return;
+    }
+
+    const incomingId = rawNotification._id?.toString();
+    if (!incomingId) return;
+
+    // Prevent duplicates
+    if (notifications.some(n => n.id === incomingId)) return;
+
+    const formatted = {
+      id: incomingId,
+      message: rawNotification.message || "New notification",
+      type: rawNotification.type || "community",
+      createdAt: rawNotification.createdAt || new Date().toISOString(),
+      isRead: false,
+      link: rawNotification.link || null,
+      action: rawNotification.data?.action || extractActionFromMessage(rawNotification.message),
+    };
+
+  unstable_batchedUpdates(() => {
+    setNotifications(prev => [formatted, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  });
+
+  const message = rawNotification.type.replace(/\b\w/g, c => c.toUpperCase());
+
+  toast({
+    title: "New Notification",
+    description: message,
+    duration: 3000,
+    variant: "success",
+  });
+});
+
+  const markAllAsRead = async () => {
+    try {
+      // Mark all unread notifications as read
+      await Promise.all(
+        notifications.filter(notif => !notif.isRead).map(async (notif) => {
+          await markAsReadNotification(notif.id);
+          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+        })
+      );
+      // Update unread count to zero
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
   };
 
   return (
@@ -214,7 +283,18 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
                   </div>
                 )}
               </div>
+              <DialogFooter className="mx-5 px-5 py-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs"
+                >
+                  Mark all as read
+                </Button>
+              </DialogFooter>
             </DialogContent>
+
           </Dialog>
         </div>
 

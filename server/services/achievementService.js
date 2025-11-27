@@ -4,6 +4,13 @@ const Achievement = require('../models/Achievement');
 const badgeAchievementModel = require("../models/badgeAchivementModel")
 const NotificationAchievements = require('../models/Notification');
 const badgeAchievementService = require('../services/badgeAchievementService'); 
+const NotificationService = require('../services/notificationService');
+
+
+const getUTCDateOnly = (date = new Date()) => {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+};
+
 
 class AchievementService {
   static async seedAchievements() {
@@ -48,6 +55,8 @@ class AchievementService {
 
   static async checkAchievements(userId, triggerEvent, context = {}) {
     try {
+      const todayDateOnly = getUTCDateOnly();
+
       const user = await User.findById(userId);
       if (!user) return [];
 
@@ -80,7 +89,7 @@ class AchievementService {
             });
 
             // Create notification
-            await this.createNotification(userId, {
+            await this.createNotificationAchievement(userId, {
               type: 'achievement_unlock',
               title: `Achievement Unlocked!`,
               message: `You earned "${achievement.name}"`,
@@ -91,6 +100,23 @@ class AchievementService {
                 tier: achievement.tier
               }
             });
+
+            await NotificationService.createNotification(
+              userId,
+              `${achievement.name} Unlocked!`,
+              'achievement',
+              {
+                link: `/achievements`,
+                action: 'achievement',
+                data: {
+                  action: 'achievement',
+                  achievementId: achievement._id,
+                  achievementName: achievement.name,
+                  rarity: achievement.rarity || 'common', // rare, epic, legendary
+                  points: achievement.points || 100
+                }
+              }
+            );
 
             newlyUnlocked.push(achievement);
           }
@@ -133,7 +159,7 @@ class AchievementService {
     }
   }
 
-  static async createNotification(userId, notificationData) {
+  static async createNotificationAchievement(userId, notificationData) {
     try {
       const notification = new NotificationAchievements({
         userId,

@@ -76,9 +76,35 @@ app.get("/", (_, res) => {
 });
 
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+  cors: {
+    origin: env_1.APP_ORIGIN, // must match frontend
+    methods: ["GET", "POST"],
+    credentials: true // ⚡ THIS IS REQUIRED
+  }
+});
 
-NotificationService.setSocketIoInstance(io);
+const activeUsers = new Set();
+
+io.on("connection", (socket) => {
+  socket.on("joinRoom", (userId) => {
+    socket.join(userId);
+    activeUsers.add(userId.toString());
+  });
+
+  socket.on("disconnect", () => {
+    for (const room of socket.rooms) {
+      if (room !== socket.id) {
+        activeUsers.delete(room);
+        break;
+      }
+    }
+  });
+});
+
+// Pass both
+NotificationService.setSocketIoInstance(io, activeUsers);
+
 const activitylogRoutes = require("./routes/activity.route");
 app.use("/activitylogs", activitylogRoutes);
 // Authentication routes
@@ -142,18 +168,19 @@ app.use("/api/user", require("./routes/userCertificateRewardRoute"));
 // Error handling middleware
 app.use(errorHandler_1.default);
 
-cron.schedule('0 9-21/4 * * *', () => {
+// Schedule to run at 9 AM and every 3 hours thereafter
+cron.schedule('0 9/3 * * *', () => {
   sendDailyTrackingReminders()
-    .then(() => console.log('Tracking reminder sent (every 4 hours starting 9 AM).'))
+    .then(() => console.log('Tracking reminder sent at scheduled time.'))
     .catch((err) => console.error('Failed to send tracking reminders:', err));
 }, {
   timezone: 'Asia/Manila'
 });
- 
+
 const now = new Date();
 const hour = now.getHours();
 
-if (hour >= 9 && (hour - 9) % 4 === 0) {
+if (hour >= 9) {
   sendDailyTrackingReminders()
     .then(() => console.log('Reminder sent on server start (aligned with 4-hour schedule).'))
     .catch((err) => console.error('Failed to send reminder on server start:', err));
@@ -165,7 +192,7 @@ const startServer = async () => {
     
     await seedAchievements();  
 
-    app.listen(env_1.PORT, '0.0.0.0', () => {
+    server.listen(env_1.PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on port ${env_1.PORT} in ${env_1.NODE_ENV} mode`);
       console.log(`📊 Challenge API available at /api/challenges`);
       console.log(`🤖 AI Recommendations API available at /api/recommendations`);

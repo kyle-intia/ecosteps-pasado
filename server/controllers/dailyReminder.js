@@ -42,12 +42,15 @@ const sendDailyTrackingReminders = async () => {
 
         if (existingNotification) return;
 
-        await NotificationService.createNotification(
-          user._id,
-          reminderMessage,
-          notificationType,
-          todayDateOnly.toISOString().slice(0, 10)
-        );
+          await NotificationService.createNotification(
+            user._id,
+            reminderMessage,
+            notificationType,
+            { 
+              dateOnly: todayDateOnly.toISOString().slice(0, 10), 
+              link: '/track'
+            }
+          );
 
         console.log(`Notification sent to user ${user._id}`);
 

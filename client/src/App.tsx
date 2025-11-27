@@ -1,6 +1,5 @@
 // App.tsx
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, useNavigate } from "react-router-dom";
@@ -44,9 +43,11 @@ import EmailManagement from "./ecosteps-admin/AdminEmail";
 import AdminCertificatesRewards from "./ecosteps-admin/RewardsAndCertificate";
 import CommunityPreview from "./pages/CommunityPreview";
 import PostDetail from "./pages/PostDetail";
+import { useToast } from "./hooks/use-toast";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     setNavigate(navigate);
@@ -55,11 +56,8 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
+        <Toaster  />
         <Routes>
-
-          
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -95,7 +93,6 @@ const App: React.FC = () => {
               </Route>
           </Route>
 
-          
           <Route element={<RoleBasedRoute allowedRoles={['admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />

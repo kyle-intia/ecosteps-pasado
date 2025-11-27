@@ -434,26 +434,30 @@ class CommunityService {
     return { posts: sliced, hasMore, page, limit };
   }
 
-  // Like/unlike
+    // Like/unlike
   static async likePost(postId, userId) {
     const user = await UserModel.findById(userId).select('email').lean().exec();
     const email = user?.email || 'Someone';
-
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
+
+    // Define recipientId ONCE at the top so it's available in both branches
+    const recipientId = post.author.toString();
+    const isOwnPost = recipientId === userId.toString();
 
     const likedIndex = post.likes.findIndex((id) => id.toString() === userId.toString());
 
     if (likedIndex === -1) {
+      // === LIKE ===
       post.likes.push(userId);
-      const recipientId = post.author.toString();
-      if (recipientId !== userId.toString()) {
+
+      if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
           `${email} liked your post`,
           'community',
           {
-            link: `/post/${postId}`,           // frontend route
+            link: `/post/${postId}`,
             postId,
             actorId: userId,
             action: 'like'
@@ -462,6 +466,15 @@ class CommunityService {
       }
     } else {
       post.likes.splice(likedIndex, 1);
+
+      if (!isOwnPost) {
+        await NotificationService.deleteActionNotification({
+          recipientId,
+          actorId: userId,
+          action: 'like',
+          postId
+        });
+      }
     }
 
     await post.save();
@@ -471,21 +484,27 @@ class CommunityService {
     return attached;
   }
 
-  // Repost
+    // Repost
   static async repostPost(postId, userId) {
     const user = await UserModel.findById(userId).select('email').lean().exec();
     const email = user?.email || 'Someone';
-
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
+
+    const recipientId = post.author.toString();
+    const isOwnPost = recipientId === userId.toString();
 
     const isAlreadyReposted = post.reposts.some(id => id.toString() === userId.toString());
 
     if (!isAlreadyReposted) {
+      // === REPOST ===
       post.reposts.push(userId);
+      post.repostsDetails.push({
+        repostedBy: userId,
+        repostedPost: post._id,
+      });
 
-      const recipientId = post.author.toString();
-      if (recipientId !== userId.toString()) {
+      if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
           `${email} reposted your post`,
@@ -498,15 +517,21 @@ class CommunityService {
           }
         );
       }
-
-      post.repostsDetails.push({
-        repostedBy: userId,
-        repostedPost: post._id,
-      });
     } else {
-      // Un-repost
+      // === UN-REPOST ===
       post.reposts = post.reposts.filter(id => id.toString() !== userId.toString());
-      post.repostsDetails = post.repostsDetails.filter(entry => entry.repostedBy.toString() !== userId.toString());
+      post.repostsDetails = post.repostsDetails.filter(
+        entry => entry.repostedBy.toString() !== userId.toString()
+      );
+
+      if (!isOwnPost) {
+        await NotificationService.deleteActionNotification({
+          recipientId,
+          actorId: userId,
+          action: 'repost',
+          postId
+        });
+      }
     }
 
     await post.save();
@@ -515,21 +540,26 @@ class CommunityService {
     return attached;
   }
 
-  // Share
   static async sharePost(postId, userId) {
     const user = await UserModel.findById(userId).select('email').lean().exec();
     const email = user?.email || 'Someone';
-
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
+
+    const recipientId = post.author.toString();
+    const isOwnPost = recipientId === userId.toString();
 
     const alreadyShared = post.shares.some(id => id.toString() === userId.toString());
 
     if (!alreadyShared) {
+      // === SHARE ===
       post.shares.push(userId);
+      post.sharesDetails.push({
+        sharedBy: userId,
+        sharedPost: post._id,
+      });
 
-      const recipientId = post.author.toString();
-      if (recipientId !== userId.toString()) {
+      if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
           `${email} shared your post`,
@@ -542,15 +572,21 @@ class CommunityService {
           }
         );
       }
-
-      post.sharesDetails.push({
-        sharedBy: userId,
-        sharedPost: post._id,
-      });
-
     } else {
+      // === UNSHARE ===
       post.shares = post.shares.filter(id => id.toString() !== userId.toString());
-      post.sharesDetails = post.sharesDetails.filter(entry => entry.sharedBy.toString() !== userId.toString());
+      post.sharesDetails = post.sharesDetails.filter(
+        entry => entry.sharedBy.toString() !== userId.toString()
+      );
+
+      if (!isOwnPost) {
+        await NotificationService.deleteActionNotification({
+          recipientId,
+          actorId: userId,
+          action: 'shared',
+          postId
+        });
+      }
     }
 
     await post.save();
@@ -561,29 +597,70 @@ class CommunityService {
 
   // Comment
   static async addComment(postId, userId, commentContent) {
+    // 1. Fetch the post
     const post = await Post.findById(postId);
-    if (!post) throw new Error('Post not found');
+    if (!post) throw new Error('Post not found'); 
 
+    // 2. Add the comment
     post.comments.push({ author: userId, content: commentContent });
-    await post.save();
+    await post.save();  
 
+    // 3. Fetch the user email (for notification)
+    const user = await UserModel.findById(userId).select('email').lean().exec();
+    const email = user?.email || 'Someone'; 
+
+    // 4. Send notification to post author if commenter is not the author
+    const recipientId = post.author.toString();
+    if (recipientId !== userId.toString()) {
+      await NotificationService.createNotification(
+        recipientId,
+        `${email} commented on your post`,
+        'community', // category of notification
+        {
+          link: `/post/${postId}`, // frontend route
+          postId,
+          actorId: userId,
+          action: 'comment',
+          content: commentContent
+        }
+      );
+    } 
+
+    // 5. Populate and attach profiles
     const populated = await this.basePostPopulate(Post.findById(postId)).lean().exec();
     const [attached] = await this.attachProfilesToPosts([populated]);
     return attached;
   }
 
+
   static async deleteComment(postId, commentId, userId) {
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
 
-    const comment = post.comments.id(commentId);
-    if (!comment) throw new Error('Comment not found');
+    const commentIndex = post.comments.findIndex(c => c._id.toString() === commentId);
+    if (commentIndex === -1) throw new Error('Comment not found');
 
+    const comment = post.comments[commentIndex];
     if (comment.author.toString() !== userId.toString()) {
       throw new Error('Unauthorized: You can only delete your own comments');
     }
 
-    post.comments = post.comments.filter(c => c._id.toString() !== commentId);
+    const recipientId = post.author.toString();
+    const isOwnPost = recipientId === userId.toString();
+
+    // Remove comment
+    post.comments.splice(commentIndex, 1);
+
+    // Delete notification if it was sent (i.e. not own post)
+    if (!isOwnPost) {
+      await NotificationService.deleteActionNotification({
+        recipientId,
+        actorId: userId,
+        action: 'comment',
+        postId: post._id
+      });
+    }
+
     await post.save();
 
     const populated = await this.basePostPopulate(Post.findById(postId)).lean().exec();
@@ -653,7 +730,20 @@ class CommunityService {
   }
 
   static async unfollowUser(followerId, followingId) {
+    if (followerId.toString() === followingId.toString()) {
+      throw new Error('Cannot unfollow yourself');
+    }
+
     await Follow.deleteOne({ follower: followerId, following: followingId });
+
+    // Delete the follow notification
+    await NotificationService.deleteActionNotification({
+      recipientId: followingId,
+      actorId: followerId,
+      action: 'follow'
+      // no postId → ignored in query
+    });
+
     return { success: true };
   }
 

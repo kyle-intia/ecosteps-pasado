@@ -1,4 +1,6 @@
 const activityService = require("../services/activity.service");
+const CertificateRewardService = require('../services/certificateRewardService');
+const AchievementService = require('../services/achievementService');
 
 // Add new activity
 exports.addActivity = async (req, res) => {
@@ -11,6 +13,12 @@ exports.addActivity = async (req, res) => {
     }
 
     const saved = await activityService.createActivity(userId, activityData);
+
+    // ADD THESE 3 LINES HERE TOO
+    await CertificateRewardService.checkCertificatesForUser(userId);
+    await CertificateRewardService.checkRewardsForUser(userId);
+    await AchievementService.checkAchievements(userId, 'activity_completed', { activity: saved });
+    
     return res.status(201).json(saved);
   } catch (err) {
     console.error("Add activity error:", err.message);

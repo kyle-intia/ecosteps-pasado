@@ -5,6 +5,7 @@ const UserCertificate = require("../models/userCertificateModel");
 const UserReward = require("../models/userRewardModel");
 const { getUserStats, getMonthlyStats } = require("./stats.service");
 const LeaderboardService = require("../services/leaderboardService");
+const NotificationService = require('../services/notificationService');
 
 class CertificateRewardService {
 
@@ -101,6 +102,22 @@ class CertificateRewardService {
       if (req && this.requirementSatisfied(req, mergedStats)) {
         const doc = new UserCertificate({ userId, certificateId: cert._id, unlockedAt: new Date() });
         await doc.save();
+
+        await NotificationService.createNotification(
+          userId,
+          `Certificate Unlocked: ${cert.title}!`,
+          'certificate',
+          {
+            link: `/certificates-rewards`,
+            action: 'certificate',
+            data: {
+              action: 'certificate',
+              certificateId: cert._id,
+              certificateTitle: cert.title,
+              icon: cert.icon
+            }
+          }
+        );
         newlyUnlocked.push({ certificate: cert, earnedAt: doc.unlockedAt });
       }
     }
@@ -125,6 +142,24 @@ class CertificateRewardService {
         if (!existing) {
           const u = new UserReward({ userId, rewardId: r._id, claimableAt: new Date(), status: "claimable" });
           await u.save();
+
+
+          await NotificationService.createNotification(
+            userId,
+            `New Reward Available: ${r.title}!`,
+            'reward',
+            {
+              link: `/certificates-rewards`,
+              action: 'reward',
+              data: {
+                action: 'reward',
+                rewardId: r._id,
+                rewardTitle: r.title,
+                rewardItem: r.rewardItem
+              }
+            }
+          );
+
           newlyClaimable.push({ reward: r, claimableAt: u.claimableAt });
         } else if (existing.status === "locked") {
           existing.status = "claimable";

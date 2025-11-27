@@ -441,7 +441,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setTransportForm({ transportGroup: "private", subtype: transportTypes.private[0], distanceKm: 0 });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Transport entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add transport", variant: "destructive" });
     } finally {
@@ -476,7 +475,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setHomeForm({ homeType: "apartment", occupants: 0, appliances: "none" });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Home entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add home", variant: "destructive" });
     } finally {
@@ -517,7 +515,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setFoodForm({ mealSlot: "breakfast", mealType: "meat", description: "" });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Food entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add food", variant: "destructive" });
     } finally {
@@ -942,11 +939,6 @@ const handleCalculate = async () => {
     }));
 
     setLoadingStatus("success");
-
-    toast({
-      title: "Calculated",
-      description: `Total: ${res.data.calculatedFootprint.total.toFixed(2)} kg CO₂e.`,
-    });
   } catch (err: any) {
     console.error(err);
     setLoadingStatus("error");

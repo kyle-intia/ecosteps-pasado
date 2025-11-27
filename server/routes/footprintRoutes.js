@@ -10,6 +10,8 @@ const authenticate = require('../middleware/authenticate');
 const EmissionFactorService = require('../services/emissionFactorService');
 const LeaderboardService = require('../services/leaderboardService')
 const NotificationService = require('../services/notificationService');
+const CertificateRewardService = require('../services/certificateRewardService');
+const AchievementService = require('../services/achievementService');
 
 // All routes require authentication
 router.use(authenticate);
@@ -177,6 +179,10 @@ let existingEntry = await DailyTracking.findOne({
       });
 
       await LeaderboardService.addPoints(userId, 100, 'Completed a daily tracking');
+
+      await CertificateRewardService.checkCertificatesForUser(userId);
+      await CertificateRewardService.checkRewardsForUser(userId);
+      await AchievementService.checkAchievements(userId, 'daily_tracking_completed');
 
       savedEntry = await newEntry.save();
 

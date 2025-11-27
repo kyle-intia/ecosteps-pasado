@@ -177,6 +177,13 @@ const PostCard: React.FC<PostCardProps> = ({
                   ? `${post.authorProfile.firstName} ${post.authorProfile.lastName}`
                   : post.author.username}
                 <span className="text-sm text-muted-foreground ml-2">@{post.authorProfile?.username}</span>
+                {
+                  isOwnPost ? (
+                    <span className="text-xs text-muted-foreground ml-2">(me)</span>
+                  ) : (
+                      ``
+                  )
+                }
               </div>
               <div className="text-xs text-muted-foreground">
                 {post.visibility === "private" ? "Private" : "Public"} · {formatDistanceToNow(new Date(post.createdAt))} ago

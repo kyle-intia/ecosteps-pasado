@@ -132,7 +132,7 @@ router.post("/rewards/:id/claim", async (req, res) => {
               <div style="margin: 15px auto; max-width: 350px; padding: 15px; background: #E3F2FD; border: 1px solid #90CAF9; border-radius: 8px;">
                 <h4 style="margin: 0; color: #0D47A1;">📮 Option 2: Request Delivery</h4>
                 <p style="font-size: 14px; color: #555; margin-top: 6px;">
-                  Reply to this email with your delivery address, and our team will assist you.
+                  Please reply to this email with the name of the receiver and your delivery address. Please note that a delivery fee may apply, and our team will assist you further.
                 </p>
               </div>
             </div>

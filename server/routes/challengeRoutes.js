@@ -8,6 +8,8 @@ const authenticate = require('../middleware/authenticate');
 const EmissionFactorService = require('../services/emissionFactorService');
 const DailyTrackingService = require('../services/dailyTrackingService');
 const LeaderboardService = require("../services/leaderboardService");
+const CertificateRewardService = require("../services/certificateRewardService");
+const AchievementService = require("../services/achievementService");
 
 
 // All routes require authentication
@@ -76,6 +78,10 @@ router.post('/complete', async (req, res) => {
     const result = await ChallengeService.completeChallenge(userId, challengeId);
 
     await LeaderboardService.addPoints(userId, 100, 'Completed a daily challenge');
+
+    await CertificateRewardService.checkCertificatesForUser(userId);
+    await CertificateRewardService.checkRewardsForUser(userId);
+    await AchievementService.checkAchievements(userId, 'daily_tracking_completed');
     
     res.json({
       success: true,
