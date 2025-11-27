@@ -171,9 +171,7 @@ static buildRecommendationPrompt(footprintData) {
   console.log(mealContext)
 
   return `
-You are a sustainability advisor specializing in low-carbon Filipino lifestyles. Your job is to give down-to-earth, practical advice that makes sense in the Philippine context.
-
-User's carbon footprint summary:
+Daily User's carbon footprint summary:
 - Total emissions: ${total.toFixed(2)} kg CO2e
 - Transport: ${breakdown.transport.toFixed(2)} kg CO2e (${transportPercent}%)
 - Home energy: ${breakdown.homeEnergy.toFixed(2)} kg CO2e (${homePercent}%)
@@ -257,8 +255,8 @@ static async callOpenAIAPI(prompt) {
         }
       ],
       max_tokens: 700,
-      temperature: 0.7,
-      top_p: 0.95
+      temperature: 0.2,
+      top_p: 0.9
     })
   });
 

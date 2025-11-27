@@ -12,7 +12,7 @@ export function useSocket(onNotification?: (data: any) => void) {
     if (!user?._id) return;
 
     if (!socket || !socket.connected) {
-      socket = io("http://localhost:4004", {
+      socket = io(import.meta.env.VITE_API_URL, {
         withCredentials: true,
         transports: ["websocket"], // ← Force WebSocket (no polling delay!)
       });
@@ -21,11 +21,7 @@ export function useSocket(onNotification?: (data: any) => void) {
     const s = socket;
 
     s.on("connect", () => {
-      console.log("Socket connected:", s.id);
-
-      // THIS IS THE KEY LINE YOU WERE MISSING:
       s.emit("joinRoom", user._id);
-      console.log("Joined room:", user._id);
     });
 
     if (onNotification) {
