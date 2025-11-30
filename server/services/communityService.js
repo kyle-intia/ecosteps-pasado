@@ -5,22 +5,19 @@ const LeaderboardService = require('../services/leaderboardService');
 const Follow = require('../models/followModel');
 const mongoose = require('mongoose');
 const Post = require('../models/communityModel');
+const UserProfileModel = require('../models/userprofile.model').default;
+
 
 class CommunityService {
 
-  // Helper: populate post(s) with profile (users_profile) info efficiently.
-  // We assume you have a profile collection named 'users_profile' that has userId -> User._id mapping.
-  // This function returns a Mongoose Query with set populates applied.
   static basePostPopulate(query) {
     return query
-      // populate author with profile (users_profile)
       .populate({
         path: 'author',
         model: 'User',
-        select: '_id email profilePic', // keep small; we'll also attach profile below
+        select: '_id email profilePic',
         options: { lean: true }
       })
-      // populate comments.author (only top-level fields)
       .populate({
         path: 'comments.author',
         model: 'User',
@@ -41,12 +38,9 @@ class CommunityService {
       });
   }
 
-  // Helper: attach profiles from users_profile for a list of User._id
-  // This reduces N+1 by fetching all profiles in one query.
   static async attachProfilesToPosts(posts) {
     if (!posts || posts.length === 0) return posts;
 
-    // Collect unique user ids that we need profiles for
     const userIds = new Set();
     posts.forEach(p => {
       if (p.author && p.author._id) userIds.add(p.author._id.toString());
@@ -66,7 +60,6 @@ class CommunityService {
     const ids = Array.from(userIds).map(id => new mongoose.Types.ObjectId(id));
     if (ids.length === 0) return posts;
 
-    // Fetch profiles from users_profile collection
     const UserProfile = mongoose.model('users_profile');
     const profiles = await UserProfile.find({ userId: { $in: ids } })
       .select('userId firstName lastName username profilePic')
@@ -76,17 +69,14 @@ class CommunityService {
     const profileMap = new Map();
     profiles.forEach(p => profileMap.set(p.userId.toString(), p));
 
-    // Attach profile to posts and nested items
     const attach = (userRef) => {
       if (!userRef || !userRef._id) return null;
       const pr = profileMap.get(userRef._id.toString());
       if (pr) return pr;
-      // fallback: minimal info
       return { userId: userRef._id };
     };
 
     return posts.map(p => {
-      // ensure plain object
       const obj = (p.toObject) ? p.toObject() : p;
       obj.authorProfile = attach(obj.author);
       if (Array.isArray(obj.comments)) {
@@ -139,8 +129,6 @@ class CommunityService {
   static async getUserPostsAndReposts(userId, { page = 1, limit = 10 } = {}) {
     const skip = (page - 1) * limit;
 
-    // If caller is the same as userId, include private; otherwise include only public
-    // For this service method, assume the caller is the owner (you can add a viewer param if needed).
     const posts = await this.basePostPopulate(
       Post.find({
         $or: [
@@ -157,25 +145,19 @@ class CommunityService {
     return await this.attachProfilesToPosts(posts);
   }
 
-  // Get all public posts (paginated) — accessible w/o auth
   static async getPublicPosts({ page = 1, limit = 10, sort = 'recent', search } = {}) {
     const skip = (page - 1) * limit;
 
-    // Build query
     let query = { visibility: 'public' };
 
-    // Always declare sortOptions BEFORE it is used
     let sortOptions = {};
 
-    // Add text search if provided
     if (search && search.trim()) {
       query.$text = { $search: search.trim() };
 
-      // Prepend textScore priority
       sortOptions = { score: { $meta: "textScore" }, ...sortOptions };
     }
 
-    // Define sort order
     switch (sort) {
       case 'popular':
         sortOptions = { likes: -1, createdAt: -1 };
@@ -390,7 +372,6 @@ class CommunityService {
       ).lean().exec();
     }
 
-    // Attach profiles
     const attached = await this.attachProfilesToPosts(posts);
 
     const hasMore = attached.length > limit;
@@ -399,10 +380,7 @@ class CommunityService {
     return result;
   }
 
-
-  // Get posts feed for users you follow (only public posts by followed users, or their private posts only if you're the owner)
   static async getFollowingFeed(userId, { page = 1, limit = 10 } = {}) {
-    // 1. Get IDs of users you follow (fast query)
     const follows = await Follow.find({ follower: userId }).select('following').lean().exec();
     const followingIds = follows.map(f => f.following).filter(Boolean);
     if (followingIds.length === 0) {
@@ -411,7 +389,6 @@ class CommunityService {
 
     const skip = (page - 1) * limit;
 
-    // Query: public posts authored/reposted/shared by following users
     const query = {
       $or: [
         { author: { $in: followingIds }, visibility: 'public' },
@@ -436,8 +413,9 @@ class CommunityService {
 
     // Like/unlike
   static async likePost(postId, userId) {
-    const user = await UserModel.findById(userId).select('email').lean().exec();
-    const email = user?.email || 'Someone';
+    const userProfile = await UserProfileModel.findOne({ userId }).select("username").lean().exec();
+    const username = userProfile?.username || "Someone";
+
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
 
@@ -454,7 +432,7 @@ class CommunityService {
       if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
-          `${email} liked your post`,
+          `@${username} liked your post`,
           'community',
           {
             link: `/post/${postId}`,
@@ -486,8 +464,8 @@ class CommunityService {
 
     // Repost
   static async repostPost(postId, userId) {
-    const user = await UserModel.findById(userId).select('email').lean().exec();
-    const email = user?.email || 'Someone';
+    const userProfile = await UserProfileModel.findOne({ userId }).select("username").lean().exec();
+    const username = userProfile?.username || "Someone";
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
 
@@ -507,7 +485,7 @@ class CommunityService {
       if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
-          `${email} reposted your post`,
+          `@${username} reposted your post`,
           'community',
           {
             link: `/post/${postId}`,
@@ -541,8 +519,8 @@ class CommunityService {
   }
 
   static async sharePost(postId, userId) {
-    const user = await UserModel.findById(userId).select('email').lean().exec();
-    const email = user?.email || 'Someone';
+    const userProfile = await UserProfileModel.findOne({ userId }).select("username").lean().exec();
+    const username = userProfile?.username || "Someone";
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found');
 
@@ -562,7 +540,7 @@ class CommunityService {
       if (!isOwnPost) {
         await NotificationService.createNotification(
           recipientId,
-          `${email} shared your post`,
+          `@${username} shared your post`,
           'community',
           {
             link: `/post/${postId}`,
@@ -597,27 +575,23 @@ class CommunityService {
 
   // Comment
   static async addComment(postId, userId, commentContent) {
-    // 1. Fetch the post
     const post = await Post.findById(postId);
     if (!post) throw new Error('Post not found'); 
 
-    // 2. Add the comment
     post.comments.push({ author: userId, content: commentContent });
     await post.save();  
 
-    // 3. Fetch the user email (for notification)
-    const user = await UserModel.findById(userId).select('email').lean().exec();
-    const email = user?.email || 'Someone'; 
+    const userProfile = await UserProfileModel.findOne({ userId }).select("username").lean().exec();
+    const username = userProfile?.username || "Someone";
 
-    // 4. Send notification to post author if commenter is not the author
     const recipientId = post.author.toString();
     if (recipientId !== userId.toString()) {
       await NotificationService.createNotification(
         recipientId,
-        `${email} commented on your post`,
-        'community', // category of notification
+        `@${username} commented on your post`,
+        'community', 
         {
-          link: `/post/${postId}`, // frontend route
+          link: `/post/${postId}`,
           postId,
           actorId: userId,
           action: 'comment',
@@ -708,11 +682,11 @@ class CommunityService {
     try {
       await Follow.create({ follower: followerId, following: followingId });
 
-      const follower = await UserModel.findById(followerId).select('email').lean().exec();
-      const email = follower?.email || 'Someone';
+      const follower= await UserProfileModel.findOne({ followerId }).select("username").lean().exec();
+      const username = follower?.username || "Someone";
       await NotificationService.createNotification(
         followingId,
-        `${email} started following you`,
+        `${username} started following you`,
         'community',
         {
           link: null,
@@ -758,7 +732,7 @@ class CommunityService {
     const followers = await Follow.find({ following: userId })
       .skip(skip)
       .limit(limit)
-      .populate('follower', 'email') // keep small; attach profile in route if needed
+      .populate('follower', 'email') 
       .lean()
       .exec();
     return followers;
