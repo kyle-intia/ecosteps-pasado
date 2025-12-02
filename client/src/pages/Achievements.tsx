@@ -17,6 +17,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { getUserAchievements, equipAchievement, unequipAchievement } from "../lib/api";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Achievement {
   achievementId: string;
@@ -287,8 +288,17 @@ const Achievements = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <span className="truncate">{achievement.name}</span>
+                        <CardTitle className={`text-lg flex items-center gap-2 ${achievement.unlocked ? 'w-[130px]' : ''}`}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="truncate">
+                                  {achievement.name}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                {achievement.name}
+                              </TooltipContent>
+                            </Tooltip>
                           <span className={`text-sm ${tierColor}`}>
                             {achievement.tier === 'bronze' && '🥉'}
                             {achievement.tier === 'silver' && '🥈'}

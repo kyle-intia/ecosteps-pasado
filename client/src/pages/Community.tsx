@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navbar } from "@/components/Navbar";
-import { Users, Leaf, Camera, Send, Loader2, Search, TrendingUp, Clock, Flame, Filter } from "lucide-react";
+import { Users, Leaf, Camera, Send, Loader2, Search, TrendingUp, Clock, Flame, Filter, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import useSessionStatus from "../hooks/useSessionStatus";
@@ -212,9 +212,56 @@ const Community: React.FC = () => {
                 </Button>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant={visibility === 'public' ? 'default' : 'outline'} onClick={() => setVisibility('public')}>Public</Button>
-                <Button size="sm" variant={visibility === 'private' ? 'default' : 'outline'} onClick={() => setVisibility('private')}>Private</Button>
-                <Button onClick={createPost} disabled={creatingPost || (!postContent.trim() && !selectedImage)}>
+
+                <div className="hidden md:flex gap-2">
+        <Button
+          size="sm"
+          variant={visibility === "public" ? "default" : "outline"}
+          onClick={() => setVisibility("public")}
+        >
+          Public
+        </Button>
+
+        <Button
+          size="sm"
+          variant={visibility === "private" ? "default" : "outline"}
+          onClick={() => setVisibility("private")}
+        >
+          Private
+        </Button>
+      </div>
+
+      {/* Mobile Popover (three dots) */}
+      <div className="sm:hidden">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent className="w-32 p-2" align="end">
+            <Button
+              className="w-full mb-2"
+              size="sm"
+              variant={visibility === "public" ? "default" : "outline"}
+              onClick={() => setVisibility("public")}
+            >
+              Public
+            </Button>
+
+            <Button
+              className="w-full"
+              size="sm"
+              variant={visibility === "private" ? "default" : "outline"}
+              onClick={() => setVisibility("private")}
+            >
+              Private
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </div>
+                 <Button onClick={createPost} disabled={creatingPost || (!postContent.trim() && !selectedImage)}>
                   {creatingPost ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                   Share
                 </Button>
@@ -327,6 +374,7 @@ const Community: React.FC = () => {
                 key={post._id}
                 post={post}
                 currentUserId={userId}
+                showRepostLabel={false}
                 isFollowing={followingIds.has(post.author._id)}
                 onLike={async (id) => {
                   const updated = await likePost(id);

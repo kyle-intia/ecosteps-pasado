@@ -41,6 +41,7 @@ interface Post {
   content: string;
   image?: string;
   visibility: "public" | "private";
+  repostsDetails: any;
   likesCount?: number;
   repostsCount?: number;
   sharesCount?: number;
@@ -56,6 +57,7 @@ interface PostCardProps {
   post: Post;
   currentUserId: string | undefined;
   isFollowing: boolean;
+  showRepostLabel?: boolean; 
   onLike: (postId: string) => Promise<void>;
   onRepost: (postId: string) => Promise<void>;
   onShare: (postId: string) => Promise<void>;
@@ -71,6 +73,7 @@ const PostCard: React.FC<PostCardProps> = ({
   post,
   currentUserId,
   isFollowing: initialIsFollowing,
+  showRepostLabel = true, 
   onLike,
   onRepost,
   onShare,
@@ -162,6 +165,30 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
     >
       <CardContent className="p-6">
+
+      {showRepostLabel && post.isReposted && post.repostsDetails?.length > 0 && (() => {
+        const latestRepost = post.repostsDetails[post.repostsDetails.length - 1];
+        const isCurrentUser = latestRepost.repostedBy._id === currentUserId;
+      
+        const totalReposts = post.repostsDetails.length;
+      
+        // Display text
+        let repostText = isCurrentUser ? "You reposted" : 
+          `${latestRepost.repostedByProfile?.firstName} ${latestRepost.repostedByProfile?.lastName} reposted`;
+      
+        if (!isCurrentUser && totalReposts > 1) {
+          repostText = `${latestRepost.repostedByProfile?.firstName} and ${totalReposts - 1} others reposted`;
+        }
+      
+        return (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Repeat2 className="h-4 w-4 text-green-600" />
+            <span>{repostText}</span>
+          </div>
+        );
+      })()}
+
+
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

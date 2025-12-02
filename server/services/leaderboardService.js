@@ -112,6 +112,14 @@ class LeaderboardService {
             return leaderboardEntry;  // Already awarded today, skip
           }
         }
+
+        if (reason === 'Completed a daily tracking') {
+          const lastDate = leaderboardEntry.lastUpdated;
+          if (lastDate && lastDate >= todayStart) {
+            console.log(`[Leaderboard] Daily Tracking points already awarded today for user ${userId}`);
+            return leaderboardEntry;  // Already awarded today, skip
+          }
+        }
       
         leaderboardEntry.points += pointsToAdd;
         leaderboardEntry.totalScore += pointsToAdd;
@@ -119,6 +127,10 @@ class LeaderboardService {
         // Update the daily community date if applicable
         if (reason === 'Posted in Community Page') {
           leaderboardEntry.lastDailyCommunityPointsDate = today;
+        }
+
+        if (reason === 'Completed a daily tracking') {
+          leaderboardEntry.lastUpdated = today;
         }
       
         // Handle tier progression (promotion + reset if needed)

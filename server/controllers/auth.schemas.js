@@ -3,7 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetPasswordSchema = exports.verificationCodeSchema = exports.registerSchema = exports.loginSchema = exports.emailSchema = void 0;
 const zod_1 = require("zod");
 exports.emailSchema = zod_1.z.string().email().min(1).max(255);
-const passwordSchema = zod_1.z.string().min(8).max(255);
+const passwordSchema = zod_1.z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(
+    /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/,
+    "Password can only contain letters, numbers, and the following special characters: !@#$%^&*()-_=+"
+  );
 exports.loginSchema = zod_1.z.object({
     email: exports.emailSchema,
     password: passwordSchema,

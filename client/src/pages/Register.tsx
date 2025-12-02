@@ -18,6 +18,7 @@ export default function Register() {
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string ; confirmPassword?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -34,6 +35,8 @@ export default function Register() {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
+    } else if (! /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password)) {
+      newErrors.password = "Password can only contain letters, numbers, and the following special characters: !@#$%^&*()-_=+";
     }
 
     if (!formData.confirmPassword) {
@@ -150,19 +153,35 @@ export default function Register() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
+          {errors.password && (
+            <p id="password-error" className="text-sm text-red-500 mt-1">
+              {errors.password}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            placeholder="Confirm your password"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              required
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
 
         <Button type="submit" variant="hero" className="w-full transition-all duration-300 ease-out" disabled={isPending || !isFormValid}>

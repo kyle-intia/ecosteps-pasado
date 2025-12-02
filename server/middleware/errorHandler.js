@@ -8,13 +8,16 @@ const AppError_1 = __importDefault(require("../utils/AppError"));
 const http_1 = require("../constants/http");
 const cookies_1 = require("../utils/cookies");
 const handleZodError = (res, error) => {
-    const errors = error.issues.map((err) => ({
-        path: err.path.join("."),
-        message: err.message,
+    const issues = Array.isArray(error.issues) ? error.issues : [];
+    const errors = issues.map((err) => ({
+        path: Array.isArray(err.path) ? err.path.join(".") : "",
+        message: err.message || "Invalid input",
     }));
+    const message = errors.map(e => e.message).join(", ") || "Validation error";
+
     return res.status(http_1.BAD_REQUEST).json({
         errors,
-        message: error.message,
+        message,
     });
 };
 const handleAppError = (res, error) => {

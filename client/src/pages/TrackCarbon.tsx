@@ -1705,19 +1705,19 @@ const handleConfirmReset = async () => {
                     {!isConnected ? (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          You are not connected to Strava yet.
+                          You are not linked to Strava yet.
                         </p>
                         <Button
                           variant="eco"
                           onClick={() => window.open(`${API_BASE}/api/strava/auth`, "_blank")}
                         >
-                          Connect Strava
+                          Link Strava Account
                         </Button>
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-2 text-green-600 font-medium">
-                          ✅ Connected to Strava
+                          ✅ Linked to Strava
                         </div>
                     
                         {isStravaLoading ? (
