@@ -32,6 +32,8 @@ import {
   Award,
   Sparkles,
   Gift,
+  ContactRoundIcon,
+  Contact,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -310,6 +312,15 @@ useSocket((rawNotification) => {
         <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center gap-2">
           {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {isDarkMode ? "Light Mode" : "Dark Mode"}
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem asChild>
+          <Link to="/contact-us" className="flex items-center gap-2">
+            <Contact className="h-4 w-4" />
+            Contact Us
+          </Link>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

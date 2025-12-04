@@ -14,6 +14,7 @@ export const resetPassword = ({ verificationCode, password }) =>
 export const getUser = () => API.get("/user");
 export const getSessions = () => API.get("/sessions");
 export const deleteSession = (id) => API.delete(`/sessions/${id}`);
+export const contactSupportEmail = (data) => API.post("/contact-support", data);
 
 // ========== PROFILE ==========
 export const createProfile = (data) => API.post("/profile/create", data);

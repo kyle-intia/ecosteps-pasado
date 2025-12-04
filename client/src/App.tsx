@@ -44,6 +44,7 @@ import AdminCertificatesRewards from "./ecosteps-admin/RewardsAndCertificate";
 import CommunityPreview from "./pages/CommunityPreview";
 import PostDetail from "./pages/PostDetail";
 import { useToast } from "./hooks/use-toast";
+import Contact from "./pages/Contact";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ const App: React.FC = () => {
             <Route path="/password/reset" element={<ResetPassword />} />
             <Route path="/community/:userId/post/:postId" element={<CommunityPreview />} />
             <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/contact-us" element={<Contact />} />
             
 
             <Route element={<RoleBasedRoute allowedRoles={['user']} />}>

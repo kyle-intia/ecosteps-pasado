@@ -30,6 +30,7 @@ const adminRoutes = require('./routes/adminRoute');
 const adminCertificateRoute = require('./routes/adminCertificateRoute');
 const adminRewardRoute = require('./routes/adminRewardRoute');
 const emailRoutes = require("./routes/email");
+const supportEmailRoute = require("./routes/supportEmailRoute")
 const emissionFactorRoute = require('./routes/emissionFactorRoute');
 const isAdmin = require("./middleware/isAdmin");
 const notificationRoutes = require('./routes/notificationRoute');
@@ -123,6 +124,7 @@ app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/food", foodRoute);
 app.use("/api/activities", activityRoutes);
 app.use("/api/strava", stravaRoutes);
+app.use("/contact-support", supportEmailRoute )
 
 // ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
