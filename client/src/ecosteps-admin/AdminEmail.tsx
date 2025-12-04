@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Send, Sparkles, Clock, Award, Bell, CheckCircle, Gift, Wrench, ShieldCheck, AlertTriangle, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getUserSettingsNotificationEnabled } from "../lib/api"
+import { getUserSettingsNotificationEnabled, adminEmail } from "../lib/api"
 
 
 interface EmailTemplate {
@@ -210,19 +210,18 @@ export default function AdminEmail_v02() {
     setIsSending(true); // start loading
 
     try {
+
       const results = await Promise.all(
         recipients.map(async (email) => {
-          const res = await fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: email, subject, message }),
-          });
-
-          if (!res.ok) {
-            const errText = await res.text();
-            return { email, success: false, error: errText };
+          try {
+            // Use your adminEmail API function
+            await adminEmail({ to: email, subject, message });
+            return { email, success: true };
+          } catch (err) {
+            // Axios errors have a response object
+            const errorText = err.response?.data || err.message || "Unknown error";
+            return { email, success: false, error: errorText };
           }
-          return { email, success: true };
         })
       );
 

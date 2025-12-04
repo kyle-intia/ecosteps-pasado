@@ -138,7 +138,7 @@ export const getRewardsById= (id) => API.get(`/api/admin/rewards/${id}`);
 export const updateReward = (id, data) => API.patch(`/api/admin/rewards/${id}`, data);
 export const deleteReward = (id) => API.delete(`/api/admin/rewards/${id}`);
 
-
+export const adminEmail = (data) => API.post("/api/send-email", data);
 //======== NOTIFICATIONS ==============
 
 export const getUserSettingsNotificationEnabled = () => API.get("/api/user-settings/notification-enabled");

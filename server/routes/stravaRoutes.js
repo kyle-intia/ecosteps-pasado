@@ -37,25 +37,28 @@ router.get("/callback", async (req, res) => {
         client_secret: STRAVA_CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
+        redirect_uri: STRAVA_REDIRECT_URI, // REQUIRED by Strava
       }),
     });
 
     const data = await tokenResponse.json();
+    console.log(data);
 
-    // Save token (replace "user" with real user ID in production)
+    if (data.errors) return res.status(400).json(data);
+
     userTokens.set("user", {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       expiresAt: data.expires_at,
     });
 
-    // Close OAuth popup in browser
     res.send(`<script>window.close();</script>`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Token exchange failed" });
   }
 });
+
 
 /**
  * 3️⃣ Step 3: Fetch Strava activities
