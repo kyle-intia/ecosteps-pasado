@@ -7,7 +7,7 @@ exports.REFRESH_PATH = "/auth/refresh";
 const secure = env_1.NODE_ENV !== "development";
 const domain = env_1.NODE_ENV === "development"
   ? undefined              
-  : "ecosteps-webapp.onrender.com";
+  : "ecosteps-pasado-production.up.railway.app";
 
 const defaults = {
   sameSite: "none",
