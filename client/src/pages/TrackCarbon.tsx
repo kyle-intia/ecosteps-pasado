@@ -1408,9 +1408,16 @@ const handleConfirmReset = async () => {
                 <Button
                   variant="eco"
                   onClick={handleGetRecommendations}
-                  disabled={!footprintId && !footprintData}
+                  disabled={loadingStatus === "loading" || (!footprintId && !footprintData)}
                 >
-                  Get AI Recommendations
+                  {loadingStatus === "loading" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Getting Recommendations...
+                    </>
+                  ) : (
+                    "Get AI Recommendations"
+                  )}
                 </Button>
               </div>
             </div>

@@ -202,6 +202,14 @@ export const checkAchievements = (triggerEvent, context = {}) =>
   API.post("/achievements/check", { triggerEvent, context });
 
 
+
+
+export const getUserCertificates = () =>API.get("/api/user/certificates");
+export const getUserRewards = () => API.get("/api/user/rewards");
+export const rewardClaim = (rewardId) =>
+  API.post(`/api/user/rewards/${rewardId}/claim`);
+
+
 //============= COMMUNITY =================
 
 

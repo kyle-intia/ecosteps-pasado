@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import useProfile from "@/hooks/useAuthProfile";
+import { getUserCertificates, getUserRewards, rewardClaim } from "../lib/api"
 
 interface Certificate {
   id?: string;
@@ -60,8 +61,7 @@ export default function CertificateRewards() {
 
   const fetchCertificates = async () => {
     try {
-      const res = await fetch("/api/user/certificates");
-      const data = await res.json();
+      const data = await getUserCertificates();
 
       const fixed = data.map((c: any) => {
         const IconComponent =
@@ -85,8 +85,7 @@ export default function CertificateRewards() {
 
   const fetchRewards = async () => {
     try {
-      const res = await fetch("/api/user/rewards");
-      const data = await res.json();
+      const data = await getUserRewards();
 
       const fixed = data.map((r: any) => {
         const IconComponent =
@@ -193,15 +192,7 @@ const handleClaim = async (reward: Reward) => {
   setLoadingRewardId(reward.id); // start loading
 
   try {
-    const res = await fetch(`/api/user/rewards/${reward.id}/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) {
-      toast.error("Failed to claim reward");
-      return;
-    }
+    const res = await rewardClaim(reward.id);
 
     setClaimedRewardTitle(reward.title);
     setShowClaimDialog(true);
