@@ -48,6 +48,10 @@ const getPasswordResetTemplate = (url) => ({
             width: 100px;
             margin: 20px auto;
         }
+            .header-image {
+    		  width: 100%;
+      		display: block;
+    	}
         p {
             color: #455056;
             font-size: 16px;
@@ -78,14 +82,18 @@ const getPasswordResetTemplate = (url) => ({
     </style>
 </head>
 <body>
+
+    <img 
+      src="https://res.cloudinary.com/dbrqfyxo0/image/upload/v1765203837/Untitled_design_rquhbk.jpg" 
+      alt="EcoWalk Header" 
+      class="header-image"
+    />
+    
     <table cellspacing="0" cellpadding="0" bgcolor="#f2f3f8">
         <tr>
             <td>
                 <table class="container" cellspacing="0" cellpadding="0">
                     <!-- Header Space -->
-                    <tr>
-                        <td style="height: 80px;">&nbsp;</td>
-                    </tr>
                     <tr>
                         <td class="header">
                             <h1>You have requested to reset your password</h1>
@@ -112,6 +120,7 @@ const getPasswordResetTemplate = (url) => ({
     </table>
 </body>
 </html>
+
   `
 });
 exports.getPasswordResetTemplate = getPasswordResetTemplate;
@@ -120,7 +129,7 @@ const getVerifyEmailTemplate = (url) => ({
   subject: "Verify Your Email Address",
   text: `Click on the link to verify your email address: ${url}`,
   html: `
-    <!doctype html>
+<!doctype html>
 <html lang="en-US">
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
@@ -152,6 +161,10 @@ const getVerifyEmailTemplate = (url) => ({
             text-align: center;
             padding-top: 50px;
         }
+        .header-image {
+    		width: 100%;
+      		display: block;
+    	}
         h1 {
             color: #1e1e2d;
             font-weight: 600;
@@ -193,14 +206,17 @@ const getVerifyEmailTemplate = (url) => ({
     </style>
 </head>
 <body>
+
+    <img 
+      src="https://res.cloudinary.com/dbrqfyxo0/image/upload/v1765203837/Untitled_design_rquhbk.jpg" 
+      alt="EcoWalk Header" 
+      class="header-image"
+    />
+    
     <table cellspacing="0" cellpadding="0" bgcolor="#f2f3f8">
         <tr>
             <td>
                 <table class="container" cellspacing="0" cellpadding="0">
-                    <!-- Header Space -->
-                    <tr>
-                        <td style="height: 80px;">&nbsp;</td>
-                    </tr>
                     <tr>
                         <td class="header">
                             <h1>Please Verify Your Email Address</h1>
