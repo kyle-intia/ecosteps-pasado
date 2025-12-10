@@ -5,15 +5,11 @@ const date_1 = require("./date");
 const env_1 = require("../constants/env");
 exports.REFRESH_PATH = "/auth/refresh";
 const secure = env_1.NODE_ENV !== "development";
-const domain = env_1.NODE_ENV === "development"
-  ? undefined              
-  : "ecosteps-pasado-production.up.railway.app";
 
 const defaults = {
   sameSite: "none",
   httpOnly: true,
   secure,
-  ...(domain && { domain })  
 };
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
