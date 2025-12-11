@@ -48,8 +48,10 @@ const getPasswordResetTemplate = (url) => ({
             width: 100px;
             margin: 20px auto;
         }
-            .header-image {
-    		  width: 100%;
+        .header-image {
+    		width: 60%;
+            height: 60%;
+            margin: auto;
       		display: block;
     	}
         p {
@@ -162,7 +164,9 @@ const getVerifyEmailTemplate = (url) => ({
             padding-top: 50px;
         }
         .header-image {
-    		width: 100%;
+    		width: 60%;
+            height: 60%;
+            margin: auto;
       		display: block;
     	}
         h1 {
