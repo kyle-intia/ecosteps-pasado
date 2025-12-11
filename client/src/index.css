@@ -164,3 +164,9 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+.required::after {
+  content: "*";
+  color: theme('colors.red.500'); /* Tailwind red */
+  margin-left: 0.25rem; /* small spacing */
+}

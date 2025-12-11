@@ -64,6 +64,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CardFooter } from "@/components/ui/card";
 import { create } from "domain";
 import { FoodAutocomplete } from "@/components/FoodAutocomplete";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { NumInput } from "@/components/ui/numeric-input";
 
 type TopCategory = "transport" | "home" | "food";
 
@@ -321,18 +323,57 @@ const {
 
       try {
         await updateLivetracking(id, { isImported: false });
-        
+    
       } catch (err) {
         console.warn(`Failed to mark ${id} as imported`, err);
       }
-
-      window.location.reload();
     } catch (err: any) {
       throw new Error(err?.message || "Failed to delete entry");
     }
   };
 
-    const handleEditEntry = (id: string) => {
+const DeleteAllEntries = async (): Promise<void> => {
+  const prevEntries = entries; // backup for rollback
+
+  // If no entries, nothing to delete
+  if (!entries || entries.length === 0) {
+    toast({ title: "Nothing to delete", description: "No entries found." });
+    return;
+  }
+
+  try {
+    // OPTIMISTIC UPDATE: clear UI immediately
+    setEntries([]);
+    toast({ title: "Deleting...", description: "Removing all entries." });
+
+    // Perform all deletions in parallel
+    const deletionPromises = entries.map((item) =>
+      deleteEntry(item.id).catch((err) => {
+        console.warn(`Failed to delete entry ${item.id}`, err);
+        throw err; // important: propagate failure to trigger rollback
+      })
+    );
+
+    await Promise.all(deletionPromises);
+
+    // Clear sessionStorage after successful deletion
+    sessionStorage.removeItem("carbon_entries_session");
+
+    toast({ title: "Deleted", description: "All entries removed." });
+  } catch (err: any) {
+    // ROLLBACK UI
+    setEntries(prevEntries);
+
+    toast({
+      title: "Error",
+      description: err?.message || "Failed to delete all entries",
+      variant: "destructive",
+    });
+  }
+};
+
+
+  const handleEditEntry = (id: string) => {
     const e = entries.find((x) => x.id === id);
     if (!e) return;
     setEditingId(id);
@@ -460,8 +501,8 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     return;
   }
 
-    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 0) {
-      toast({ title: "Invalid", description: "Choose home type & occupants.", variant: "destructive" });
+    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 1) {
+      toast({ title: "Invalid", description: "Choose home type & Enter a valid occupants.", variant: "destructive" });
       return;
     }
     const payload: Partial<HomeEntry> = {
@@ -592,6 +633,7 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     try {
       await deleteEntry(deleteTargetId);
       toast({ title: "Deleted", description: "Entry removed." });
+      refetchActivities(); 
     } catch (err: any) {
       // rollback
       setEntries(prevEntries);
@@ -729,7 +771,7 @@ const handleAddSelectedImports = async () => {
     });
     setIsImportOpen(false);
     setIsAddOpen(false);
-    window.location.reload();
+    refetchActivities(); 
   } catch (err: any) {
     setEntries((prev) => prev.filter((e) => !e.isTemp));
     toast({
@@ -822,7 +864,9 @@ const handleAddStravaImports = async () => {
 
   const resetDailyData = async (): Promise<void> => {
     try {
+      await DeleteAllEntries();
       await clearDailyData();
+      refetchActivities(); 
     } catch (err: any) {
       throw new Error(err?.message || "Failed to reset daily data");
     }
@@ -1094,7 +1138,42 @@ const handleConfirmReset = async () => {
               Track Your Daily Carbon
             </h1>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleConfirmReset}>Reset Daily</Button>
+              <ConfirmDialog
+                trigger={
+                  <Button variant="outline">
+                    Reset Daily
+                  </Button>
+                }
+                title="Reset Daily?"
+                description="Are you sure you want to reset daily data? This action cannot be undone."
+                confirmText="Yes, Reset"
+                cancelText="Cancel"
+                variant="destructive"
+                onConfirm={handleConfirmReset}
+              />
+
+              <ConfirmDialog
+                trigger={
+                  <Button
+                    variant="eco"
+                    disabled={submittedFoodSlots.size < 3 || loadingStatus === "loading"}
+                  >
+                    {loadingStatus === "loading" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Getting Recommendations...
+                      </>
+                    ) : (
+                      "Get AI Recommendations"
+                    )}
+                  </Button>
+                }
+                title="Get AI Recommendations?"
+                description="Are you sure you want to generate AI recommendations?"
+                confirmText="Yes, Generate"
+                cancelText="Cancel"
+                onConfirm={handleGetRecommendations}
+              />
             </div>
           </div>
 
@@ -1176,7 +1255,7 @@ const handleConfirmReset = async () => {
                       <TabsContent value="transport">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                           <div>
-                            <Label>Group</Label>
+                            <Label className="required">Group</Label>
                             <Select
                               value={transportForm.transportGroup}
                               onValueChange={(v) => {
@@ -1197,7 +1276,7 @@ const handleConfirmReset = async () => {
                           </div>
 
                           <div>
-                            <Label>Subtype</Label>
+                            <Label className="required">Subtype</Label>
                             <Select
                               value={transportForm.subtype}
                               onValueChange={(v) => setTransportForm(prev => ({ ...prev, subtype: v }))}
@@ -1212,15 +1291,15 @@ const handleConfirmReset = async () => {
                           </div>
 
                           <div>
-                            <Label>Distance (km)</Label>
-                            <Input
+                            <Label className="required">Distance (km)</Label>
+                            <NumInput
                               type="number"
                               placeholder="km"
                               value={transportForm.distanceKm ?? ""}
                               onChange={(e) =>
                                 setTransportForm(prev => ({
                                   ...prev,
-                                  distanceKm: Number(e.target.value || 0),
+                                  distanceKm: e.target.value === "" ? null : Number(e.target.value),
                                 }))
                               }
                             />
@@ -1250,7 +1329,7 @@ const handleConfirmReset = async () => {
                       <TabsContent value="home">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                           <div>
-                            <Label>Home Type</Label>
+                            <Label className="required">Home Type</Label>
                             <Select
                               value={homeForm.homeType}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, homeType: v as any }))}
@@ -1266,20 +1345,24 @@ const handleConfirmReset = async () => {
                           </div>
 
                           <div>
-                            <Label>Occupants</Label>
-                            <Input
+                            <Label className="required">Occupants</Label>
+                            <NumInput
                               type="number"
+                              placeholder="Occupants (including yourself)"
                               min={1}
-                              value={homeForm.occupants ?? 0}
+                              value={homeForm.occupants ?? ""}
                               onChange={(e) =>
-                                setHomeForm(prev => ({ ...prev, occupants: Number(e.target.value || 1) }))
+                                setHomeForm(prev => ({
+                                  ...prev,
+                                  occupants: e.target.value === "" ? null : Number(e.target.value),
+                                }))
                               }
                               disabled={hasHomeEntry}
                             />
                           </div>
 
                           <div>
-                            <Label>Appliances</Label>
+                            <Label className="required">Appliances</Label>
                             <Select
                               value={homeForm.appliances as any}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, appliances: v as any }))}
@@ -1317,7 +1400,7 @@ const handleConfirmReset = async () => {
                       <TabsContent value="food">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                           <div>
-                            <Label>Meal Slot</Label>
+                            <Label className="required">Meal Slot</Label>
                             <Select
                               value={foodForm.mealSlot}
                               onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealSlot: v as any }))}
@@ -1332,7 +1415,7 @@ const handleConfirmReset = async () => {
                           </div>
 
                           <div>
-                            <Label>Type</Label>
+                            <Label className="required">Type</Label>
                             <Select
                               value={foodForm.mealType}
                               onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealType: v as any }))}
@@ -1351,7 +1434,10 @@ const handleConfirmReset = async () => {
                           </div>
 
                           <div>
-                            <Label>Description</Label>
+                            <div className="flex flex-col">
+                            <Label>Description </Label>
+                            <span className="text-xs text-muted-foreground my-2">(Optional - For better Recommendations)</span>
+                            </div>
                             <FoodAutocomplete
                               category={foodForm.mealType as any}
                               value={foodForm.description}
@@ -1404,20 +1490,6 @@ const handleConfirmReset = async () => {
               <div className="flex flex-wrap gap-2 md:gap-3">
                 <Button onClick={handleCalculate} disabled={loadingStatus === "loading"} variant="hero">
                   Calculate Footprint
-                </Button>
-                <Button
-                  variant="eco"
-                  onClick={handleGetRecommendations}
-                  disabled={loadingStatus === "loading" || (!footprintId && !footprintData)}
-                >
-                  {loadingStatus === "loading" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Getting Recommendations...
-                    </>
-                  ) : (
-                    "Get AI Recommendations"
-                  )}
                 </Button>
               </div>
             </div>

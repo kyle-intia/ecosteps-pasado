@@ -3,10 +3,10 @@ const DailyTracking = require("../models/DailyTracking");
 const Post = require("../models/communityModel");
 
 const TIER_CONFIG = {
-  Bronze:   { max: 1000, next: "Silver" },
-  Silver:   { max: 1000, next: "Gold" },
-  Gold:     { max: 1500, next: "Platinum" },
-  Platinum: { max: 1500, next: "Diamond" },
+  Bronze:   { max: 3500, next: "Silver" },
+  Silver:   { max: 4000, next: "Gold" },
+  Gold:     { max: 5500, next: "Platinum" },
+  Platinum: { max: 6500, next: "Diamond" },
   Diamond:  { max: Infinity, next: null },
 };
 

@@ -141,8 +141,10 @@ const AdminDashboard = () => {
 
         const months = Array.from({ length: 12 }, (_, i) => {
           const date = new Date(currentYear, i, 1); 
-          return date.toISOString().slice(0, 7); 
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         });
+
+        console.log(months)
 
         const promises = months.map(m => getMonthlyFootprintByCategory(m));
         const results = await Promise.all(promises);
@@ -153,6 +155,7 @@ const AdminDashboard = () => {
           food: res?.food ?? 0,           
           home: res?.homeEnergy ?? 0,     
         }));
+        console.log(formattedData)
         setChartData(formattedData);
       } catch (error) {
         console.error("Failed to fetch chart data:", error);

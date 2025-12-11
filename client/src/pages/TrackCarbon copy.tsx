@@ -63,6 +63,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { CardFooter } from "@/components/ui/card";
 import { create } from "domain";
+import { FoodAutocomplete } from "@/components/FoodAutocomplete";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { NumInput } from "@/components/ui/numeric-input";
 
 type TopCategory = "transport" | "home" | "food";
 
@@ -100,7 +103,7 @@ type HomeEntry = BaseEntry & {
 type FoodEntry = BaseEntry & {
   category: "food";
   mealSlot: "breakfast" | "lunch" | "dinner";
-  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed" | "skipped";
+  mealType: "meat" | "fish" | "plant" | "dairy" | "mixed";
   description?: string;
   contribution?: number;
 };
@@ -150,8 +153,6 @@ const ANIM = { initial: { opacity: 0, y: 6 }, enter: { opacity: 1, y: 0 } };
 
 const makeId = () =>
   `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-
-/** RollingNumber - smooth 'slot machine' like number roll */
 
 function RollingNumber({
   value,
@@ -287,25 +288,6 @@ const {
 
   const API_BASE = import.meta.env.VITE_API_URL.replace(/\/+$/, "");
 
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (query.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-      const res = await fetch(`/api/foods/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      console.log("recipe suggestions", data);
-      setSuggestions(data.suggestions);
-    }, 300); // debounce
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-
   // ---------- Server CRUD helpers ----------
   const fetchTodayEntries = async (): Promise<Entry[]> => {
     try {
@@ -395,10 +377,9 @@ const {
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // Persist to sessionStorage whenever entries change (session-only persistence)
   useEffect(() => {
     try {
       sessionStorage.setItem("carbon_entries_session", JSON.stringify(entries));
@@ -462,7 +443,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setTransportForm({ transportGroup: "private", subtype: transportTypes.private[0], distanceKm: 0 });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Transport entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add transport", variant: "destructive" });
     } finally {
@@ -482,8 +462,8 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     return;
   }
 
-    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 0) {
-      toast({ title: "Invalid", description: "Choose home type & occupants.", variant: "destructive" });
+    if (!homeForm.homeType || Number(homeForm.occupants || 0) < 1) {
+      toast({ title: "Invalid", description: "Choose home type & Enter a valid occupants.", variant: "destructive" });
       return;
     }
     const payload: Partial<HomeEntry> = {
@@ -497,7 +477,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setHomeForm({ homeType: "apartment", occupants: 0, appliances: "none" });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Home entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add home", variant: "destructive" });
     } finally {
@@ -538,7 +517,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       await optimisticCreate(payload);
       setFoodForm({ mealSlot: "breakfast", mealType: "meat", description: "" });
       setIsAddOpen(false);
-      toast({ title: "Added", description: "Food entry saved." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add food", variant: "destructive" });
     } finally {
@@ -963,11 +941,6 @@ const handleCalculate = async () => {
     }));
 
     setLoadingStatus("success");
-
-    toast({
-      title: "Calculated",
-      description: `Total: ${res.data.calculatedFootprint.total.toFixed(2)} kg CO₂e.`,
-    });
   } catch (err: any) {
     console.error(err);
     setLoadingStatus("error");
@@ -1123,7 +1096,42 @@ const handleConfirmReset = async () => {
               Track Your Daily Carbon
             </h1>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleConfirmReset}>Reset Daily</Button>
+              <ConfirmDialog
+                trigger={
+                  <Button variant="outline">
+                    Reset Daily
+                  </Button>
+                }
+                title="Reset Daily?"
+                description="Are you sure you want to reset daily data? This action cannot be undone."
+                confirmText="Yes, Reset"
+                cancelText="Cancel"
+                variant="destructive"
+                onConfirm={handleConfirmReset}
+              />
+
+              <ConfirmDialog
+                trigger={
+                  <Button
+                    variant="eco"
+                    disabled={submittedFoodSlots.size < 3 || loadingStatus === "loading"}
+                  >
+                    {loadingStatus === "loading" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Getting Recommendations...
+                      </>
+                    ) : (
+                      "Get AI Recommendations"
+                    )}
+                  </Button>
+                }
+                title="Get AI Recommendations?"
+                description="Are you sure you want to generate AI recommendations?"
+                confirmText="Yes, Generate"
+                cancelText="Cancel"
+                onConfirm={handleGetRecommendations}
+              />
             </div>
           </div>
 
@@ -1242,14 +1250,14 @@ const handleConfirmReset = async () => {
 
                           <div>
                             <Label>Distance (km)</Label>
-                            <Input
+                            <NumInput
                               type="number"
                               placeholder="km"
                               value={transportForm.distanceKm ?? ""}
                               onChange={(e) =>
                                 setTransportForm(prev => ({
                                   ...prev,
-                                  distanceKm: Number(e.target.value || 0),
+                                  distanceKm: e.target.value === "" ? null : Number(e.target.value),
                                 }))
                               }
                             />
@@ -1296,12 +1304,15 @@ const handleConfirmReset = async () => {
 
                           <div>
                             <Label>Occupants</Label>
-                            <Input
+                            <NumInput
                               type="number"
                               min={1}
-                              value={homeForm.occupants ?? 0}
+                              value={homeForm.occupants ?? ""}
                               onChange={(e) =>
-                                setHomeForm(prev => ({ ...prev, occupants: Number(e.target.value || 1) }))
+                                setHomeForm(prev => ({
+                                  ...prev,
+                                  occupants: e.target.value === "" ? null : Number(e.target.value),
+                                }))
                               }
                               disabled={hasHomeEntry}
                             />
@@ -1379,24 +1390,15 @@ const handleConfirmReset = async () => {
                             </Select>
                           </div>
 
-    <div>
-      <input
-        type="text"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Search foods..."
-      />
-      {suggestions.length > 0 && (
-        <ul>
-          {suggestions.map(s => (
-            <li key={s.id} onClick={() => alert(JSON.stringify(s, null, 2))}>
-              {s.name}
-              {s.description && <small> – {s.description}</small>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                          <div>
+                            <Label>Description</Label>
+                            <FoodAutocomplete
+                              category={foodForm.mealType as any}
+                              value={foodForm.description}
+                              disabled={allFoodSlotsTaken}
+                              onChange={(v) => setFoodForm(prev => ({ ...prev, description: v }))}
+                            />
+                          </div>
                         </div>
 
                         <div className="mt-5 flex flex-wrap gap-3">
@@ -1442,13 +1444,6 @@ const handleConfirmReset = async () => {
               <div className="flex flex-wrap gap-2 md:gap-3">
                 <Button onClick={handleCalculate} disabled={loadingStatus === "loading"} variant="hero">
                   Calculate Footprint
-                </Button>
-                <Button
-                  variant="eco"
-                  onClick={handleGetRecommendations}
-                  disabled={!footprintId && !footprintData}
-                >
-                  Get AI Recommendations
                 </Button>
               </div>
             </div>
@@ -1743,19 +1738,19 @@ const handleConfirmReset = async () => {
                     {!isConnected ? (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          You are not connected to Strava yet.
+                          You are not linked to Strava yet.
                         </p>
                         <Button
                           variant="eco"
                           onClick={() => window.open(`${API_BASE}/api/strava/auth`, "_blank")}
                         >
-                          Connect Strava
+                          Link Strava Account
                         </Button>
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-2 text-green-600 font-medium">
-                          ✅ Connected to Strava
+                          ✅ Linked to Strava
                         </div>
                     
                         {isStravaLoading ? (
