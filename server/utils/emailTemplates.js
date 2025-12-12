@@ -35,30 +35,24 @@ const getPasswordResetTemplate = (url) => ({
         }
         .header {
             text-align: center;
-            padding-top: 50px;
+            padding-top: 30px;
         }
         h1 {
             color: #1e1e2d;
             font-weight: 600;
-            font-size: 28px;
-            margin-bottom: 20px;
+            font-size: 24px;
+            margin-bottom: 15px;
         }
         .divider {
             border-bottom: 2px solid #f1f1f1;
-            width: 100px;
+            width: 80px;
             margin: 20px auto;
         }
-        .header-image {
-    		width: 60%;
-            height: 60%;
-            margin: auto;
-      		display: block;
-    	}
         p {
             color: #455056;
             font-size: 16px;
             line-height: 1.6;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .button {
             display: inline-block;
@@ -77,25 +71,21 @@ const getPasswordResetTemplate = (url) => ({
         }
         .footer {
             text-align: center;
-            margin-top: 30px;
+            margin-top: 20px;
             font-size: 14px;
             color: rgba(69, 80, 86, 0.74);
+        }
+        .footer p {
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-
-    <img 
-      src="https://res.cloudinary.com/dbrqfyxo0/image/upload/v1765203837/Untitled_design_rquhbk.jpg" 
-      alt="EcoWalk Header" 
-      class="header-image"
-    />
-    
     <table cellspacing="0" cellpadding="0" bgcolor="#f2f3f8">
         <tr>
             <td>
                 <table class="container" cellspacing="0" cellpadding="0">
-                    <!-- Header Space -->
+                    <!-- Header Section -->
                     <tr>
                         <td class="header">
                             <h1>You have requested to reset your password</h1>
@@ -104,17 +94,11 @@ const getPasswordResetTemplate = (url) => ({
                             <a href="${url}" class="button" target="_blank">Reset Password</a>
                         </td>
                     </tr>
-                    <!-- Footer Space -->
-                    <tr>
-                        <td style="height: 40px;">&nbsp;</td>
-                    </tr>
+                    <!-- Footer Section -->
                     <tr>
                         <td class="footer">
                             <p>&copy; EcoSteps. All rights reserved.</p>
                         </td>
-                    </tr>
-                    <tr>
-                        <td style="height: 80px;">&nbsp;</td>
                     </tr>
                 </table>
             </td>
@@ -135,7 +119,7 @@ const getVerifyEmailTemplate = (url) => ({
 <html lang="en-US">
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
-    <title>Verify Email Address Email Template</title>
+    <title>Verify Email Address</title>
     <meta name="description" content="Verify Email Address Email Template.">
     <style type="text/css">
         a:hover {
@@ -161,30 +145,24 @@ const getVerifyEmailTemplate = (url) => ({
         }
         .header {
             text-align: center;
-            padding-top: 50px;
+            padding-top: 30px;
         }
-        .header-image {
-    		width: 60%;
-            height: 60%;
-            margin: auto;
-      		display: block;
-    	}
         h1 {
             color: #1e1e2d;
             font-weight: 600;
-            font-size: 28px;
-            margin-bottom: 20px;
+            font-size: 24px;
+            margin-bottom: 15px;
         }
         .divider {
             border-bottom: 2px solid #f1f1f1;
-            width: 100px;
+            width: 80px;
             margin: 20px auto;
         }
         p {
             color: #455056;
             font-size: 16px;
             line-height: 1.6;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .button {
             display: inline-block;
@@ -203,20 +181,16 @@ const getVerifyEmailTemplate = (url) => ({
         }
         .footer {
             text-align: center;
-            margin-top: 30px;
+            margin-top: 20px;
             font-size: 14px;
             color: rgba(69, 80, 86, 0.74);
+        }
+        .footer p {
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-
-    <img 
-      src="https://res.cloudinary.com/dbrqfyxo0/image/upload/v1765203837/Untitled_design_rquhbk.jpg" 
-      alt="EcoWalk Header" 
-      class="header-image"
-    />
-    
     <table cellspacing="0" cellpadding="0" bgcolor="#f2f3f8">
         <tr>
             <td>
@@ -231,15 +205,9 @@ const getVerifyEmailTemplate = (url) => ({
                     </tr>
                     <!-- Footer Space -->
                     <tr>
-                        <td style="height: 40px;">&nbsp;</td>
-                    </tr>
-                    <tr>
                         <td class="footer">
                             <p>&copy; EcoSteps. All rights reserved.</p>
                         </td>
-                    </tr>
-                    <tr>
-                        <td style="height: 80px;">&nbsp;</td>
                     </tr>
                 </table>
             </td>
