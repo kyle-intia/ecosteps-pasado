@@ -5,6 +5,8 @@ const fiveMinutesAgo = () => new Date(Date.now() - 5 * 60 * 1000);
 exports.fiveMinutesAgo = fiveMinutesAgo;
 const fifteenMinutesFromNow = () => new Date(Date.now() + 15 * 60 * 1000);
 exports.fifteenMinutesFromNow = fifteenMinutesFromNow;
+const thirtyMinutesFromNow = () => new Date(Date.now() + 30 * 60 * 1000);
+exports.thirtyMinutesFromNow = thirtyMinutesFromNow;
 const oneHourFromNow = () => new Date(Date.now() + 60 * 60 * 1000);
 exports.oneHourFromNow = oneHourFromNow;
 const oneYearFromNow = () => new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);

@@ -56,9 +56,9 @@ exports.refreshHandler = (0, catchErrors_1.default)(async (req, res) => {
     if (newRefreshToken) {
         res.cookie("refreshToken", newRefreshToken, (0, cookies_1.getRefreshTokenCookieOptions)());
     }
+    res.cookie("accessToken", accessToken, (0, cookies_1.getAccessTokenCookieOptions)())
     return res
         .status(http_1.OK)
-        .cookie("accessToken", accessToken, (0, cookies_1.getAccessTokenCookieOptions)())
         .json({ message: "Access token refreshed" });
 });
 exports.verifyEmailHandler = (0, catchErrors_1.default)(async (req, res) => {

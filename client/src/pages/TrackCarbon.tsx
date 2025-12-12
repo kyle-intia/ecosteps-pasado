@@ -42,6 +42,7 @@ import useStravaTrack from "@/hooks/useStravaTrack";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -66,6 +67,7 @@ import { create } from "domain";
 import { FoodAutocomplete } from "@/components/FoodAutocomplete";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NumInput } from "@/components/ui/numeric-input";
+import CarbonOffset from "@/components/CarbonOffset";
 
 type TopCategory = "transport" | "home" | "food";
 
@@ -1075,6 +1077,7 @@ const handleConfirmReset = async () => {
     await resetDailyData();
     setFootprintData(null);
     setFootprintId(null);
+    setTodayEntry(null)
     setRecommendations([]);
     setLoadingStatus("idle");
     localStorage.removeItem("current_footprint_data");
@@ -1132,7 +1135,7 @@ const handleConfirmReset = async () => {
       {recommendations.length === 0 && (
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col-reverse sm:flex-row md:flex-row items-center justify-between gap-5">
             <h1 className="flex items-center gap-2 text-xl font-bold text-foreground">
               <Calculator className="w-6 h-6 text-primary" />
               Track Your Daily Carbon
@@ -1181,7 +1184,7 @@ const handleConfirmReset = async () => {
           <Card className="border border-border/40 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 backdrop-blur-sm shadow-sm">
             <CardContent className="py-4 space-y-4">
               {/* Top Row — Total Footprint */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Globe className="w-6 h-6 text-indigo-500" />
                   <span className="font-semibold text-lg text-foreground/80">Total Footprint</span>
@@ -1201,7 +1204,7 @@ const handleConfirmReset = async () => {
               <div className="border-t border-border/40" />
 
               {/* Bottom Row — Add Entry & Tabs */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-2">
+            <div className="flex flex-row items-start justify-between gap-4 px-2">
 
               {/* === Left: Add Entry Dialog === */}
               <div className="flex items-center gap-3">
@@ -1573,6 +1576,30 @@ const handleConfirmReset = async () => {
               ))}
             </div>
 
+            {/* <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="default" className="mb-5">
+                  Show Daily Carbon Offset
+                </Button>
+              </DialogTrigger>
+            
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Today's Carbon Offset</DialogTitle>
+                  <DialogDescription>
+                    Your daily carbon footprint details.
+                  </DialogDescription>
+                </DialogHeader>
+            
+                <CarbonOffset
+                  dailyCarbon={
+                    (todayEntry?.calculatedFootprint?.transport || 0) +
+                    (todayEntry?.calculatedFootprint?.homeEnergy || 0) +
+                    (todayEntry?.calculatedFootprint?.food || 0)
+                  }
+                />
+              </DialogContent>
+            </Dialog> */}
 
             {/* Entries grouped by category */}
             <div className="space-y-10">

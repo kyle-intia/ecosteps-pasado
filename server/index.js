@@ -1,6 +1,3 @@
-// server/index.js
-// Updated server index with AI recommendation routes integration
-
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -62,13 +59,14 @@ const sendDailyTrackingReminders = require('./controllers/dailyReminder');
 
 const seedAchievements = require('./utils/seedAchievement');
 
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
     origin: env_1.APP_ORIGIN,
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
+
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
 
 app.get("/", (_, res) => {
     return res.status(http_1.OK).json({

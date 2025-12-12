@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { getTodaysTracking, getDailyTrackingHistory } from '../lib/api';
 import useAuth from '../hooks/useAuth';
+import MangroveMap from './MangrooveMap';
 
 interface Recommendation {
   id: string;
@@ -347,19 +348,28 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
               
               
               <Button 
-      size="sm"
-      onClick={() => {
-        // Navigate to dashboard using React Router
-        navigate('/dashboard');
-      }}
-    >
-      <Target className="h-4 w-4 mr-2" />
-      View Dashboard
+                size="sm"
+                onClick={() => {
+                  // Navigate to dashboard using React Router
+                  navigate('/dashboard');
+                }}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                View Dashboard
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* <Card className='rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition'>
+        <CardHeader>
+          <CardTitle>Planting Locations Map</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MangroveMap />
+        </CardContent>
+      </Card> */}
     </div>
   );
 };

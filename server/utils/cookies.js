@@ -4,20 +4,17 @@ exports.clearAuthCookies = exports.setAuthCookies = exports.getRefreshTokenCooki
 const date_1 = require("./date");
 const env_1 = require("../constants/env");
 exports.REFRESH_PATH = "/auth/refresh";
-const secure = env_1.NODE_ENV !== "development";
-const domain = env_1.NODE_ENV === "development"
-  ? undefined           
-  : "ecosteps-pasado-production.up.railway.app";
+const secure = env_1.NODE_ENV !== "development";         
 
 const defaults = {
   sameSite: "none",
   httpOnly: true,
   secure,
-  ...(domain && { domain })  
 };
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
-    expires: (0, date_1.fifteenMinutesFromNow)(),
+    path: "/",  
+    expires: (0, date_1.thirtyMinutesFromNow)(),
 });
 exports.getAccessTokenCookieOptions = getAccessTokenCookieOptions;
 const getRefreshTokenCookieOptions = () => ({

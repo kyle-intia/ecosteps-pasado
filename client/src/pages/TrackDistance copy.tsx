@@ -1,11 +1,8 @@
-import {
-  MapContainer,
-  TileLayer,
-  Polyline,
-  Marker,
-  useMap,
-} from "react-leaflet";
-import { useState, useEffect, useRef, useCallback } from "react";
+// UserTrackDistance.tsx – Industree-style Fullscreen Map
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Map, { Source, Layer, Marker, NavigationControl } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
+
 import { point, distance } from "@turf/turf";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -13,26 +10,24 @@ import { Navbar } from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 import useSessionStatus from "../hooks/useSessionStatus";
 import useSignOut from "../hooks/useLogout";
-import { 
-  Play, 
-  Square, 
-  Navigation, 
-  Clock, 
-  Route,
+import { submitLivetracking } from "../lib/api";
+import { Link } from "react-router-dom";
+
+import {
+  Play,
+  Square,
+  History,
   Car,
   Bus,
   Bike,
   Footprints,
   Zap,
-  Fuel,
-  MapPin
+  PinIcon,
 } from "lucide-react";
-
-import { submitLivetracking } from "../lib/api";
 
 type Category = "private" | "public" | "basic";
 
-const transportTypes = {
+const transportTypes: Record<Category, string[]> = {
   private: ["diesel", "electric", "gasoline", "hybrid", "motorcycle"],
   public: ["tricycle", "jeep", "e-jeep", "train"],
   basic: ["walk", "bicycle"],
@@ -58,7 +53,16 @@ const categoryColors: Record<Category, string> = {
   basic: "from-purple-500 to-purple-600",
 };
 
-const UserTrackDistance = () => {
+const MAPBOX_TOKEN = "pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow";
+
+interface Position {
+  latitude: number;
+  longitude: number;
+  timestamp: Date;
+  accuracy: number;
+}
+
+const UserTrackDistance: React.FC = () => {
   const { isPending, isLoggedIn } = useSessionStatus();
   const { signOut } = useSignOut();
   const { toast } = useToast();
@@ -66,411 +70,354 @@ const UserTrackDistance = () => {
   const [category, setCategory] = useState<Category>("basic");
   const [subtype, setSubtype] = useState("walk");
   const [tracking, setTracking] = useState(false);
-  const [positions, setPositions] = useState<any[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(true);
+  const [viewState, setViewState] = useState({
+    latitude: 14.5995,
+    longitude: 120.9842,
+    zoom: 19,
+    pitch: 50,           // Tilt for 3D perspective
+    bearing: 0  
+  });
+  const [isAutoCenter, setIsAutoCenter] = useState(true);
 
   const timerRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastPositionTimeRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
-  const calcDistance = useCallback((p1: any, p2: any) => {
-    const point1 = point([p1.longitude, p1.latitude]);
-    const point2 = point([p2.longitude, p2.latitude]);
-    return distance(point1, point2, { units: "kilometers" });
+  const stateRef = useRef({ positions, totalDistance, elapsedTime, category, subtype });
+  useEffect(() => {
+    stateRef.current = { positions, totalDistance, elapsedTime, category, subtype };
+  }, [positions, totalDistance, elapsedTime, category, subtype]);
+
+  /** Distance calculation */
+  const calcDistance = useCallback((p1: Position, p2: Position) => {
+    return distance(point([p1.longitude, p1.latitude]), point([p2.longitude, p2.latitude]), {
+      units: "kilometers",
+    });
   }, []);
 
-  const formatTime = useCallback((seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-    return `${m}:${s.toString().padStart(2, "0")}`;
+  /** Format elapsed time */
+  const formatTime = useCallback((s: number) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, "0");
+    const sec = (s % 60).toString().padStart(2, "0");
+    return h > 0 ? `${h}:${m}:${sec}` : `${m}:${sec}`;
   }, []);
+
+  /** Wake Lock */
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        setWakeLockActive(true);
+        wakeLockRef.current.addEventListener("release", () => setWakeLockActive(false));
+        toast({ title: "Screen Stay Awake", description: "Screen will stay on during tracking" });
+      }
+    } catch (err) {
+      console.error("Wake Lock failed:", err);
+    }
+  }, [toast]);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+      setWakeLockActive(false);
+    }
+  }, []);
+
+  /** Persist and restore state */
+  const saveState = useCallback(() => {
+    if (tracking && positions.length > 0) {
+      localStorage.setItem("tracking_state", JSON.stringify({ ...stateRef.current, savedAt: Date.now(), tracking: true }));
+    }
+  }, [tracking, positions]);
+
+  const restoreState = useCallback(() => {
+    const saved = localStorage.getItem("tracking_state");
+    if (!saved) return false;
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (Date.now() - parsed.savedAt < 4 * 60 * 60 * 1000 && parsed.tracking) {
+        setPositions(parsed.positions);
+        setTotalDistance(parsed.totalDistance);
+        setElapsedTime(parsed.elapsedTime);
+        setCategory(parsed.category);
+        setSubtype(parsed.subtype);
+        toast({ title: "Session Restored", description: `Resumed with ${parsed.positions.length} points` });
+        return true;
+      } else localStorage.removeItem("tracking_state");
+    } catch {
+      localStorage.removeItem("tracking_state");
+    }
+    return false;
+  }, [toast]);
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
-  }, []);
+    const restored = restoreState();
+    if (restored && window.confirm("Continue previous tracking session?")) startTracking(true);
+  }, [restoreState]);
 
-  const startTracking = useCallback(() => {
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
+  useEffect(() => {
+    if (tracking) {
+      const id = setInterval(saveState, 3000);
+      return () => clearInterval(id);
+    }
+  }, [tracking, saveState]);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    releaseWakeLock();
+  }, [releaseWakeLock]);
+
+  /** Tracking controls */
+  const startTracking = useCallback((resume = false) => {
+    if (!resume) {
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+    }
+
     setTracking(true);
+    requestWakeLock();
 
-    timerRef.current = window.setInterval(() => {
-      setElapsedTime((t) => t + 1);
-    }, 1000);
+    timerRef.current = window.setInterval(() => setElapsedTime(t => t + 1), 1000);
 
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => {
-          const currentTime = Date.now();
-          if (currentTime - lastPositionTimeRef.current > 1000) {
-            lastPositionTimeRef.current = currentTime;
+        pos => {
+          const now = Date.now();
+          if (now - lastPositionTimeRef.current < 1000) return;
+          lastPositionTimeRef.current = now;
 
-            const newCoord = {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              timestamp: new Date(pos.timestamp),
-            };
-
-            setPositions((prev) => {
-              if (prev.length > 0) {
-                const dist = calcDistance(prev[prev.length - 1], newCoord);
-                setTotalDistance((d) => d + dist);
-              }
-              return [...prev, newCoord];
-            });
-          }
-        },
-        (err) => {
-          const errorMsgs: { [key: number]: string } = {
-            1: "⛔ Location permission denied.",
-            2: "⚠️ Position unavailable.",
-            3: "⏱️ Request timed out.",
+          const coord: Position = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            timestamp: new Date(pos.timestamp),
+            accuracy: pos.coords.accuracy,
           };
 
+          setPositions(prev => {
+            const updated = [...prev, coord];
+            if (prev.length > 0) {
+              const dist = calcDistance(prev[prev.length - 1], coord);
+              if (dist > 0.001) setTotalDistance(d => d + dist);
+            }
+            return updated;
+          });
+        },
+        err => {
           toast({
             title: "Location Error",
-            description: errorMsgs[err.code] || "⚠️ GPS error.",
+            description: ["Permission denied", "Position unavailable", "Timeout"][err.code - 1] || "GPS error",
             variant: "destructive",
           });
         },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
-    } else {
-      toast({
-        title: "Not Supported",
-        description: "⚠️ Geolocation not supported in this browser.",
-        variant: "destructive",
-      });
     }
-  }, [calcDistance, toast]);
+  }, [calcDistance, requestWakeLock, toast]);
 
-const stopTracking = useCallback(async () => {
-  if (timerRef.current) clearInterval(timerRef.current);
-  if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-  setTracking(false);
+  const stopTracking = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    setTracking(false);
+    releaseWakeLock();
+    localStorage.removeItem("tracking_state");
 
-  if (positions.length < 2) {
-    toast({
-      title: "Tracking Too Short",
-      description: "Not enough data to save activity.",
-      variant: "destructive",
-    });
+    if (positions.length < 2 || totalDistance < 0.0000001) {
+      toast({ title: "Not Saved", description: "Trip too short or no movement detected.", variant: "destructive" });
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+      return;
+    }
 
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-    return;
-  }
+    try {
+      await submitLivetracking({ category, subtype, points: positions, totalDistance, duration: elapsedTime });
+      toast({ title: "Activity Saved!", description: "Your trip has been recorded." });
+      setPositions([]);
+      setTotalDistance(0);
+      setElapsedTime(0);
+    } catch (err: any) {
+      toast({ title: "Save Failed", description: err?.message || "Could not save activity", variant: "destructive" });
+    }
+  }, [positions, totalDistance, elapsedTime, category, subtype, toast, releaseWakeLock]);
 
-  if (totalDistance < 0.001) {
-    toast({
-      title: "Distance Too Short",
-      description: `Tracked distance was only ${totalDistance.toFixed(2)} km. Minimum is 1 m.`,
-      variant: "destructive",
-    });
+  /** Auto-center map */
+  useEffect(() => {
+    if (tracking && isAutoCenter && positions.length > 0) {
+      const latest = positions[positions.length - 1];
+      setViewState(v => ({ ...v, latitude: latest.latitude, longitude: latest.longitude, zoom: Math.max(v.zoom, 16) }));
+    }
+  }, [positions, tracking, isAutoCenter]);
 
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-    return;
-  }
+  const geojson = useMemo(() => ({
+    type: "FeatureCollection" as const,
+    features: positions.length > 0 ? [{
+      type: "Feature" as const,
+      geometry: { type: "LineString" as const, coordinates: positions.map(p => [p.longitude, p.latitude]) },
+      properties: {},
+    }] : [],
+  }), [positions]);
 
-  try {
-    // Use your API helper instead of fetch
-    const data = await submitLivetracking({
-      category,
-      subtype,
-      points: positions,
-      totalDistance,
-      duration: elapsedTime,
-    });
-
-    toast({
-      title: "Activity Saved",
-      description: "Your tracking data has been saved!",
-      variant: "success",
-    });
-
-    setPositions([]);
-    setTotalDistance(0);
-    setElapsedTime(0);
-  } catch (err: any) {
-    console.error(err);
-    toast({
-      title: "Save Failed",
-      description: err?.message || "Something went wrong saving your activity.",
-      variant: "destructive",
-    });
-  }
-}, [positions, totalDistance, elapsedTime, category, subtype, toast]);
-
-
-  const handleToggleTracking = () => {
-    tracking ? stopTracking() : startTracking();
-  };
-
-  const handleSignOut = () => signOut();
+  const avgSpeed = elapsedTime > 0 ? (totalDistance / (elapsedTime / 3600)).toFixed(1) : "0";
+  const TransportIcon = transportIcons[subtype];
 
   if (isPending) return <Spinner />;
 
-  const TransportIcon = transportIcons[subtype];
-  const avgSpeed = elapsedTime > 0 ? (totalDistance / (elapsedTime / 3600)) : 0;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Live Activity Tracking
-          </h1>
-          <p className="text-gray-600">
-            Track your journey in real-time and contribute to a greener planet
-          </p>
-        </div>
+    <div className="fixed inset-0 flex flex-col bg-gray-900">
+      <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Controls & Stats */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Transport Selection Card */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Car className="w-5 h-5 text-gray-700" />
-                Transport Mode
-              </h2>
-              
-              <div className="space-y-4">
-                {/* Category Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(Object.keys(transportTypes) as Category[]).map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => {
-                          setCategory(cat);
-                          setSubtype(transportTypes[cat][0]);
-                        }}
-                        disabled={tracking}
-                        className={`
-                          py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-200
-                          ${category === cat 
-                            ? `bg-gradient-to-r ${categoryColors[cat]} text-white shadow-md` 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }
-                          ${tracking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        `}
-                      >
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+<Map
+  {...viewState}
+  onMove={evt => {
+    setViewState(evt.viewState);
+    if (isAutoCenter) setIsAutoCenter(false);
+  }}
+  mapStyle="mapbox://styles/mapbox/streets-v12"
+  mapboxAccessToken={MAPBOX_TOKEN}
+>
+  <NavigationControl position="top-right" />
 
-                {/* Subtype Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vehicle Type
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {transportTypes[category].map((sub) => {
-                      const Icon = transportIcons[sub];
-                      return (
-                        <button
-                          key={sub}
-                          onClick={() => setSubtype(sub)}
-                          disabled={tracking}
-                          className={`
-                            py-3 px-3 rounded-xl text-sm font-medium transition-all duration-200
-                            flex items-center justify-center gap-2
-                            ${subtype === sub 
-                              ? `bg-gradient-to-r ${categoryColors[category]} text-white shadow-md` 
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }
-                            ${tracking ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                          `}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span className="capitalize">{sub}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+  {/* 3D Buildings */}
+  <Source id="composite" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
+    <Layer
+      id="3d-buildings"
+      type="fill-extrusion"
+      source-layer="building"
+      filter={['==', 'extrude', 'true']}
+      paint={{
+        'fill-extrusion-color': '#aaa',
+        'fill-extrusion-height': ['get', 'height'],
+        'fill-extrusion-base': ['get', 'min_height'],
+        'fill-extrusion-opacity': 0.6
+      }}
+    />
+  </Source>
 
-              {/* Start/Stop Button */}
-              <Button
-                onClick={handleToggleTracking}
-                className={`
-                  w-full mt-6 py-6 text-lg font-semibold rounded-xl transition-all duration-300
-                  ${tracking 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/30' 
-                    : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg shadow-green-500/30'
-                  }
-                  text-white transform hover:scale-105
-                `}
-              >
-                {tracking ? (
-                  <>
-                    <Square className="w-5 h-5 mr-2 inline" fill="currentColor" />
-                    Stop & Save Activity
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 mr-2 inline" fill="currentColor" />
-                    Start Tracking
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Distance Card */}
-              <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 bg-blue-100 rounded-xl">
-                    <Route className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Distance</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalDistance.toFixed(2)}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">kilometers</p>
-              </div>
-
-              {/* Time Card */}
-              <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 bg-purple-100 rounded-xl">
-                    <Clock className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Duration</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatTime(elapsedTime)}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">time elapsed</p>
-              </div>
-            </div>
-
-            {/* Additional Stats */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">Activity Details</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Avg Speed</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {avgSpeed.toFixed(1)} km/h
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Data Points</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {positions.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-600">Status</span>
-                  <span className={`text-sm font-semibold flex items-center gap-1.5 ${tracking ? 'text-green-600' : 'text-gray-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${tracking ? 'bg-green-600 animate-pulse' : 'bg-gray-400'}`}></span>
-                    {tracking ? 'Tracking' : 'Idle'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Map */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-              {positions.length > 0 ? (
-                <div className="relative z-10">
-                  <MapContainer
-                    center={[positions[0].latitude, positions[0].longitude]}
-                    zoom={16}
-                    style={{ height: "calc(100vh - 200px)", minHeight: "500px", zIndex: 10 }}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution="© OpenStreetMap contributors"
-                    />
-                    <RecenterMap
-                      position={[
-                        positions[positions.length - 1].latitude,
-                        positions[positions.length - 1].longitude,
-                      ]}
-                    />
-                    <Polyline
-                      positions={positions.map((p) => [p.latitude, p.longitude])}
-                      pathOptions={{ color: "#3b82f6", weight: 4 }}
-                    />
-                    <Marker
-                      position={[
-                        positions[positions.length - 1].latitude,
-                        positions[positions.length - 1].longitude,
-                      ]}
-                    />
-                  </MapContainer>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center" style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}>
-                  <div className="p-6 bg-gray-100 rounded-full mb-6">
-                    <MapPin className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Ready to Track
-                  </h3>
-                  <p className="text-gray-600 text-center max-w-sm">
-                    Select your transport mode and press "Start Tracking" to begin your journey
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-const RecenterMap = ({ position }: { position: [number, number] }) => {
-  const map = useMap();
-  const [isAutoCenter, setIsAutoCenter] = useState(true);
-
-  useEffect(() => {
-    if (isAutoCenter) {
-      map.setView(position, map.getZoom());
-    }
-  }, [position, isAutoCenter, map]);
-
-  return (
-    <div className="absolute top-4 right-4 z-[1000]">
-      <button
-        onClick={() => {
-          setIsAutoCenter((prev) => {
-            if (!prev) map.setView(position);
-            return !prev;
-          });
+  {/* Route */}
+  {geojson.features.length > 0 && (
+    <Source type="geojson" data={geojson}>
+      <Layer
+        id="route"
+        type="line"
+        paint={{
+          'line-color': '#10b981',
+          'line-width': 6,
+          'line-opacity': 0.9
         }}
-        className="bg-white px-4 py-2.5 rounded-xl shadow-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700"
-      >
-        <Navigation className={`w-4 h-4 ${isAutoCenter ? 'text-blue-600' : 'text-gray-400'}`} />
-        {isAutoCenter ? "Auto Center" : "Follow Me"}
-      </button>
+      />
+    </Source>
+  )}
+
+  {/* Marker */}
+  {positions.length > 0 && (
+    <Marker
+      latitude={positions[positions.length - 1].latitude}
+      longitude={positions[positions.length - 1].longitude}
+      anchor="center"
+    >
+      <div className="animate-pulse">
+        <TransportIcon className="w-12 h-12 text-emerald-500 drop-shadow-2xl" />
+      </div>
+    </Marker>
+  )}
+</Map>
+
+      {/* Bottom Sheet */}
+      <div className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ${sheetOpen ? "h-100" : "h-32"} z-20`}>
+        <button onClick={() => setSheetOpen(!sheetOpen)} className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-gray-300 rounded-full" />
+        <div className="p-6">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+            <div><p className="text-2xl font-bold text-gray-900">{totalDistance.toFixed(2)}</p><p className="text-sm text-gray-500">Distance (km)</p></div>
+            <div><p className="text-2xl font-bold text-gray-900">{formatTime(elapsedTime)}</p><p className="text-sm text-gray-500">Time</p></div>
+            <div><p className="text-2xl font-bold text-gray-900">{avgSpeed}</p><p className="text-sm text-gray-500">Avg Speed (km/h)</p></div>
+          </div>
+
+          {sheetOpen && (
+            <>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-3">Transport Mode</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {(["private", "public", "basic"] as Category[]).map(cat => (
+                    <button
+                      key={cat}
+                      disabled={tracking}
+                      onClick={() => { setCategory(cat); setSubtype(transportTypes[cat][0]); }}
+                      className={`py-3 rounded-2xl font-medium transition ${category === cat ? `bg-gradient-to-r ${categoryColors[cat]} text-white` : "bg-gray-100 text-gray-700"} ${tracking ? "opacity-50" : ""}`}
+                    >
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 my-2">
+                {transportTypes[category].map(sub => {
+                  const Icon = transportIcons[sub];
+                  return (
+                    <button
+                      key={sub}
+                      disabled={tracking}
+                      onClick={() => setSubtype(sub)}
+                      className={`py-4 rounded-2xl flex flex-col items-center gap-2 transition ${subtype === sub ? `bg-gradient-to-r ${categoryColors[category]} text-white` : "bg-gray-100"} ${tracking ? "opacity-50" : ""}`}
+                    >
+                      <Icon className="w-6 h-6" />
+                      <span className="text-xs capitalize">{sub.replace("-", " ")}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Start/Stop Button */}
+      <div className="absolute bottom-36 left-1/2 -translate-x-1/2">
+        <Button
+          onClick={() => (tracking ? stopTracking() : startTracking())}
+          size="lg"
+          className={`w-20 h-20 rounded-full shadow-2xl flex items-center justify-center text-3xl ${tracking ? "bg-red-500 hover:bg-red-600" : "bg-emerald-500 hover:bg-emerald-600"} text-white`}
+        >
+          {tracking ? <Square className="w-10 h-10" /> : <Play className="w-10 h-10" />}
+        </Button>
+      </div>
+
+      <Link to="/track-history" className="absolute top-20 left-4 z-10 bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+        <History className="w-5 h-5" />
+        History
+      </Link>
+
+      <div className="absolute top-32 left-4 z-10">
+  <Button
+    onClick={() => {
+      if (positions.length > 0) {
+        const latest = positions[positions.length - 1];
+        setViewState(v => ({
+          ...v,
+          latitude: latest.latitude,
+          longitude: latest.longitude,
+          zoom: Math.max(v.zoom, 16),
+        }));
+        setIsAutoCenter(true); // optional: re-enable auto-center
+      }
+    }}
+    className="bg-blue-500 hover:bg-blue-600 text-white"
+  >
+    <PinIcon/> My Location
+  </Button>
+</div>
+
     </div>
   );
 };
