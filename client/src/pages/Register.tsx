@@ -49,6 +49,10 @@ export default function Register() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const isPasswordValid =
+  formData.password.length >= 8 &&
+  /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password);
+
   const {
     mutate: createAccount,
     isPending,
@@ -183,6 +187,21 @@ export default function Register() {
             </Button>
           </div>
         </div>
+
+
+        <ul
+          className={`text-xs mt-1 transition-colors ${
+            formData.password.length === 0
+              ? "text-muted-foreground"
+              : isPasswordValid
+              ? "text-green-600"
+              : "text-red-500"
+          }`}
+        >
+          <li>Must be at least 8 characters long.</li>
+          <li>Letters, numbers, and the following symbols are allowed:</li>
+          <li><span className="font-mono"> !@#$%^&*()-_=+</span></li>
+        </ul>
 
         <Button type="submit" variant="hero" className="w-full transition-all duration-300 ease-out" disabled={isPending || !isFormValid}>
           {isPending ? "Creating Account..." : "Create Account"}

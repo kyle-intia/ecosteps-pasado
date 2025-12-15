@@ -215,6 +215,20 @@ export default function Login() {
           )}
         </div>
 
+        <ul
+          className={`text-xs mt-1 transition-colors ${
+            formData.password.length === 0
+              ? "text-muted-foreground"
+              : isPasswordValid
+              ? "text-green-600"
+              : "text-red-500"
+          }`}
+        >
+          <li> Minimum 8 characters. </li>
+          <li>Letters, numbers, and
+          <span className="font-mono"> !@#$%^&*()-_=+</span> are allowed</li>
+        </ul>
+
         <div className="flex items-center justify-between">
           <Link to="/password/forgot" className="text-sm text-primary hover:underline">
             Forgot password?

@@ -1233,7 +1233,10 @@ const handleConfirmReset = async () => {
                       variant="default"
                       disabled={recommendations.length > 0}
                     >
-                      <Plus className="w-5 h-5 mr-2" /> {editingId ? "Edit Entry" : "Add Entry"}
+                      <Plus className="w-5 h-5 mr-2" /> 
+                      <span className="hidden sm:inline">
+                        {editingId ? "Edit Entry" : "Add Entry"}
+                      </span>
                     </Button>
 
                   </DialogTrigger>
@@ -1492,7 +1495,10 @@ const handleConfirmReset = async () => {
               {/* === Right: Quick Actions === */}
               <div className="flex flex-wrap gap-2 md:gap-3">
                 <Button onClick={handleCalculate} disabled={loadingStatus === "loading"} variant="hero">
-                  Calculate Footprint
+                  Calculate
+                  <span className="hidden sm:inline">
+                   Footprint
+                  </span>
                 </Button>
               </div>
             </div>
@@ -1745,8 +1751,14 @@ const handleConfirmReset = async () => {
                           const items = importCandidates
                             .filter((c) => transportTypes[group].includes(c.subtype))
                             .filter((c) => {
-                              const createdDate = new Date(c.createdAt).toISOString().slice(0, 10);
-                              const todayDate = new Date().toISOString().slice(0, 10);
+                              const createdDate = new Date(c.createdAt).toLocaleDateString('en-CA', {
+                                timeZone: 'Asia/Manila',
+                              });
+                              
+                              const todayDate = new Date().toLocaleDateString('en-CA', {
+                                timeZone: 'Asia/Manila',
+                              });
+                              
                               return createdDate === todayDate;
                             });
                           
