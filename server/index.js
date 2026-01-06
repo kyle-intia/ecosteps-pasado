@@ -22,6 +22,7 @@ const profile_route_1 = __importDefault(require("./routes/profile.route"));
 // Import existing feature routers
 const preAssessmentRoutes = require("./routes/preAssessmentRoutes");
 const dailyTrackingRoutes = require("./routes/dailyTrackingRoutes");
+const assessmentRoutes = require("./routes/AssessmentRoute");
 
 const adminRoutes = require('./routes/adminRoute');
 const adminCertificateRoute = require('./routes/adminCertificateRoute');
@@ -77,9 +78,9 @@ app.get("/", (_, res) => {
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: env_1.APP_ORIGIN, // must match frontend
+    origin: env_1.APP_ORIGIN, 
     methods: ["GET", "POST"],
-    credentials: true // ⚡ THIS IS REQUIRED
+    credentials: true
   }
 });
 
@@ -106,16 +107,15 @@ NotificationService.setSocketIoInstance(io, activeUsers);
 
 const activitylogRoutes = require("./routes/activity.route");
 app.use("/activitylogs", activitylogRoutes);
-// Authentication routes
-app.use("/auth", auth_route_1.default);
 
-// Protected routes
+app.use("/auth", auth_route_1.default);
 app.use("/user", authenticate_1.default, user_route_1.default);
 app.use("/sessions", authenticate_1.default, session_route_1.default);
 app.use("/profile", authenticate_1.default, profile_route_1.default);
 app.use("/api/users", profile_route_1.default);
-// Existing feature routes - both legacy and /api prefixes for compatibility
+
 app.use("/preassessment", authenticate_1.default, preAssessmentRoutes);
+app.use("/api/assessments", authenticate_1.default, assessmentRoutes);
 app.use("/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
 app.use("/api/preassessment", authenticate_1.default, preAssessmentRoutes);
 app.use("/api/daily-tracking", authenticate_1.default, dailyTrackingRoutes);
@@ -124,7 +124,6 @@ app.use("/api/activities", activityRoutes);
 app.use("/api/strava", stravaRoutes);
 app.use("/contact-support", supportEmailRoute )
 
-// ADMIN
 app.use("/api/admin", authenticate_1.default, isAdmin, adminRoutes);
 app.use('/api/admin/certificates', authenticate_1.default, isAdmin, adminCertificateRoute);
 app.use('/api/admin/rewards', authenticate_1.default, isAdmin, adminRewardRoute);
@@ -136,23 +135,17 @@ app.use("/api/admin/achievements", badgeAchievementRoutes);
 app.use('/api/admin/eco-challenges', ecoChallengeRoutes);
 app.use("/api/send-email", emailRoutes);
 
-// Challenge routes
 app.use("/challenges", authenticate_1.default, challengeRoutes);
 app.use("/api/challenges", authenticate_1.default, challengeRoutes);
 
-// Dashboard routes
 app.use("/dashboard", authenticate_1.default, dashboardRoutes);
 app.use("/api/dashboard", authenticate_1.default, dashboardRoutes);
 
-// NEW: AI Recommendation Feature Routes
 app.use("/footprint", authenticate_1.default, footprintRoutes);
 app.use("/api/footprint", authenticate_1.default, footprintRoutes);
 app.use("/recommendations", authenticate_1.default, recommendationRoutes);
 app.use("/api/recommendations", authenticate_1.default, recommendationRoutes);
 
-
-
-// Achievement routes 
 app.use("/achievements", authenticate_1.default, achievementRoutes);
 app.use("/api/achievements", authenticate_1.default, achievementRoutes);
 app.use('/api/community', communityRoutes);
@@ -165,10 +158,8 @@ app.use("/api/admin/certificates", require("./routes/adminCertificateRoute"));
 app.use("/api/admin/rewards", require("./routes/adminRewardRoute"));
 app.use("/api/user", require("./routes/userCertificateRewardRoute"));
 
-// Error handling middleware
 app.use(errorHandler_1.default);
 
-// Schedule to run at 9 AM and every 3 hours thereafter
 cron.schedule('0 9/3 * * *', () => {
   sendDailyTrackingReminders()
     .then(() => console.log('Tracking reminder sent at scheduled time.'))
@@ -188,7 +179,7 @@ if (hour >= 9) {
 
 const startServer = async () => {
   try {
-    await (0, db_1.default)();  // DB connection
+    await (0, db_1.default)();
     
     await seedAchievements();  
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Tooltip, Legend } from "recharts"
 import {
   Dialog,
@@ -11,11 +11,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Users, Activity, Leaf, Brain, TrendingUp, TrendingDown, Eye, Car, UtensilsCrossed, Home } from "lucide-react"
-import { getUserGrowthStats, getActivityGrowthStats, getAvgFootprintGrowthStats, getMonthlyFootprintByCategory, listDailyTrackings, listUsers} from "../lib/api"
+import { Users, Activity, Leaf, Brain, TrendingUp, TrendingDown, Eye, Car, UtensilsCrossed, Home, CheckCircle, CloudRain, Zap } from "lucide-react"
+import { getUserGrowthStats, getActivityGrowthStats, getAvgFootprintGrowthStats, getMonthlyFootprintByCategory, listDailyTrackings, listUsers, getOverallAssessmentResults } from "../lib/api"
 import { Spinner } from "@/components/ui/spinner"
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { get } from "http"
 
 type EmissionCategory = {
   name: string;
@@ -28,6 +29,25 @@ type CategoryCountsResponse = {
   foodCount: number;
   homeEnergyCount: number;
 };
+
+// Define types for the response data
+interface Emissions {
+  avgReductionKg: number;
+  avgReductionPercent: number;
+}
+
+interface Overall {
+  improvedCount: number;
+  improvedPercent: number;
+}
+
+interface AssessmentData {
+  totalUsers: number;
+  awareness: { avgChange: number };
+  behavior: { avgChange: number };
+  emissions: Emissions;
+  overall: Overall;
+}
 
 const AdminDashboard = () => {
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
@@ -43,6 +63,10 @@ const AdminDashboard = () => {
     },
    
   ]);
+
+  const [data, setData] = useState<AssessmentData | null>(null);
+  const [loadingAssessment, setLoadingAssessment] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handleActivityClick = (activity: any) => {
     setSelectedActivity(activity)
@@ -81,6 +105,26 @@ const AdminDashboard = () => {
     if (diffDays === 1) return "1 day ago";
     return `${diffDays} days ago`;
   };
+
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await getOverallAssessmentResults();
+        if (response.success) {
+          setData(response.data);
+        } else {
+          setError("Failed to load data");
+        }
+      } catch (err) {
+        setError("An error occurred while fetching data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchKpis = async () => {
@@ -423,6 +467,111 @@ const AdminDashboard = () => {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+
+
+
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-sm border-admin-border" ref={barChartRef}>
+          <CardHeader>
+            <CardTitle className="text-lg">Overall Assessment Results</CardTitle>
+            <p className="text-sm text-muted-foreground">Performance metrics</p>
+          </CardHeader>
+          <CardContent>
+        <div className="space-y-6">
+          {/* Total Users */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <BarChart className="text-gray-500" />
+              <span className="text-gray-600 font-medium">Total Users:</span>
+            </div>
+            <span className="text-gray-900">{data?.totalUsers}</span>
+          </div>
+
+          {/* Awareness Avg. Change */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="text-green-500" size={18} />
+              <span className="text-gray-600 font-medium">Awareness Avg. Change:</span>
+            </div>
+            <span className="text-gray-900">{data?.awareness?.avgChange.toFixed(2)}</span>
+          </div>
+
+          {/* Behavior Avg. Change */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <Activity className="text-yellow-500" size={18} />
+              <span className="text-gray-600 font-medium">Behavior Avg. Change:</span>
+            </div>
+            <span className="text-gray-900">{data?.behavior?.avgChange.toFixed(2)}</span>
+          </div>
+
+          {/* Emissions Avg. Reduction (kg) */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <CloudRain className="text-blue-500" size={18} />
+              <span className="text-gray-600 font-medium">Emissions Avg. Reduction (kg):</span>
+            </div>
+            <span className="text-gray-900">{data?.emissions?.avgReductionKg.toFixed(2)} kg</span>
+          </div>
+
+          {/* Emissions Avg. Reduction (%) */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <CloudRain className="text-blue-500" size={18} />
+              <span className="text-gray-600 font-medium">Emissions Avg. Reduction (%):</span>
+            </div>
+            <span className="text-gray-900">{data?.emissions?.avgReductionPercent.toFixed(2)}%</span>
+          </div>
+
+          {/* Overall Improvement */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="text-green-500" size={18} />
+              <span className="text-gray-600 font-medium">Overall Improvement:</span>
+            </div>
+            <span className="text-gray-900">
+              {data?.overall?.improvedCount} / {data?.totalUsers} (
+              {data?.overall?.improvedPercent.toFixed(2)}%)
+            </span>
+          </div>
+        </div>
+          </CardContent>
+        </Card>
+
+        {/* Emissions Breakdown */}
+        <Card>
+          <CardContent>
+              {/* Bar Chart for Awareness and Behavior */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Awareness & Behavior Average Change</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={[{ name: 'Awareness', value: data?.awareness?.avgChange }, { name: 'Behavior', value: data?.behavior?.avgChange }]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--chart-1))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Bar Chart for Emissions Reduction */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Emissions Reduction</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={[{ name: 'Reduction (kg)', value: data?.emissions?.avgReductionKg }, { name: 'Reduction (%)', value: data?.emissions?.avgReductionPercent }]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--chart-2))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
           </CardContent>
         </Card>
       </div>

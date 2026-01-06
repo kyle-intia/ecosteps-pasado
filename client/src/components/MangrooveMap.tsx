@@ -1,71 +1,23 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { divIcon } from "leaflet";
-import { renderToString } from "react-dom/server";
-import { MapPin, Navigation, User2, UserCircle, UserRound } from "lucide-react"; // Navigation icon for user
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import Map, { Marker, Popup } from "react-map-gl/mapbox";
+import { MapPin, UserCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-const lucideMarker = divIcon({
-  html: renderToString(<MapPin size={24} color="#d71919ff" />),
-  className: "",
-  iconSize: [32, 32],
-});
+import "mapbox-gl/dist/mapbox-gl.css";
 
-const userMarker = divIcon({
-  html: renderToString(
-    <div
-      style={{
-        position: "relative",
-        width: "40px",
-        height: "50px",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-      }}
-    >
-      {/* Pin body */}
-      <div
-        style={{
-          width: "36px",
-          height: "36px",
-          backgroundColor: "#10ab46ff",
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-          zIndex: 1,
-        }}
-      >
-        <UserCircle size={20} color="#fff" />
-      </div>
 
-      {/* Pin point */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "0",
-          width: "0",
-          height: "0",
-          borderLeft: "10px solid transparent",
-          borderRight: "10px solid transparent",
-          borderTop: "14px solid #10ab46ff",
-          zIndex: 0,
-        }}
-      />
-    </div>
-  ),
-  className: "",
-  iconSize: [40, 50],
-  iconAnchor: [20, 50],
-});
+const TREE =
+  "https://th.bing.com/th/id/R.3296d1e5beddbe7bb441ff416f5bbfe1?rik=AcTM3UbKAxP31w&riu=http%3a%2f%2fclipart-library.com%2fimage_gallery%2fn724865.png&ehk=fG4%2bk1tvUBSEie5Rrh5uIlCq%2bMCJrKcslbskWDfg2Sw%3d&risl=&pid=ImgRaw&r=0";
+
+const plant_pic = "https://ilovepangasinan.com/wp-content/uploads/2019/06/Bangrin-Mangrove-Marine-Protected-Area-3.jpg"
 
 type MangroveSite = {
   name: string;
   region: string;
   description: string;
-  coords: [number, number];
+  coords: [number, number]; // [lat, lng]
   imageUrl: string;
 };
 
@@ -75,33 +27,13 @@ const mangroveSites: MangroveSite[] = [
     region: "Bohol, Visayas",
     description: "Largest man-made mangrove forest in Asia; active community restoration.",
     coords: [10.15, 124.25],
-    imageUrl: "https://lh3.googleusercontent.com/blogger_img_proxy/AEn0k_uF8eafIo-5TlCXrEPIKN5AqrQ0NiBkUp-3IrudjwrK-EBK3i2QvT4zO_Ab5XQGBh_T3gELtKP2-85TCmeab_ZLXPgFtjkM8XodscK0Oi42gpIeDz_p4vwpgvR7_8csmOY5lps7nMVN67JFeuTdl_9fjQ8WXH4lBT4QoLwzQw=s0-d",
-  },
-  {
-    name: "Cordova Mangrove Eco-Park",
-    region: "Cebu, Visayas",
-    description: "Accessible eco-park with ongoing mangrove rehabilitation.",
-    coords: [10.25, 123.96],
-    imageUrl: "/images/cordova.jpg",
-  },
-  {
-    name: "Bani Mangrove Project",
-    region: "Pangasinan, Luzon",
-    description: "Community-driven mangrove planting along coastal zones.",
-    coords: [16.16, 119.94],
-    imageUrl: "/images/bani.jpg",
-  },
-  {
-    name: "Mati Mangrove Coastline",
-    region: "Davao Oriental, Mindanao",
-    description: "Government-backed mangrove reforestation sites.",
-    coords: [6.96, 126.23],
-    imageUrl: "/images/mati.jpg",
+    imageUrl: plant_pic,
   },
 ];
 
 export default function MangroveMap() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [selectedSite, setSelectedSite] = useState<MangroveSite | null>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -116,44 +48,105 @@ export default function MangroveMap() {
     }
   }, []);
 
+  const initialLng = userLocation ? userLocation[1] : 121.7740;
+  const initialLat = userLocation ? userLocation[0] : 12.8797;
+
   return (
-    <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative z-0">
-      <MapContainer
-        center={userLocation || [12.8797, 121.7740]}
-        zoom={6}
-        scrollWheelZoom={true}
-        style={{ height: 600, width: "100%" }}
-      >
-      <TileLayer
-        attribution='Tiles © Esri — Earthstar Geographics'
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-      />
-      <TileLayer
-        attribution='Tiles © Esri'
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-      />
+    <div className="rounded-2xl bg-transparent overflow-hidden relative z-0">
+      <Card className="rounded-3xl bg-transparent shadow-sm hover:shadow-md transition">
+        <CardHeader>
+          <CardTitle>Planting Locations Map</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{ height: 600, width: "100%", borderRadius: "12px", overflow: "hidden" }}>
+            <Map
+              initialViewState={{
+                latitude: initialLat,
+                longitude: initialLng,
+                zoom: 8,
+                pitch: 50,    // 3D tilt effect
+                bearing: 0,
+              }}
+              mapStyle="mapbox://styles/mapbox/streets-v12"
+              mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
+              style={{ width: "100%", height: "100%" }}
+              terrain={{ source: "mapbox-dem", exaggeration: 5 }}
+              attributionControl={false} 
+            >
+              {/* Mangrove site markers */}
+              {mangroveSites.map((site) => (
+                <Marker
+                  key={site.name}
+                  latitude={site.coords[0]}
+                  longitude={site.coords[1]}
+                  onClick={() => setSelectedSite(site)}
+                >
+                  <div className="cursor-pointer drop-shadow-2xl">
+                    <img
+                      src={TREE}
+                      alt="Tree planting site"
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        objectFit: "contain",
+                        transform: "translateY(-10px)", // Slight hover lift
+                      }}
+                    />
+                  </div>
+                </Marker>
+              ))}
 
-        {mangroveSites.map((site, idx) => (
-          <Marker key={idx} position={site.coords}>
-            <Popup>
-              <h3 className="font-bold">{site.name}</h3>
-              <p className="text-sm">{site.region}</p>
-              <p className="text-xs mt-1">{site.description}</p>
-              <img
-                src={site.imageUrl}
-                alt={site.name}
-                className="h-32 w-full object-cover mt-2 rounded"
-              />
-            </Popup>
-          </Marker>
-        ))}
+              {/* Selected site popup */}
+              {selectedSite && (
+                <Popup
+                  latitude={selectedSite.coords[0]}
+                  longitude={selectedSite.coords[1]}
+                  onClose={() => setSelectedSite(null)}
+                  closeButton={true}
+                  closeOnClick={false}
+                  anchor="top"
+                  offset={50}
+                >
+                  <div className="p-2">
+                    <h3 className="font-bold text-lg">{selectedSite.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedSite.region}</p>
+                    <p className="text-xs mt-1">{selectedSite.description}</p>
+                    <img
+                      src={selectedSite.imageUrl}
+                      alt={selectedSite.name}
+                      className="h-32 w-full object-cover mt-3 rounded-lg"
+                    />
+                  </div>
+                </Popup>
+              )}
 
-        {userLocation && (
-          <Marker position={userLocation} icon={userMarker}>
-            <Popup>Your current location</Popup>
-          </Marker>
-        )}
-      </MapContainer>
+              {/* User location marker */}
+              {userLocation && (
+                <Marker latitude={userLocation[0]} longitude={userLocation[1]}>
+                  <div className="relative">
+                    {/* Green circle with user icon */}
+                    <div
+                      className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center shadow-lg"
+                      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}
+                    >
+                      <UserCircle size={24} color="#fff" />
+                    </div>
+                    {/* Pin point */}
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
+                      style={{
+                        borderLeft: "10px solid transparent",
+                        borderRight: "10px solid transparent",
+                        borderTop: "14px solid #10ab46",
+                      }}
+                    />
+                  </div>
+                </Marker>
+              )}
+            </Map>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -70,13 +70,29 @@ router.get('/', async (req, res) => {
     const userId = req.userId;
     const { limit = 30, offset = 0 } = req.query;
 
-    const entries = await DailyTracking.find({ userId })
-      .sort({ date: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(offset))
-      .select('date calculatedFootprint transport homeEnergy food createdAt');
+    const limitNum = Math.min(Math.max(parseInt(limit), 1), 100);
+    const offsetNum = Math.max(parseInt(offset), 0);
 
-    const total = await DailyTracking.countDocuments({ userId });
+    // Calculate the start and end of the current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    // Fetch entries for the current month
+    const entries = await DailyTracking.find({
+      userId,
+      date: { $gte: startOfMonth, $lt: startOfNextMonth }
+    })
+      .sort({ date: -1 })
+      .limit(limitNum)
+      .skip(offsetNum)
+      .select('date calculatedFootprint transport homeEnergy food createdAt')
+      .lean();
+
+    const total = await DailyTracking.countDocuments({
+      userId,
+      date: { $gte: startOfMonth, $lt: startOfNextMonth }
+    });
 
     res.json({
       success: true,
@@ -91,13 +107,14 @@ router.get('/', async (req, res) => {
           createdAt: entry.createdAt
         })),
         total,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: limitNum,
+        offset: offsetNum,
+        hasNext: offsetNum + limitNum < total
       }
     });
 
   } catch (error) {
-    console.error('Error fetching tracking history:', error);
+    console.error('Error fetching current month tracking history:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',

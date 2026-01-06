@@ -5,7 +5,6 @@ const catchErrors = (controller) => async (req, res, next) => {
         await controller(req, res, next);
     }
     catch (error) {
-        // pass error on
         next(error);
     }
 };

@@ -78,7 +78,7 @@ const UserTrackDistance: React.FC = () => {
     latitude: 14.5995,
     longitude: 120.9842,
     zoom: 19,
-    pitch: 50,           // Tilt for 3D perspective
+    pitch: 50,
     bearing: 0  
   });
   const [isAutoCenter, setIsAutoCenter] = useState(true);
@@ -114,7 +114,6 @@ const UserTrackDistance: React.FC = () => {
     stateRef.current = { positions, totalDistance, elapsedTime, category, subtype };
   }, [positions, totalDistance, elapsedTime, category, subtype]);
 
-  /** Distance calculation */
   const calcDistance = useCallback((p1: Position, p2: Position) => {
     return distance(point([p1.longitude, p1.latitude]), point([p2.longitude, p2.latitude]), {
       units: "kilometers",
@@ -271,7 +270,6 @@ const UserTrackDistance: React.FC = () => {
     }
   }, [positions, totalDistance, elapsedTime, category, subtype, toast, releaseWakeLock]);
 
-  /** Auto-center map */
   useEffect(() => {
     if (tracking && isAutoCenter && positions.length > 0) {
       const latest = positions[positions.length - 1];
@@ -307,6 +305,7 @@ const UserTrackDistance: React.FC = () => {
         }}
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
+        attributionControl={false} 
       >
         <NavigationControl position="top-right" />
       

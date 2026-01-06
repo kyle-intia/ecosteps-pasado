@@ -14,7 +14,7 @@ const defaults = {
 const getAccessTokenCookieOptions = () => ({
     ...defaults,
     path: "/",  
-    expires: (0, date_1.thirtyMinutesFromNow)(),
+    expires: (0, date_1.thirtyDaysFromNow)(),
 });
 exports.getAccessTokenCookieOptions = getAccessTokenCookieOptions;
 const getRefreshTokenCookieOptions = () => ({

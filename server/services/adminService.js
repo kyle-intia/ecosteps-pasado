@@ -1,5 +1,6 @@
 const UserModel = require("../models/user.model");
 const DailyTracking = require("../models/DailyTracking");
+const Assessment = require("../models/AssessmentModel");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -626,6 +627,77 @@ static async getDailyFootprintByCategory(date) {
     this.maintenanceMode = value;
 
     return this.maintenanceMode;
+  }
+
+  static average(arr) {
+    return arr.reduce((sum, val) => sum + val, 0) / arr.length;
+  }
+
+  static classifyChange(change) {
+    if (change > 0.5) return "Significant Improvement";
+    if (change > 0.1) return "Moderate Improvement";
+    if (change >= -0.1) return "No Significant Change";
+    return "Decline";
+  }
+
+  static async getAggregatedResults() {
+    const users = await Assessment.distinct("userId");
+    const aggregated = [];
+
+    for (const userId of users) {
+      const assessments = await Assessment.find({ userId }).sort({ createdAt: 1 });
+      const pre = assessments.find(a => a.type === "pre");
+      const post = assessments.find(a => a.type === "post");
+
+      if (!pre || !post) continue;
+
+      const preAwareness = this.average(pre.awarenessAnswers);
+      const postAwareness = this.average(post.awarenessAnswers);
+      const awarenessChange = postAwareness - preAwareness;
+
+      const preBehavior = this.average(pre.behaviorAnswers);
+      const postBehavior = this.average(post.behaviorAnswers);
+      const behaviorChange = postBehavior - preBehavior;
+
+      const emissionChange = pre.monthlyEmissions - post.monthlyEmissions;
+      const emissionReductionPercent = (emissionChange / pre.monthlyEmissions) * 100;
+
+      const awarenessImproved = awarenessChange > 0;
+      const behaviorImproved = behaviorChange > 0;
+      const emissionsImproved = emissionChange > 0;
+
+      const improvementScore = [awarenessImproved, behaviorImproved, emissionsImproved].filter(Boolean).length;
+
+      aggregated.push({
+        awarenessChange,
+        behaviorChange,
+        emissionChange,
+        emissionReductionPercent,
+        overallImproved: improvementScore >= 2,
+      });
+    }
+
+    if (!aggregated.length) return null;
+
+    const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+    return {
+      totalUsers: aggregated.length,
+      awareness: {
+        avgChange: avg(aggregated.map(a => a.awarenessChange)),
+      },
+      behavior: {
+        avgChange: avg(aggregated.map(a => a.behaviorChange)),
+      },
+      emissions: {
+        avgReductionKg: avg(aggregated.map(a => a.emissionChange)),
+        avgReductionPercent: avg(aggregated.map(a => a.emissionReductionPercent)),
+      },
+      overall: {
+        improvedCount: aggregated.filter(a => a.overallImproved).length,
+        improvedPercent: (aggregated.filter(a => a.overallImproved).length / aggregated.length) * 100,
+      },
+    };
   }
 
 

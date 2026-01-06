@@ -28,6 +28,7 @@ import useCommunityHighlights from "../hooks/useCommunityHighlights";
 import useChallengeProgress from "../hooks/useChallengeProgress";
 import useCO2Savings from "../hooks/useCO2Savings";
 import { useDashboardData } from "../hooks/useDashboard";
+import { AssessmentDialog, useAssessmentDialog } from '@/components/AssessmentDialog';
 
 type UserProfile = {
   username?: string;
@@ -37,11 +38,15 @@ import { Spinner } from "@/components/ui/spinner";
 import useSessionStatus from "../hooks/useSessionStatus"
 import useSignOut from "../hooks/useLogout"
 import useProfile from "@/hooks/useAuthProfile";
+import { FirstTimeAwarenessDialog } from "@/components/PostAssessment";
+import useAuth from "../hooks/useAuth";
 
 const Home = () => {
   const navigate = useNavigate();
   const { isPending, isLoggedIn} = useSessionStatus();
   const { signOut } = useSignOut()
+  const { user: currentUser } = useAuth() as { user: { _id?: string } };
+  const userId = currentUser?._id;
   const { user, isLoading, isError, error: profileError } = useProfile();
   const { userLeaderboard, pending, error: leaderboardError } = useLeaderboard();
 
@@ -59,6 +64,26 @@ const Home = () => {
   const C02Saved = metrics?.c02Saved || 0;
 
   const profile = user as UserProfile | undefined;
+  const [open, setOpen] = useState(false);  // Control the dialog visibility
+  const [hasCompletedSurvey, setHasCompletedSurvey] = useState<boolean>(false); 
+
+  useEffect(() => {
+    if (isLoggedIn && !hasCompletedSurvey) {
+      setOpen(true); // Open the dialog
+    }
+  }, [isLoggedIn, hasCompletedSurvey]); 
+
+  const { showAssessment, assessmentType, handleComplete } = useAssessmentDialog(userId);
+
+  // const handleSurveyComplete = (answers: Record<string, string>, estimatedFootprint: number) => {
+  //   console.log("Survey completed with answers: ", answers, " and CO2: ", estimatedFootprint);
+    
+  //   // Mark the survey as completed
+  //   setHasCompletedSurvey(true);
+    
+  //   // You can also save the result to localStorage or a backend service
+  //   localStorage.setItem("hasCompletedSurvey", "true");  // Optionally store it in localStorage for persistence
+  // };
 
   if (isLoading)
     return <Spinner />;
@@ -100,6 +125,19 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
+
+      {/* <FirstTimeAwarenessDialog
+        open={open}
+        onOpenChange={setOpen}
+        onComplete={handleSurveyComplete} // Pass the completion handler
+      /> */}
+
+      <AssessmentDialog
+        userId={userId}
+        assessmentType={assessmentType}
+        isOpen={showAssessment}
+        onComplete={handleComplete}
+      />
       
       {/* Home Section */}
       <div className="relative h-80 overflow-hidden">

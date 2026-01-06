@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import RecommendationView from "@/components/RecommendationView";
 import { useLeaderboard } from "../hooks/useLeaderboard";
+import useAssessmentResults from "@/hooks/useAssessmentResults";
+import useAuth from "../hooks/useAuth";
 
 type UserProfile = {
   username?: string;
@@ -27,6 +29,9 @@ export default function Dashboard() {
   const { isPending, isLoggedIn } = useSessionStatus();
   
   const { signOut } = useSignOut();
+  const { user: currentUser } = useAuth() as { user: { _id?: string } };
+  const userId = currentUser?._id;
+
   const { user, isLoading: profileLoading, isError: profileError } = useProfile();
   const { 
     data: dashboardData, 
@@ -39,6 +44,7 @@ export default function Dashboard() {
 
   const profile = user as UserProfile | undefined;
 
+  const { data, isLoading, isError: assessmentError, error: assessmentErrorDetails } = useAssessmentResults(userId);
 
   const handleSignOut = () => {
     signOut();
@@ -114,6 +120,10 @@ export default function Dashboard() {
   const reductionPercentage = metrics?.reductionPercentage || 0;
   const ecoScore = error ? 'N/A' : userLeaderboard?.totalScore ?? 'N/A';
   const treesSaved = metrics?.treesSaved || 0;
+
+if (isLoading) {
+  return <div>Loading assessment results...</div>;
+}
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -330,43 +340,54 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* AI-Powered Recommendations */}
-        {recommendations && recommendations.length > 0 && (
-          <div className="mb-8">
-            <RecommendationView
-              recommendations={recommendations.map((rec, index) => ({
-                id: `dashboard-rec-${index}`,
-                title: rec.title,
-                description: rec.description,
-                category: rec.category === 'energy' ? 'home' : rec.category,
-                estimatedSavings: rec.estimatedSavings || 0.5,
-                priority: index + 1,
-                source: 'ai_generated',
-                actionable: true
-              }))}
-              footprintData={null}
-              onRetry={async () => {
-                try {
-                  await refetchDashboard();
-                  toast({
-                    title: "Recommendations updated",
-                    description: "New AI-powered recommendations have been generated.",
-                  });
-                } catch (error) {
-                  toast({
-                    title: "Update failed",
-                    description: "Unable to generate new recommendations. Please try again.",
-                    variant: "destructive"
-                  });
-                }
-              }}
-            />
-          </div>
-        )}
+    {/* AI-Powered Recommendations */}
+
+    {/* <Card className="my-5 border-success shadow-md">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Zap className="h-5 w-5 text-primary" />
+          <span>Smart Recommendations</span>
+        </CardTitle>
+        <CardDescription>Personalized tips to reduce your carbon footprint</CardDescription>
+      </CardHeader>
+    </Card> 
+
+    {recommendations && recommendations.length > 0 && (
+      <div className="mb-8">
+        <RecommendationView
+          recommendations={recommendations.map((rec, index) => ({
+            id: `dashboard-rec-${index}`,
+            title: rec.title,
+            description: rec.description,
+            category: rec.category === 'energy' ? 'home' : rec.category,
+            estimatedSavings: rec.estimatedSavings || 0.5,
+            priority: index + 1,
+            source: 'ai_generated',
+            actionable: true
+          }))}
+          footprintData={null}
+          onRetry={async () => {
+            try {
+              await refetchDashboard();
+              toast({
+                title: "Recommendations updated",
+                description: "New AI-powered recommendations have been generated.",
+              });
+            } catch (error) {
+              toast({
+                title: "Update failed",
+                description: "Unable to generate new recommendations. Please try again.",
+                variant: "destructive"
+              });
+            }
+          }}
+        />
+      </div>
+    )} */}
 
     {/* Summary Stats */}
     {summary && (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
         <Card className="shadow-card border-border">
           <CardHeader>
             <CardTitle className="text-lg">Monthly Summary</CardTitle>
@@ -448,9 +469,73 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="shadow-card border-border">
+          <CardHeader>
+            <CardTitle className="text-lg">Progress Indicators</CardTitle>
+          </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Awareness Status:</span>
+                  <span 
+                    className={`font-medium ${data?.awareness?.status === "Significant Improvement" ? "text-green-500" : 
+                                data?.awareness?.status === "Moderate Improvement" ? "text-yellow-500" : 
+                                data?.awareness?.status === "No Significant Change" ? "text-gray-500" : 
+                                "text-red-500"}`}
+                  >
+                    {data?.awareness?.status ?? "N/A"}
+                  </span>
+
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Behavior Status:</span>
+                  <span  
+                    className={`font-medium ${data?.behavior?.status === "Significant Improvement" ? "text-green-500" : 
+                                data?.behavior?.status === "Moderate Improvement" ? "text-yellow-500" : 
+                                data?.behavior?.status === "No Significant Change" ? "text-gray-500" : 
+                                "text-red-500"}`}
+                  >
+                    {data?.behavior?.status ?? "N/A"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Emissions Improvement:</span>
+                  <span className={`font-medium ${
+                    data?.emissions?.improved === true ? 'text-success' : 'text-warning'
+                  }`}>
+                    {data?.emissions?.improved == null
+                      ? "N/A"
+                      : data.emissions.improved
+                      ? "Yes"
+                      : "No"}
+                  </span>
+                </div>
+                    
+                <div className="flex justify-between">
+                  <span>Overall Improvement:</span>
+                  <span className={`font-medium ${
+                    data?.overall?.improved === true ? 'text-success' : 'text-warning'
+                  }`}>
+                    {data?.overall?.improved == null
+                      ? "N/A"
+                      : data.overall.improved
+                      ? "Yes"
+                      : "No"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+        </Card>
+        
       </div>
     )}
+
+
   </main>
 </div>
 );
 }
+

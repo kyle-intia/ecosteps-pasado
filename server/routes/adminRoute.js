@@ -299,7 +299,14 @@ router.post('/maintenance', async (req, res) => {
   }
 });
 
-
+router.get("/assessments/overall", async (req, res) => {
+  try {
+    const data = await AdminService.getAggregatedResults();
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 
 module.exports = router;

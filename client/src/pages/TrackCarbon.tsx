@@ -41,8 +41,10 @@ import useActivityTrack from "@/hooks/useActivityTrack";
 import useStravaTrack from "@/hooks/useStravaTrack";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -68,6 +70,7 @@ import { FoodAutocomplete } from "@/components/FoodAutocomplete";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NumInput } from "@/components/ui/numeric-input";
 import CarbonOffset from "@/components/CarbonOffset";
+import MangroveMap from "@/components/MangrooveMap";
 
 type TopCategory = "transport" | "home" | "food";
 
@@ -229,6 +232,9 @@ export default function TrackCarbonDynamic() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  const [IsConfirmTransportOpen, setIsConfirmTransportOpen] = useState(false);
+  const [IsConfirmHomeOpen, setIsConfirmHomeOpen] = useState(false);
+  const [IsConfirmFoodOpen, setIsConfirmFoodOpen] = useState(false);
   
 
   // editing
@@ -252,7 +258,6 @@ export default function TrackCarbonDynamic() {
     description: "",
   });
 
-  // activity tracking import items
   const {
     activities,
     isLoading: isActivitiesLoading,
@@ -272,16 +277,13 @@ const {
   const [isStravaImportOpen, setIsStravaImportOpen] = useState(false);
   const [stravaSelection, setStravaSelection] = useState<Record<string, boolean>>({});
 
-  // import selection state (key -> boolean)
   const [importSelection, setImportSelection] = useState<Record<string, boolean>>({});
-  // group open/closed state for accordion (optional)
   const [accordionOpen, setAccordionOpen] = useState<Record<TransportGroup, boolean>>({
     private: true,
     public: false,
     basic: false,
   });
 
-  // footprint & recommendations
   const [footprintData, setFootprintData] = useState<FootprintResponse["data"] | null>(null);
   const [footprintId, setFootprintId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -290,7 +292,6 @@ const {
 
   const API_BASE = import.meta.env.VITE_API_URL.replace(/\/+$/, "");
 
-  // ---------- Server CRUD helpers ----------
   const fetchTodayEntries = async (): Promise<Entry[]> => {
     try {
       const payload = await getTodayEntries();
@@ -335,35 +336,30 @@ const {
   };
 
 const DeleteAllEntries = async (): Promise<void> => {
-  const prevEntries = entries; // backup for rollback
+  const prevEntries = entries;
 
-  // If no entries, nothing to delete
   if (!entries || entries.length === 0) {
     toast({ title: "Nothing to delete", description: "No entries found." });
     return;
   }
 
   try {
-    // OPTIMISTIC UPDATE: clear UI immediately
     setEntries([]);
     toast({ title: "Deleting...", description: "Removing all entries." });
 
-    // Perform all deletions in parallel
     const deletionPromises = entries.map((item) =>
       deleteEntry(item.id).catch((err) => {
         console.warn(`Failed to delete entry ${item.id}`, err);
-        throw err; // important: propagate failure to trigger rollback
+        throw err; 
       })
     );
 
     await Promise.all(deletionPromises);
 
-    // Clear sessionStorage after successful deletion
     sessionStorage.removeItem("carbon_entries_session");
 
     toast({ title: "Deleted", description: "All entries removed." });
   } catch (err: any) {
-    // ROLLBACK UI
     setEntries(prevEntries);
 
     toast({
@@ -377,10 +373,13 @@ const DeleteAllEntries = async (): Promise<void> => {
 
   const handleEditEntry = (id: string) => {
     const e = entries.find((x) => x.id === id);
-    if (!e) return;
+    if (!e) 
+      return;
+
     setEditingId(id);
     setIsAddOpen(true);
     setActiveTab(e.category);
+
     if (e.category === "transport") {
       const t = e as TransportEntry;
       setTransportForm({ transportGroup: t.transportGroup, subtype: t.subtype, distanceKm: t.distanceKm || 0 });
@@ -393,20 +392,16 @@ const DeleteAllEntries = async (): Promise<void> => {
     }
   };
 
-  // ---------- Load today's entries (server) + session persistence ----------
   useEffect(() => {
     const load = async () => {
       setIsLoadingEntries(true);
       try {
-        // first attempt server fetch
         const fetched = await fetchTodayEntries();
         setEntries(fetched);
-        // also save to sessionStorage for in-session persistence
         sessionStorage.setItem("carbon_entries_session", JSON.stringify(fetched));
       } catch (err: any) {
         console.error("fetch entries", err);
         toast({ title: "Failed to load entries", description: err.message || String(err), variant: "destructive" });
-        // fallback: load session if available
         const saved = sessionStorage.getItem("carbon_entries_session");
         if (saved) {
           try {
@@ -427,7 +422,7 @@ const DeleteAllEntries = async (): Promise<void> => {
     } catch {}
   }, [entries]);
 
-  // ---------- sign out ----------
+
   const { mutate: signOut } = useMutation({
     mutationFn: logout,
     onSettled: () => {
@@ -437,31 +432,27 @@ const DeleteAllEntries = async (): Promise<void> => {
   });
   const handleSignOut = () => signOut();
 
-  // ---------- Optimistic create helpers ----------
-const optimisticCreate = async (payload: Partial<Entry>) => {
-  const tempId = `temp_${makeId()}`;
-  const tempEntry = {
-    ...(payload as Entry),
-    id: tempId,
-    createdAt: new Date().toISOString(),
-    isTemp: true,
-  } as Entry;
+  const optimisticCreate = async (payload: Partial<Entry>) => {
+    const tempId = `temp_${makeId()}`;
+    const tempEntry = {
+      ...(payload as Entry),
+      id: tempId,
+      createdAt: new Date().toISOString(),
+      isTemp: true,
+    } as Entry;
 
-  setEntries((prev) => [tempEntry, ...prev]);
+    setEntries((prev) => [tempEntry, ...prev]);
 
-  try {
-    // 👇 include id in payload
-    const created = await submitEntry({ ...payload, id: tempId });
-    setEntries((prev) => prev.map((e) => (e.id === tempId ? created : e)));
-    return created;
-  } catch (err: any) {
-    setEntries((prev) => prev.filter((e) => e.id !== tempId));
-    throw err;
-  }
-};
+    try {
+      const created = await submitEntry({ ...payload, id: tempId });
+      setEntries((prev) => prev.map((e) => (e.id === tempId ? created : e)));
+      return created;
+    } catch (err: any) {
+      setEntries((prev) => prev.filter((e) => e.id !== tempId));
+      throw err;
+    }
+  };
 
-
-  // create transport (manual)
   const handleCreateTransport = async () => {
     if (!transportForm.transportGroup || !transportForm.subtype) {
       toast({ title: "Invalid", description: "Choose transport group & subtype.", variant: "destructive" });
@@ -491,7 +482,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
-  // create home
   const handleCreateHome = async () => {
 
     if (hasHomeEntry) {
@@ -525,7 +515,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
-  // create food
   const handleCreateFood = async () => {
 
     if (submittedFoodSlots.size >= 3) {
@@ -541,7 +530,7 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       toast({ title: "Invalid", description: "Choose a meal slot.", variant: "destructive" });
       return;
     }
-    // prevent duplicate meal slot
+   
     const already = entries.find((e) => e.category === "food" && (e as FoodEntry).mealSlot === foodForm.mealSlot);
     if (already) {
       toast({ title: "Already submitted", description: `${foodForm.mealSlot} already submitted today.`, variant: "destructive" });
@@ -565,7 +554,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
-  // ---------- Optimistic edit ----------
   const handleSaveEdit = async () => {
     if (!editingId) return;
     const prev = entries.find((e) => e.id === editingId);
@@ -586,7 +574,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
         appliances: homeForm.appliances as HomeEntry["appliances"],
       } as Partial<HomeEntry>;
     } else {
-      // food: ensure no duplicate slot except same entry
       const existingFoodSlot = entries.find((en) => en.category === "food" && (en as FoodEntry).mealSlot === foodForm.mealSlot);
       if (existingFoodSlot && existingFoodSlot.id !== editingId) {
         toast({ title: "Slot already used", description: `${foodForm.mealSlot} already submitted.`, variant: "destructive" });
@@ -600,7 +587,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       } as Partial<FoodEntry>;
     }
 
-    // optimistic update locally
     const prevEntries = entries;
     setEntries((prev) => prev.map((e) => (e.id === editingId ? { ...e, ...payload, isTemp: false } as Entry : e)));
 
@@ -620,7 +606,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
-  // ---------- Optimistic delete ----------
   const confirmDelete = (id: string) => {
     setDeleteTargetId(id);
     setIsDeleteConfirmOpen(true);
@@ -629,7 +614,7 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
   const executeDelete = async () => {
     if (!deleteTargetId) return;
     const prevEntries = entries;
-    // optimistic: remove immediately
+    
     setEntries((prev) => prev.filter((e) => e.id !== deleteTargetId));
     setIsDeleteConfirmOpen(false);
     try {
@@ -637,7 +622,7 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
       toast({ title: "Deleted", description: "Entry removed." });
       refetchActivities(); 
     } catch (err: any) {
-      // rollback
+      
       setEntries(prevEntries);
       toast({ title: "Error", description: err.message || "Delete failed", variant: "destructive" });
     } finally {
@@ -645,7 +630,6 @@ const optimisticCreate = async (payload: Partial<Entry>) => {
     }
   };
 
-  // ---------- Import from live tracking (grouped accordion with checkboxes) ----------
   const importCandidates = useMemo(() => {
     if (!activities || activities.length === 0) return [];
     return activities.map((act: any, idx: number) => {
@@ -673,12 +657,11 @@ const stravaCandidates = useMemo(() => {
 }, [stravaActivities]);
 
 
-  // reset import selection when candidates change
   useEffect(() => {
     const s: Record<string, boolean> = {};
     importCandidates.forEach((c) => (s[c.key] = false));
     setImportSelection(s);
-  }, [importCandidates.length]); // eslint-disable-line
+  }, [importCandidates.length]);
 
   const toggleImportSelection = (key: string) => {
     setImportSelection((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -701,7 +684,6 @@ const handleAddSelectedImports = async () => {
 
   const selectedItems = importCandidates.filter((c) => selectedKeys.includes(c.key));
 
-  // optimistic: add all selected as temp entries
   const tempEntries: Entry[] = selectedItems.map((item) => {
     const subtype = item.subtype;
     let group: TransportGroup = "basic";
@@ -739,11 +721,9 @@ const handleAddSelectedImports = async () => {
         distanceKm: Number(item.distanceKm || 0),
       };
 
-      // ✅ Step 1: Submit the entry
       const created = await submitEntry(payload);
       createdList.push(created);
 
-      // ✅ Step 2: Mark original as imported in DB
       try {
         await updateLivetracking(item.raw._id, { isImported: true });
       } catch (err) {
@@ -751,7 +731,6 @@ const handleAddSelectedImports = async () => {
       }
     }
 
-    // replace temps with created entries
     setEntries((prev) => {
       let remaining = prev.filter(
         (p) =>
@@ -1017,10 +996,10 @@ const handleCalculate = async () => {
         }
       };
   
-      const fetchHistory = async () => {
+    const fetchHistory = async () => {
         try {
           setIsLoadingHistory(true);
-          const res = await getDailyTrackingHistory(7, 0);
+          const res = await getDailyTrackingHistory(31, 0);
           setHistoryEntries(res?.data?.entries || []);
         } catch (_e) {
           setHistoryEntries([]);
@@ -1088,8 +1067,6 @@ const handleConfirmReset = async () => {
   }
 };
 
-
-  // ---------- Totals ----------
   const totals = useMemo(() => {
     if (footprintData) {
       return {
@@ -1099,7 +1076,7 @@ const handleConfirmReset = async () => {
         total: Number(footprintData.calculatedFootprint.total || 0),
       };
     }
-    // fallback to entry contributions if available
+
     const t = entries.reduce((s, e) => s + (e.category === "transport" ? (e as TransportEntry).contribution || 0 : 0), 0);
     const h = entries.reduce((s, e) => s + (e.category === "home" ? (e as HomeEntry).contribution || 0 : 0), 0);
     const f = entries.reduce((s, e) => s + (e.category === "food" ? (e as FoodEntry).contribution || 0 : 0), 0);
@@ -1159,7 +1136,9 @@ const handleConfirmReset = async () => {
                 trigger={
                   <Button
                     variant="eco"
-                    disabled={submittedFoodSlots.size < 3 || loadingStatus === "loading"}
+                    disabled={
+                      editingId === null && (submittedFoodSlots.size < 3 || loadingStatus === "loading")
+                    }
                   >
                     {loadingStatus === "loading" ? (
                       <>
@@ -1227,6 +1206,7 @@ const handleConfirmReset = async () => {
                           });
                           return;
                         }
+                         setTransportForm({ transportGroup: "private", subtype: transportTypes.private[0], distanceKm: 0 });
                         setEditingId(null);
                         setActiveTab("transport");
                       }}
@@ -1271,6 +1251,7 @@ const handleConfirmReset = async () => {
                                   subtype: transportTypes[v as TransportGroup][0],
                                 }));
                               }}
+                              disabled={!!editingId}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose group" /></SelectTrigger>
                               <SelectContent>
@@ -1286,6 +1267,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={transportForm.subtype}
                               onValueChange={(v) => setTransportForm(prev => ({ ...prev, subtype: v }))}
+                              disabled={!!editingId}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose subtype" /></SelectTrigger>
                               <SelectContent>
@@ -1313,15 +1295,46 @@ const handleConfirmReset = async () => {
                         </div>
 
                         <div className="mt-5 flex flex-wrap gap-3">
+
                           <Button
-                            onClick={() => {
-                              if (editingId) setIsSaveConfirmOpen(true);
-                              else handleCreateTransport();
-                            }}
+                            onClick={() => setIsConfirmTransportOpen(true)}
                             disabled={isSubmittingEntry}
                           >
                             {editingId ? "Save Transport" : "Add Transport"}
                           </Button>
+
+                          {IsConfirmTransportOpen && (
+                              <Dialog open={IsConfirmTransportOpen} onOpenChange={setIsConfirmTransportOpen}>
+                                {/* Confirmation Dialog */}
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      {editingId ? "Confirm Save" : "Confirm Add"}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      Are you sure you want to {editingId ? "save changes" : "add this transport"}?
+                                      <p className="pt-2"><strong><span className="capitalize"> {transportForm.subtype ?? ""} :</span> {transportForm.distanceKm ?? ""} km</strong></p> 
+                                    </DialogDescription>
+                                  </DialogHeader>
+                          
+                                  <DialogFooter>
+                                    <DialogClose asChild>
+                                      <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button
+                                      onClick={() => {
+                                        if (editingId) setIsSaveConfirmOpen(true);
+                                        else handleCreateTransport();
+                                        setIsConfirmTransportOpen(false);
+                                      }}
+                                    >
+                                      Yes
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                          )}
+
                           <Button variant="ghost" onClick={() => setIsImportOpen(true)}>
                             Import from Live Tracking
                           </Button>
@@ -1339,7 +1352,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={homeForm.homeType}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, homeType: v as any }))}
-                              disabled={hasHomeEntry}
+                              disabled={hasHomeEntry && !editingId}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose home" /></SelectTrigger>
                               <SelectContent>
@@ -1363,7 +1376,7 @@ const handleConfirmReset = async () => {
                                   occupants: e.target.value === "" ? null : Number(e.target.value),
                                 }))
                               }
-                              disabled={hasHomeEntry}
+                              disabled={hasHomeEntry && !editingId}
                             />
                           </div>
 
@@ -1372,7 +1385,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={homeForm.appliances as any}
                               onValueChange={(v) => setHomeForm(prev => ({ ...prev, appliances: v as any }))}
-                              disabled={hasHomeEntry}
+                              disabled={hasHomeEntry && !editingId}
                             >
                               <SelectTrigger><SelectValue placeholder="Choose appliance" /></SelectTrigger>
                               <SelectContent>
@@ -1386,17 +1399,49 @@ const handleConfirmReset = async () => {
 
                         <div className="mt-5 flex flex-wrap gap-3">
                           <Button
-                            onClick={() => {
-                              if (editingId) setIsSaveConfirmOpen(true);
-                              else handleCreateHome();
-                            }}
-                            disabled={isSubmittingEntry || hasHomeEntry}
+                            onClick={() => setIsConfirmHomeOpen(true)}
+                            disabled={hasHomeEntry && !editingId}
                           >
                             {editingId ? "Save Home" : "Add Home"}
                           </Button>
+
+                          {IsConfirmHomeOpen && (
+                              <Dialog open={IsConfirmHomeOpen} onOpenChange={setIsConfirmHomeOpen}>
+                                {/* Confirmation Dialog */}
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      {editingId ? "Confirm Save" : "Confirm Add"}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      Are you sure you want to {editingId ? "save changes" : "add this Home Entry"}?
+                                      <p className="pt-2"><strong><span className="capitalize"> {homeForm.homeType} :</span> {homeForm.occupants ?? ""} occupants</strong></p> 
+                                      <p><strong>Appliances: {homeForm.appliances}</strong></p>
+                                      
+                                    </DialogDescription>
+                                  </DialogHeader>
+                          
+                                  <DialogFooter>
+                                    <DialogClose asChild>
+                                      <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button
+                                      onClick={() => {
+                                        if (editingId) setIsSaveConfirmOpen(true);
+                                        else handleCreateHome();
+                                        setIsConfirmHomeOpen(false);
+                                      }}
+                                    >
+                                      Yes
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                          )}
+
                           {hasHomeEntry && (
                             <p className="text-xs text-muted-foreground mt-2">
-                              You can only add one home entry per day. Use “Edit” to update it.
+                              You can only add one home entry per day. Delete the entry and add a new one.
                             </p>
                           )}
                         </div>
@@ -1413,9 +1458,9 @@ const handleConfirmReset = async () => {
                             >
                               <SelectTrigger><SelectValue placeholder="Choose slot" /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="breakfast" disabled={submittedFoodSlots.has("breakfast")}>Breakfast {submittedFoodSlots.has("breakfast") ? "(Submitted)" : ""}</SelectItem>
-                                <SelectItem value="lunch" disabled={submittedFoodSlots.has("lunch")}>Lunch {submittedFoodSlots.has("lunch") ? "(Submitted)" : ""}</SelectItem>
-                                <SelectItem value="dinner" disabled={submittedFoodSlots.has("dinner")}>Dinner {submittedFoodSlots.has("dinner") ? "(Submitted)" : ""}</SelectItem>
+                                <SelectItem value="breakfast" disabled={submittedFoodSlots.has("breakfast")} >Breakfast {submittedFoodSlots.has("breakfast") && !editingId ? "(Submitted)" : ""}</SelectItem>
+                                <SelectItem value="lunch" disabled={submittedFoodSlots.has("lunch")} >Lunch {submittedFoodSlots.has("lunch") && !editingId ? "(Submitted)" : ""}</SelectItem>
+                                <SelectItem value="dinner" disabled={submittedFoodSlots.has("dinner") }>Dinner {submittedFoodSlots.has("dinner") && !editingId ? "(Submitted)" : ""}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1425,7 +1470,7 @@ const handleConfirmReset = async () => {
                             <Select
                               value={foodForm.mealType}
                               onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealType: v as any }))}
-                              disabled={allFoodSlotsTaken} 
+                              disabled={allFoodSlotsTaken && !editingId} 
                             >
                               <SelectTrigger><SelectValue placeholder="Meal type" /></SelectTrigger>
                               <SelectContent>
@@ -1447,7 +1492,7 @@ const handleConfirmReset = async () => {
                             <FoodAutocomplete
                               category={foodForm.mealType as any}
                               value={foodForm.description}
-                              disabled={allFoodSlotsTaken}
+                              disabled={allFoodSlotsTaken && !editingId}
                               onChange={(v) => setFoodForm(prev => ({ ...prev, description: v }))}
                             />
                           </div>
@@ -1455,14 +1500,45 @@ const handleConfirmReset = async () => {
 
                         <div className="mt-5 flex flex-wrap gap-3">
                           <Button
-                            onClick={() => {
-                              if (editingId) setIsSaveConfirmOpen(true);
-                              else handleCreateFood();
-                            }}
-                            disabled={isSubmittingEntry || allFoodSlotsTaken}
+                            onClick={() => setIsConfirmFoodOpen(true)}
+                            disabled={isSubmittingEntry || allFoodSlotsTaken && !editingId}
                           >
                             {editingId ? "Save Food" : "Add Food"}
                           </Button>
+
+                          {IsConfirmFoodOpen && (
+                              <Dialog open={IsConfirmFoodOpen} onOpenChange={setIsConfirmFoodOpen}>
+                                {/* Confirmation Dialog */}
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      {editingId ? "Confirm Save" : "Confirm Add"}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      Are you sure you want to {editingId ? "save changes" : "add this Food Entry"}?
+                                      <p className="pt-2"><strong><span className="capitalize"> {foodForm.mealSlot ?? ""}: {foodForm.mealType?? ""} </span> {foodForm.description}</strong></p> 
+                                      <p><strong>Description: {foodForm.description}</strong></p>
+                                    </DialogDescription>
+                                  </DialogHeader>
+                          
+                                  <DialogFooter>
+                                    <DialogClose asChild>
+                                      <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button
+                                      onClick={() => {
+                                        if (editingId) setIsSaveConfirmOpen(true);
+                                        else handleCreateFood();
+                                        setIsConfirmFoodOpen(false);
+                                      }}
+                                    >
+                                      Yes
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                          )}
+
                           {allFoodSlotsTaken && (
                             <p className="text-xs text-muted-foreground mt-2">
                               You’ve already logged all three meals for today.
@@ -1582,30 +1658,32 @@ const handleConfirmReset = async () => {
               ))}
             </div>
 
-            {/* <Dialog>
+            <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="default" className="mb-5">
-                  Show Daily Carbon Offset
+                  Show Weekly Carbon Offset
                 </Button>
               </DialogTrigger>
             
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Today's Carbon Offset</DialogTitle>
-                  <DialogDescription>
-                    Your daily carbon footprint details.
-                  </DialogDescription>
-                </DialogHeader>
-            
-                <CarbonOffset
-                  dailyCarbon={
-                    (todayEntry?.calculatedFootprint?.transport || 0) +
-                    (todayEntry?.calculatedFootprint?.homeEnergy || 0) +
-                    (todayEntry?.calculatedFootprint?.food || 0)
-                  }
-                />
+              <DialogContent className="w-[90vw] max-w-5xl h-[90vh] rounded-xl shadow-xl overflow-y-auto p-0">
+                <div className="mt-6 flex flex-col gap-6 h-[calc(100%-120px)]">
+                  <div className="flex-1 flex flex-col justify-center">
+                    <CarbonOffset
+                      dailyCarbon={historyEntries
+                        .map(e => e.footprint?.total || 0) 
+                        .reduce((sum, total) => sum + total, 0)
+                      }
+                    />
+                  </div>
+
+                  {/* Mangrove Map */}
+                  <div className="flex-1 rounded-lg">
+                    <MangroveMap />
+                  </div>
+                </div>
+
               </DialogContent>
-            </Dialog> */}
+            </Dialog>
 
             {/* Entries grouped by category */}
             <div className="space-y-10">

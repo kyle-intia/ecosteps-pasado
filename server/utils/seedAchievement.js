@@ -1,4 +1,3 @@
-// server/scripts/seedAchievements.js
 const mongoose = require('mongoose');
 const path = require('path');
 const AchievementService = require('../services/achievementService');
@@ -8,14 +7,11 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 async function seedAchievements() {
   try {
-    // Ensure MongoDB connection
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'ecosteps_db' });
 
-    // Seed achievements
     await AchievementService.seedAchievements();
     console.log('Achievement seeding completed');
 
-    // Update stats for existing users based on their tracking history
     console.log('Updating achievement stats for existing users...');
     const users = await User.find({});
     
@@ -28,10 +24,8 @@ async function seedAchievements() {
       return null;
     };
 
-    // Run user stats update concurrently using Promise.all
     const results = await Promise.all(users.map(updateUserStats));
 
-    // Filter out users whose stats weren't updated and log them
     const statsUpdated = results.filter(result => result !== null).length;
     results.forEach(result => {
       if (result) {
@@ -41,7 +35,6 @@ async function seedAchievements() {
 
     console.log(`Stats updated for ${statsUpdated} users`);
 
-    // Check achievements for existing users
     console.log('Checking achievements for existing users...');
     let totalNewAchievements = 0;
 
@@ -76,14 +69,13 @@ async function seedAchievements() {
       }
     };
 
-    // Run achievement checking concurrently using Promise.all
     await Promise.all(users.map(checkUserAchievements));
 
     console.log(`Retroactive achievement check completed. Total new achievements unlocked: ${totalNewAchievements}`);
 
   } catch (error) {
     console.error('Error seeding achievements:', error);
-    process.exit(1);  // Ensure the process exits if there’s an error
+    process.exit(1); 
   }
 }
 

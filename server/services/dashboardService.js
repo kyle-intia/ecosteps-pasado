@@ -50,7 +50,7 @@ class DashboardService {
       const categoryBreakdown = this.calculateCategoryBreakdown(currentMonthData);
       
       // Generate recommendations
-      const recommendations = this.generateRecommendations(currentMonthData, preAssessment);
+      const recommendations = await this.generateRecommendations(currentMonthData, preAssessment);
       
       return {
         metrics,
@@ -111,6 +111,7 @@ class DashboardService {
     const c02Saved = Math.max(0, (lastEmissions - currentEmissions) * 1000); 
     
     return {
+      baselineAnnual,
       currentEmissions: Math.round(currentEmissions * 100) / 100,
       targetEmissions: Math.round(targetEmissions * 100) / 100,
       reductionPercentage: Math.round(reductionPercentage * 10) / 10,

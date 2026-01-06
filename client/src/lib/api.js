@@ -77,6 +77,9 @@ export const getPreAssessmentHistory = () =>
 export const getLatestPreAssessment = () =>
   API.get(`/preassessment/latest`);
 
+export const getAssessmentResults = (userId) =>
+  API.get(`/api/assessments/result/${userId}`);
+
 // ========== ROUTES ESSENTIALS ==========
 export const getUserRole = () => API.get("/user/role/status");
 export const assessmentDone = () => API.get("api/preassessment/user/status");
@@ -105,6 +108,8 @@ export const deleteDailyTrackingAdmin = (id) => API.delete(`/api/admin/dashboard
 export const getDailyFootprintByCategory = (date) => API.get(`/api/admin/dashboard/emission/daily/${date}`);
 export const getMonthlyFootprintByCategory = (month) => API.get(`/api/admin/dashboard/emission/monthly/${month}`);
 export const getYearlyFootprintByCategory = (year) => API.get(`/api/admin/dashboard/emission/yearly/${year}`);
+
+export const getOverallAssessmentResults = () => API.get("/api/admin/assessments/overall");
 
 //========== ADMIN SETTINGS EMISSION FACTORS ==========
 
