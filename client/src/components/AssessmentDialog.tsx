@@ -349,7 +349,7 @@ export const useAssessmentDialog = (userId: string) => {
           return;
         }
 
-        const now = new Date();
+        const now = new Date("1-31-2026");
         if (!isEndOfMonth(now)) {
           setShowAssessment(false);
           setIsLoading(false);
