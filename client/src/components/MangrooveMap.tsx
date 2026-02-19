@@ -75,11 +75,11 @@ export default function MangroveMap() {
                 latitude: initialLat,
                 longitude: initialLng,
                 zoom: 8,
-                pitch: 50, // 3D tilt effect
+                pitch: 50,
                 bearing: 0,
               }}
               mapStyle="mapbox://styles/mapbox/streets-v12"
-              mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
+              mapboxAccessToken={process.env.VITE_MAPBOX_TOKEN}
               style={{ width: "100%", height: "100%" }}
               terrain={{ source: "mapbox-dem", exaggeration: 5 }}
               attributionControl={false}
@@ -100,7 +100,7 @@ export default function MangroveMap() {
                         width: "40px",
                         height: "40px",
                         objectFit: "contain",
-                        transform: "translateY(-10px)", // Slight hover lift
+                        transform: "translateY(-10px)",
                       }}
                     />
                   </div>

@@ -77,7 +77,6 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CardFooter } from "@/components/ui/card";
-import { create } from "domain";
 import { FoodAutocomplete } from "@/components/FoodAutocomplete";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NumInput } from "@/components/ui/numeric-input";
