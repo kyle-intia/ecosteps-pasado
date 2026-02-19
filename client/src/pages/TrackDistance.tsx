@@ -402,7 +402,7 @@ const UserTrackDistance: React.FC = () => {
             if (isAutoCenter) setIsAutoCenter(false);
           }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
-          mapboxAccessToken={process.env.VITE_MAPBOX_TOKEN}
+          mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
           attributionControl={false}
         >
           <NavigationControl position="top-right" />
