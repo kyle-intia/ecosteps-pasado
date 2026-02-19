@@ -102,7 +102,7 @@ router.post("/submit", async (req, res) => {
     const email = req.email;
 
     const now = new Date();
-    const phOffset = 8 * 60; // minutes
+    const phOffset = 8 * 60;
     const phNow = new Date(now.getTime() + phOffset * 60 * 1000);
 
     const today = new Date(phNow);

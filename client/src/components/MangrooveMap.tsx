@@ -15,7 +15,7 @@ type MangroveSite = {
   name: string;
   region: string;
   description: string;
-  coords: [number, number]; // [lat, lng]
+  coords: [number, number];
   imageUrl: string;
 };
 
@@ -84,7 +84,6 @@ export default function MangroveMap() {
               terrain={{ source: "mapbox-dem", exaggeration: 5 }}
               attributionControl={false}
             >
-              {/* Mangrove site markers */}
               {mangroveSites.map((site) => (
                 <Marker
                   key={site.name}
@@ -107,7 +106,6 @@ export default function MangroveMap() {
                 </Marker>
               ))}
 
-              {/* Selected site popup */}
               {selectedSite && (
                 <Popup
                   latitude={selectedSite.coords[0]}
@@ -133,18 +131,15 @@ export default function MangroveMap() {
                 </Popup>
               )}
 
-              {/* User location marker */}
               {userLocation && (
                 <Marker latitude={userLocation[0]} longitude={userLocation[1]}>
                   <div className="relative">
-                    {/* Green circle with user icon */}
                     <div
                       className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center shadow-lg"
                       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}
                     >
                       <UserCircle size={24} color="#fff" />
                     </div>
-                    {/* Pin point */}
                     <div
                       className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
                       style={{

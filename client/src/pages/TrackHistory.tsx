@@ -101,6 +101,7 @@ export default function UserTrackHistory() {
   });
 
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 

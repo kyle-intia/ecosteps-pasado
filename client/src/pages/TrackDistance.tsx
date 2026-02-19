@@ -388,6 +388,7 @@ const UserTrackDistance: React.FC = () => {
   const TransportIcon = transportIcons[subtype];
 
   if (isPending) return <Spinner />;
+
   if (loadingLocation) return <Spinner />;
 
   return (
