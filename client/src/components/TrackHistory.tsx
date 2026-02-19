@@ -45,7 +45,10 @@ const transportTypes = {
 };
 
 export default function UserTrackHistory() {
-  const [filters, setFilters] = useState<{ category: Category; subType: Subtype }>({
+  const [filters, setFilters] = useState<{
+    category: Category;
+    subType: Subtype;
+  }>({
     category: "all",
     subType: "all",
   });
@@ -91,7 +94,7 @@ export default function UserTrackHistory() {
         setLoading(false);
       }
     },
-    [filters]
+    [filters],
   );
 
   useEffect(() => {
@@ -149,13 +152,17 @@ export default function UserTrackHistory() {
   };
 
   const filteredActivities = activities.filter((activity) => {
-    if (filters.category !== "all" && activity.category !== filters.category) return false;
-    if (filters.subType !== "all" && activity.subtype !== filters.subType) return false;
+    if (filters.category !== "all" && activity.category !== filters.category)
+      return false;
+    if (filters.subType !== "all" && activity.subtype !== filters.subType)
+      return false;
     return true;
   });
 
   const availableSubtypes =
-    filters.category === "all" ? [] : transportTypes[filters.category as keyof typeof transportTypes];
+    filters.category === "all"
+      ? []
+      : transportTypes[filters.category as keyof typeof transportTypes];
 
   return (
     <div className="space-y-6">
@@ -165,7 +172,9 @@ export default function UserTrackHistory() {
             <Activity className="h-8 w-8 text-primary" />
             Track History
           </h1>
-          <p className="text-muted-foreground mt-1">View your past transportation activities</p>
+          <p className="text-muted-foreground mt-1">
+            View your past transportation activities
+          </p>
         </div>
       </div>
 
@@ -175,7 +184,10 @@ export default function UserTrackHistory() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <Select value={filters.category} onValueChange={handleCategoryChange}>
+            <Select
+              value={filters.category}
+              onValueChange={handleCategoryChange}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -188,7 +200,10 @@ export default function UserTrackHistory() {
             </Select>
 
             {filters.category !== "all" && (
-              <Select value={filters.subType} onValueChange={handleSubTypeChange}>
+              <Select
+                value={filters.subType}
+                onValueChange={handleSubTypeChange}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -244,7 +259,10 @@ export default function UserTrackHistory() {
       ) : (
         <div className="grid gap-4">
           {filteredActivities.map((activity) => (
-            <Card key={activity._id} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={activity._id}
+              className="hover:shadow-lg transition-shadow"
+            >
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="space-y-1">
@@ -253,7 +271,8 @@ export default function UserTrackHistory() {
                         {activity.category.toUpperCase()}
                       </Badge>
                       <span className="font-semibold text-lg">
-                        {activity.subtype.charAt(0).toUpperCase() + activity.subtype.slice(1)}
+                        {activity.subtype.charAt(0).toUpperCase() +
+                          activity.subtype.slice(1)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -276,7 +295,9 @@ export default function UserTrackHistory() {
                     <Timer className="h-4 w-4 text-primary" />
                     <div>
                       <p className="text-xs text-muted-foreground">Duration</p>
-                      <p className="font-semibold">{formatDuration(activity.duration)}</p>
+                      <p className="font-semibold">
+                        {formatDuration(activity.duration)}
+                      </p>
                     </div>
                   </div>
                 </div>

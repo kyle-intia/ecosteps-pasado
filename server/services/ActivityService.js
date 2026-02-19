@@ -11,7 +11,6 @@ class ActivityService {
     return Activity.find({ userId, ...filter }).sort({ createdAt: -1 });
   }
 
-    // ✅ New method to update activity by ID
   static async updateActivity(activityId, updates) {
     return Activity.findByIdAndUpdate(activityId, updates, { new: true });
   }

@@ -1,12 +1,15 @@
-// client/src/components/RecommendationView.tsx
-// Component to display AI-generated carbon footprint recommendations
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Lightbulb,
   Car,
@@ -18,20 +21,20 @@ import {
   CheckCircle2,
   Target,
   Leaf,
-  Plane
-} from 'lucide-react';
-import { getTodaysTracking, getDailyTrackingHistory } from '../lib/api';
-import useAuth from '../hooks/useAuth';
-import MangroveMap from './MangrooveMap';
+  Plane,
+} from "lucide-react";
+import { getTodaysTracking, getDailyTrackingHistory } from "../lib/api";
+import useAuth from "../hooks/useAuth";
+import MangroveMap from "./MangrooveMap";
 
 interface Recommendation {
   id: string;
   title: string;
   description: string;
-  category: 'transport' | 'home' | 'food' | 'general';
+  category: "transport" | "home" | "food" | "general";
   estimatedSavings: number;
   priority: number;
-  source: 'ai_generated' | 'rule_based' | 'hybrid';
+  source: "ai_generated" | "rule_based" | "hybrid";
   actionable: boolean;
 }
 
@@ -61,7 +64,7 @@ interface RecommendationViewProps {
 const RecommendationView: React.FC<RecommendationViewProps> = ({
   recommendations,
   footprintData,
-  onRetry
+  onRetry,
 }) => {
   const navigate = useNavigate();
   const [isLoadingToday, setIsLoadingToday] = useState(false);
@@ -102,14 +105,13 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
     fetchHistory();
   }, [user]);
 
-  // Category icons
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'transport':
+      case "transport":
         return <Car className="h-5 w-5" />;
-      case 'home':
+      case "home":
         return <Home className="h-5 w-5" />;
-      case 'food':
+      case "food":
         return <Utensils className="h-5 w-5" />;
       default:
         return <Leaf className="h-5 w-5" />;
@@ -119,24 +121,28 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
   // Category colors
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'transport':
-        return 'bg-blue-500 text-white';
-      case 'home':
-        return 'bg-green-500 text-white';
-      case 'food':
-        return 'bg-orange-500 text-white';
+      case "transport":
+        return "bg-blue-500 text-white";
+      case "home":
+        return "bg-green-500 text-white";
+      case "food":
+        return "bg-orange-500 text-white";
       default:
-        return 'bg-gray-500 text-white';
+        return "bg-gray-500 text-white";
     }
   };
 
-  // Calculate total potential savings
-  const totalPotentialSavings = recommendations.reduce((sum, rec) => sum + rec.estimatedSavings, 0);
+  const totalPotentialSavings = recommendations.reduce(
+    (sum, rec) => sum + rec.estimatedSavings,
+    0,
+  );
   const currentTotal = footprintData?.calculatedFootprint.total || 0;
-  const potentialReduction = currentTotal > 0 ? (totalPotentialSavings / currentTotal) * 100 : 0;
+  const potentialReduction =
+    currentTotal > 0 ? (totalPotentialSavings / currentTotal) * 100 : 0;
 
-  // Sort recommendations by priority
-  const sortedRecommendations = [...recommendations].sort((a, b) => a.priority - b.priority);
+  const sortedRecommendations = [...recommendations].sort(
+    (a, b) => a.priority - b.priority,
+  );
 
   return (
     <div className="space-y-6">
@@ -186,7 +192,9 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
               <div className="mt-4 p-4 bg-success/10 rounded-lg border border-success/20">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingDown className="h-5 w-5 text-success" />
-                  <span className="font-semibold text-success">Potential Impact</span>
+                  <span className="font-semibold text-success">
+                    Potential Impact
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -206,9 +214,9 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                     </div>
                   </div>
                 </div>
-                <Progress 
-                  value={Math.min(potentialReduction, 100)} 
-                  className="mt-2 h-2" 
+                <Progress
+                  value={Math.min(potentialReduction, 100)}
+                  className="mt-2 h-2"
                 />
               </div>
             )}
@@ -219,44 +227,49 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
       {/* AI Recommendations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedRecommendations.map((recommendation) => (
-          <Card 
+          <Card
             key={recommendation.id}
             className="shadow-card border-border hover:shadow-lg transition-shadow duration-200"
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between mb-2">
-                <Badge 
+                <Badge
                   variant="secondary"
                   className={getCategoryColor(recommendation.category)}
                 >
                   {recommendation.category}
                 </Badge>
                 <div className="flex items-center gap-1">
-                  {recommendation.source === 'ai_generated' && (
-                    <Sparkles className="h-4 w-4 text-purple-500" aria-label="AI Generated" />
+                  {recommendation.source === "ai_generated" && (
+                    <Sparkles
+                      className="h-4 w-4 text-purple-500"
+                      aria-label="AI Generated"
+                    />
                   )}
                   <div className="text-xs text-muted-foreground">
                     #{recommendation.priority}
                   </div>
                 </div>
               </div>
-              
+
               <CardTitle className="text-lg flex items-start gap-2 leading-tight">
                 {getCategoryIcon(recommendation.category)}
                 <span>{recommendation.title}</span>
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {recommendation.description}
               </p>
-              
+
               {/* Savings Display */}
               <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg">
                 <div className="flex items-center gap-2">
                   <TrendingDown className="h-4 w-4 text-success" />
-                  <span className="text-sm font-medium text-success">Potential Savings</span>
+                  <span className="text-sm font-medium text-success">
+                    Potential Savings
+                  </span>
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-success">
@@ -265,7 +278,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                   <div className="text-xs text-muted-foreground">CO₂e</div>
                 </div>
               </div>
-              
+
               {/* Action Button
               <Button 
                 size="sm" 
@@ -278,19 +291,19 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 I'll Try This
               </Button> */}
-              
+
               {/* Source indicator */}
               <div className="text-xs text-muted-foreground text-center">
-                {recommendation.source === 'ai_generated' && (
+                {recommendation.source === "ai_generated" && (
                   <span className="flex items-center justify-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     AI-powered suggestion
                   </span>
                 )}
-                {recommendation.source === 'rule_based' && (
+                {recommendation.source === "rule_based" && (
                   <span>Evidence-based recommendation</span>
                 )}
-                {recommendation.source === 'hybrid' && (
+                {recommendation.source === "hybrid" && (
                   <span>AI-enhanced suggestion</span>
                 )}
               </div>
@@ -317,7 +330,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                 Personalized recommendations
               </div>
             </div>
-            
+
             <div className="p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-success mb-1">
                 {totalPotentialSavings.toFixed(1)}
@@ -326,7 +339,7 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
                 kg CO₂e potential savings
               </div>
             </div>
-            
+
             <div className="p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-accent mb-1">
                 {Math.round(potentialReduction)}%
@@ -339,19 +352,18 @@ const RecommendationView: React.FC<RecommendationViewProps> = ({
 
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              These AI-powered recommendations are personalized based on your daily carbon footprint. 
-              Start with the highest-priority suggestions for maximum impact. Even small changes can 
-              make a significant difference over time.
+              These AI-powered recommendations are personalized based on your
+              daily carbon footprint. Start with the highest-priority
+              suggestions for maximum impact. Even small changes can make a
+              significant difference over time.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              
-              
-              <Button 
+              <Button
                 size="sm"
                 onClick={() => {
                   // Navigate to dashboard using React Router
-                  navigate('/dashboard');
+                  navigate("/dashboard");
                 }}
               >
                 <Target className="h-4 w-4 mr-2" />

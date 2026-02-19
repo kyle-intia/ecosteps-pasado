@@ -13,17 +13,21 @@ const activitySchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
-    category: { type: String, enum: ["private","public","basic"], required: true },
+    category: {
+      type: String,
+      enum: ["private", "public", "basic"],
+      required: true,
+    },
     subtype: { type: String, required: true },
     points: [pointSchema],
     totalDistance: Number,
     duration: Number,
     isImported: {
-    type: Boolean,
-    default: false,
-},
+      type: Boolean,
+      default: false,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Activity", activitySchema);

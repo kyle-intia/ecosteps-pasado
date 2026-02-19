@@ -1,13 +1,15 @@
-// src/components/PostModal.tsx
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import PostCard from "./PostCard";
 import { useToast } from "@/hooks/use-toast";
-import { likePost, repostPost, sharePost, deletePost, commentOnPost, deleteComment } from "@/lib/api";
+import {
+  likePost,
+  repostPost,
+  sharePost,
+  deletePost,
+  commentOnPost,
+  deleteComment,
+} from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
@@ -47,7 +49,6 @@ interface Post {
   createdAt: string;
 }
 
-
 interface PostModalProps {
   post: Post;
   open: boolean;
@@ -67,9 +68,8 @@ const PostModal: React.FC<PostModalProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // Handlers that update both backend and UI optimistically/invalidate cache
   const handleLike = async (postId: string) => {
     if (!currentUserId) {
       toast({ title: "Sign in to like", variant: "destructive" });
@@ -77,7 +77,7 @@ const PostModal: React.FC<PostModalProps> = ({
     }
     await likePost(postId);
     queryClient.invalidateQueries({ queryKey: ["post", postId] });
-    queryClient.invalidateQueries({ queryKey: ["posts"] }); // if you have feeds
+    queryClient.invalidateQueries({ queryKey: ["posts"] });
   };
 
   const handleRepost = async (postId: string) => {
@@ -104,95 +104,90 @@ const PostModal: React.FC<PostModalProps> = ({
     }
   };
 
-const commentMutation = useMutation({
-  mutationFn: ({ postId, content }: { postId: string; content: string }) =>
-    commentOnPost(postId, content),
+  const commentMutation = useMutation({
+    mutationFn: ({ postId, content }: { postId: string; content: string }) =>
+      commentOnPost(postId, content),
 
-  onMutate: async ({ postId, content }) => {
-    // Cancel any outgoing refetches
-    await queryClient.cancelQueries({ queryKey: ["post", postId] });
+    onMutate: async ({ postId, content }) => {
+      await queryClient.cancelQueries({ queryKey: ["post", postId] });
 
-    // Snapshot previous post
-    const previousPost = queryClient.getQueryData(["post", postId]);
+      const previousPost = queryClient.getQueryData(["post", postId]);
 
-    // Optimistically update
-    queryClient.setQueryData(["post", postId], (old: any) => {
-      if (!old) return old;
+      queryClient.setQueryData(["post", postId], (old: any) => {
+        if (!old) return old;
 
-      const newComment = {
-        _id: Date.now().toString(), // temporary ID
-        content,
-        author: {
-          _id: currentUserId,
-          // You can also fetch current user profile here if needed
-        },
-        authorProfile: {
-          firstName: "You",
-          username: "you",
-        },
-        timestamp: new Date().toISOString(),
-      };
+        const newComment = {
+          _id: Date.now().toString(),
+          content,
+          author: {
+            _id: currentUserId,
+          },
+          authorProfile: {
+            firstName: "You",
+            username: "you",
+          },
+          timestamp: new Date().toISOString(),
+        };
 
-      return {
-        ...old,
-        comments: [...(old.comments || []), newComment],
-      };
-    });
+        return {
+          ...old,
+          comments: [...(old.comments || []), newComment],
+        };
+      });
 
-    return { previousPost };
-  },
+      return { previousPost };
+    },
 
-  onError: (err, { postId }, context) => {
-    // Rollback on error
-    queryClient.setQueryData(["post", postId], context?.previousPost);
-    toast({
-      title: "Failed to post comment",
-      description: "Please try again",
-      variant: "destructive",
-    });
-  },
+    onError: (err, { postId }, context) => {
+      queryClient.setQueryData(["post", postId], context?.previousPost);
+      toast({
+        title: "Failed to post comment",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    },
 
-  onSettled: (data, error, variables) => {
-    queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
-    queryClient.invalidateQueries({ queryKey: ["posts"] }); // if you have feeds
-  },
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["post", variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] }); // if you have feeds
+    },
 
-  onSuccess: () => {
-    toast({ title: "Comment posted!" });
-  },
-});
+    onSuccess: () => {
+      toast({ title: "Comment posted!" });
+    },
+  });
 
-const handleComment = async (postId: string, content: string) => {
-  if (!content.trim()) return;
-  commentMutation.mutate({ postId, content });
-};
+  const handleComment = async (postId: string, content: string) => {
+    if (!content.trim()) return;
+    commentMutation.mutate({ postId, content });
+  };
 
-const handleDeletePost = async (postId: string) => {
-  if (!currentUserId) {
-    toast({ title: "Sign in to delete posts", variant: "destructive" });
-    return;
-  }
-    try {
-        await deletePost(postId);
-        toast({ title: "Post deleted" });
-        navigate(-1);
-    } catch (err) {
-        toast({ title: "Failed to delete post", variant: "destructive" });
+  const handleDeletePost = async (postId: string) => {
+    if (!currentUserId) {
+      toast({ title: "Sign in to delete posts", variant: "destructive" });
+      return;
     }
-};
-const handleDeleteComment = async (postId: string, commentId: string) => {
-  if (!currentUserId) {
-    toast({ title: "Sign in to delete comments", variant: "destructive" });
-    return;
-  }
     try {
-        await deleteComment(postId, commentId);
-        toast({ title: "Comment deleted" });
-        queryClient.invalidateQueries({ queryKey: ["post", postId] });
+      await deletePost(postId);
+      toast({ title: "Post deleted" });
+      navigate(-1);
     } catch (err) {
-        toast({ title: "Failed to delete comment", variant: "destructive" });
+      toast({ title: "Failed to delete post", variant: "destructive" });
     }
-};
+  };
+  const handleDeleteComment = async (postId: string, commentId: string) => {
+    if (!currentUserId) {
+      toast({ title: "Sign in to delete comments", variant: "destructive" });
+      return;
+    }
+    try {
+      await deleteComment(postId, commentId);
+      toast({ title: "Comment deleted" });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    } catch (err) {
+      toast({ title: "Failed to delete comment", variant: "destructive" });
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,8 +197,12 @@ const handleDeleteComment = async (postId: string, commentId: string) => {
             className="bg-transparent shadow-none hover:shadow-none"
             post={{
               ...post,
-              isLiked: currentUserId ? post.likes?.includes(currentUserId) : false,
-              isReposted: currentUserId ? post.reposts?.includes(currentUserId) : false,
+              isLiked: currentUserId
+                ? post.likes?.includes(currentUserId)
+                : false,
+              isReposted: currentUserId
+                ? post.reposts?.includes(currentUserId)
+                : false,
               isFollowing,
               comments: post.comments || [],
               likesCount: post.likesCount ?? post.likes?.length ?? 0,

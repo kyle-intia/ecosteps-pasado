@@ -1,20 +1,15 @@
-// userCertificateRewardRoute.js
 const express = require("express");
 const authenticate = require("../middleware/authenticate");
-const CertificateRewardService  = require("../services/certificateRewardService");
-const { sendMail } = require("../utils/sendMail"); 
+const CertificateRewardService = require("../services/certificateRewardService");
+const { sendMail } = require("../utils/sendMail");
 
 const router = express.Router();
 router.use(authenticate);
 
-// GET user's earned certificates
-// GET user's earned certificates, auto-update unlocked ones
 router.get("/certificates", async (req, res) => {
   try {
-    // Step 1: automatically check and unlock certificates
     await CertificateRewardService.checkCertificatesForUser(req.userId);
 
-    // Step 2: fetch updated certificates with progress
     const list = await CertificateRewardService.getUserCertificates(req.userId);
     res.json(list);
   } catch (err) {
@@ -22,14 +17,10 @@ router.get("/certificates", async (req, res) => {
   }
 });
 
-
-// GET all user's rewards with progress
 router.get("/rewards", async (req, res) => {
   try {
-    // Step 1: automatically check rewards for user
     await CertificateRewardService.checkRewardsForUser(req.userId);
 
-    // Step 2: fetch updated rewards with progress
     const list = await CertificateRewardService.getUserRewards(req.userId);
     res.json(list);
   } catch (err) {
@@ -37,16 +28,14 @@ router.get("/rewards", async (req, res) => {
   }
 });
 
-
 router.post("/check", async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Run checks
     await CertificateRewardService.runAllChecksForUser(userId);
 
-    // Fetch full updated lists with progress
-    const certificates = await CertificateRewardService.getUserCertificates(userId);
+    const certificates =
+      await CertificateRewardService.getUserCertificates(userId);
     const rewards = await CertificateRewardService.getUserRewards(userId);
 
     res.json({ certificates, rewards });
@@ -56,11 +45,13 @@ router.post("/check", async (req, res) => {
   }
 });
 
-// Claim a reward
 router.post("/rewards/:id/claim", async (req, res) => {
   try {
     const rewardId = req.params.id;
-    const result = await CertificateRewardService.claimReward(req.userId, rewardId);
+    const result = await CertificateRewardService.claimReward(
+      req.userId,
+      rewardId,
+    );
 
     if (!result.ok) {
       if (result.code === "not_found")
@@ -70,13 +61,11 @@ router.post("/rewards/:id/claim", async (req, res) => {
       return res.status(400).json({ message: "Cannot claim" });
     }
 
-    // Extract user data
     const userEmail = req.user.email;
     const userName = req.user.name || "EcoSteps User";
     const rewardName = result.rewardItem;
     const claimDate = new Date(result.claimedAt).toLocaleString();
 
-    // Send email
     await sendMail({
       to: userEmail,
       subject: `🎉 You Just Claimed: ${rewardName}!`,
@@ -94,7 +83,7 @@ router.post("/rewards/:id/claim", async (req, res) => {
         Thank you for helping build a greener world! 🌱
         – The EcoSteps Team
               `,
-              html: `
+      html: `
         <div style="font-family: Arial, sans-serif; background: #f4f7f9; padding: 20px;">
           <div style="max-width: 600px; margin: auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             
@@ -149,40 +138,34 @@ router.post("/rewards/:id/claim", async (req, res) => {
             
           </div>
         </div>
-        `
+        `,
     });
 
     res.json({ message: "Reward claimed", claimedAt: result.claimedAt });
-
   } catch (err) {
     console.error("CLAIM ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
 router.get("/progress", async (req, res) => {
   try {
-    // Compute user stats including all subtypes and daily tracking
-    const { totals, activities, dailyStats, monthlyStats, userInfo  } =
+    const { totals, activities, dailyStats, monthlyStats, userInfo } =
       await CertificateRewardService.computeUserStats(req.userId);
 
-    // Compute streak from activity dates
     const streak = CertificateRewardService.computeStreak(totals.dates);
 
-    // Respond with enriched stats
     res.json({
       totals,
       activitiesCount: activities.length,
-      dailyStats,    
+      dailyStats,
       monthlyStats,
-      userInfo   
+      userInfo,
+      streak,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;

@@ -16,7 +16,11 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState<{ email?: string; password?: string ; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
@@ -27,7 +31,9 @@ export default function Register() {
 
     if (!formData.email) {
       newErrors.email = "Email is required";
-    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+    } else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)
+    ) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -35,8 +41,9 @@ export default function Register() {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
-    } else if (! /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password)) {
-      newErrors.password = "Password can only contain letters, numbers, and the following special characters: !@#$%^&*()-_=+";
+    } else if (!/^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password)) {
+      newErrors.password =
+        "Password can only contain letters, numbers, and the following special characters: !@#$%^&*()-_=+";
     }
 
     if (!formData.confirmPassword) {
@@ -50,17 +57,17 @@ export default function Register() {
   };
 
   const isPasswordValid =
-  formData.password.length >= 8 &&
-  /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password);
+    formData.password.length >= 8 &&
+    /^[a-zA-Z0-9!@#$%^&*()\-_=+]+$/.test(formData.password);
 
-  const {
-    mutate: createAccount,
-    isPending,
-  } = useMutation({
-    mutationFn: (data: { email: string; password: string; confirmPassword: string }) => register(data),
+  const { mutate: createAccount, isPending } = useMutation({
+    mutationFn: (data: {
+      email: string;
+      password: string;
+      confirmPassword: string;
+    }) => register(data),
     onSuccess: async (_, variables) => {
       try {
-        // Attempt auto-login after registration
         await login({ email: variables.email, password: variables.password });
         localStorage.setItem("isLoggedIn", "true");
         queryClient.invalidateQueries(["userProfileDetails"]);
@@ -69,14 +76,12 @@ export default function Register() {
           title: "Welcome to EcoStep!",
           description: "Your account is ready and you're now logged in.",
         });
-        // Navigate to main app since login succeeded
         navigate("/pre-assessment", { replace: true });
       } catch (error: any) {
-        // Login failed (likely due to unverified email)
-        // Don't set isLoggedIn, navigate to verification prompt
         toast({
           title: "Account Created Successfully",
-          description: "Please check your email and verify your account before logging in.",
+          description:
+            "Please check your email and verify your account before logging in.",
         });
         navigate("/verify-email-prompt", { replace: true });
       }
@@ -84,17 +89,21 @@ export default function Register() {
     onError: (error: any) => {
       toast({
         title: "Register failed",
-        description: error?.message || "Invalid email or password. Please try again.",
+        description:
+          error?.message || "Invalid email or password. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      createAccount({ email: formData.email, password: formData.password,  confirmPassword: formData.confirmPassword  });
+      createAccount({
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
     }
   };
 
@@ -113,15 +122,12 @@ export default function Register() {
     formData.password === formData.confirmPassword &&
     Object.keys(errors).length === 0;
 
-
   return (
     <AuthLayout
       title="Join EcoSteps"
       description="Create your account and start making a positive environmental impact today"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        
-
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -154,7 +160,11 @@ export default function Register() {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           {errors.password && (
@@ -183,33 +193,46 @@ export default function Register() {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
-
 
         <ul
           className={`text-xs mt-1 transition-colors ${
             formData.password.length === 0
               ? "text-muted-foreground"
               : isPasswordValid
-              ? "text-green-600"
-              : "text-red-500"
+                ? "text-green-600"
+                : "text-red-500"
           }`}
         >
           <li>Must be at least 8 characters long.</li>
           <li>Letters, numbers, and the following symbols are allowed:</li>
-          <li><span className="font-mono"> !@#$%^&*()-_=+</span></li>
+          <li>
+            <span className="font-mono"> !@#$%^&*()-_=+</span>
+          </li>
         </ul>
 
-        <Button type="submit" variant="hero" className="w-full transition-all duration-300 ease-out" disabled={isPending || !isFormValid}>
+        <Button
+          type="submit"
+          variant="hero"
+          className="w-full transition-all duration-300 ease-out"
+          disabled={isPending || !isFormValid}
+        >
           {isPending ? "Creating Account..." : "Create Account"}
         </Button>
 
         <div className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary hover:underline font-medium">
+          <Link
+            to="/login"
+            className="text-primary hover:underline font-medium"
+          >
             Log in
           </Link>
         </div>

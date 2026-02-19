@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Settings, 
-  Calendar, 
+import {
+  Settings,
+  Calendar,
   Edit,
   MapPin,
   Cake,
@@ -20,10 +20,25 @@ import {
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserPostsAndReposts, likePost, sharePost, repostPost, getProfile, getUserAchievements, equipAchievement, unequipAchievement, updateProfile, getUserCommunityPosts, editPost, deletePost, commentOnPost, deleteComment } from "../lib/api"; 
+import {
+  getUserPostsAndReposts,
+  likePost,
+  sharePost,
+  repostPost,
+  getProfile,
+  getUserAchievements,
+  equipAchievement,
+  unequipAchievement,
+  updateProfile,
+  getUserCommunityPosts,
+  editPost,
+  deletePost,
+  commentOnPost,
+  deleteComment,
+} from "../lib/api";
 import { Spinner } from "@/components/ui/spinner";
-import  useSessionStatus from "../hooks/useSessionStatus"
-import  useSignOut from "../hooks/useLogout"
+import useSessionStatus from "../hooks/useSessionStatus";
+import useSignOut from "../hooks/useLogout";
 import UserTrackHistory from "@/components/TrackHistory";
 import PostCard from "@/components/PostCard";
 import useAuth from "../hooks/useAuth";
@@ -71,12 +86,13 @@ const Profile = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isEditingAchievements, setIsEditingAchievements] = useState(false);
-  const [draggedAchievement, setDraggedAchievement] = useState<Achievement | null>(null);
+  const [draggedAchievement, setDraggedAchievement] =
+    useState<Achievement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { isPending, isLoggedIn } = useSessionStatus();
-  const { signOut } = useSignOut()
+  const { signOut } = useSignOut();
   const fileInputRef = useRef(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -101,13 +117,17 @@ const Profile = () => {
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
-    const month = d.toLocaleString('en-US', { month: 'short' }); 
-    const day = String(d.getDate()).padStart(2, '0');     
-    const year = d.getFullYear();                            
+    const month = d.toLocaleString("en-US", { month: "short" });
+    const day = String(d.getDate()).padStart(2, "0");
+    const year = d.getFullYear();
     return `${month}-${day}-${year}`;
   };
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<ProfileType>({
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery<ProfileType>({
     queryKey: ["profile"],
     queryFn: getProfile,
   });
@@ -125,7 +145,7 @@ const Profile = () => {
         location: profile.address,
         birthday,
         avatarUrl: profile.profilePic,
-        joinedDate
+        joinedDate,
       });
     }
   }, [profile]);
@@ -137,38 +157,48 @@ const Profile = () => {
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
 
-  const fetchPosts = useCallback(async (tab: "posts" | "reposts", pageNum = 1, append = false) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+  const fetchPosts = useCallback(
+    async (tab: "posts" | "reposts", pageNum = 1, append = false) => {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
 
-    try {
-      const data = await getUserPostsAndReposts(userId, pageNum, LIMIT);
+      try {
+        const data = await getUserPostsAndReposts(userId, pageNum, LIMIT);
 
-      const normalized = (Array.isArray(data) ? data : data.posts || []).map((p: any) => ({
-        ...p,
-        isFollowing: false,
-        likesCount: p.likesCount ?? p.likes?.length ?? 0,
-        repostsCount: p.repostsCount ?? p.reposts?.length ?? 0,
-        sharesCount: p.sharesCount ?? p.shares?.length ?? 0,
-      }));
+        const normalized = (Array.isArray(data) ? data : data.posts || []).map(
+          (p: any) => ({
+            ...p,
+            isFollowing: false,
+            likesCount: p.likesCount ?? p.likes?.length ?? 0,
+            repostsCount: p.repostsCount ?? p.reposts?.length ?? 0,
+            sharesCount: p.sharesCount ?? p.shares?.length ?? 0,
+          }),
+        );
 
-      if (tab === "posts") {
-        setPosts(prev => append ? [...prev, ...normalized] : normalized);
-      } else {
-        setReposts(prev => append ? [...prev, ...normalized] : normalized);
+        if (tab === "posts") {
+          setPosts((prev) => (append ? [...prev, ...normalized] : normalized));
+        } else {
+          setReposts((prev) =>
+            append ? [...prev, ...normalized] : normalized,
+          );
+        }
+
+        setHasMore(normalized.length >= LIMIT);
+        setPage(pageNum);
+      } catch (err: any) {
+        toast({
+          title: "Failed to load posts",
+          description: err.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
+    },
+    [userId, toast],
+  );
 
-      setHasMore(normalized.length >= LIMIT);
-      setPage(pageNum);
-    } catch (err: any) {
-      toast({ title: "Failed to load posts", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [userId, toast]);
-
-  // Load initial data
   useEffect(() => {
     fetchPosts(activeTab as "posts" | "reposts", 1, false);
   }, [activeTab, fetchPosts]);
@@ -181,17 +211,19 @@ const Profile = () => {
 
   const currentFeed = activeTab === "posts" ? posts : reposts;
 
-  const myPosts = currentFeed.filter(post => post.author._id === userId);
-  const myReposts = currentFeed.filter(post =>
-    post.isReposted && post.repostsDetails?.some(r => r.repostedBy._id === userId)
+  const myPosts = currentFeed.filter((post) => post.author._id === userId);
+  const myReposts = currentFeed.filter(
+    (post) =>
+      post.isReposted &&
+      post.repostsDetails?.some((r) => r.repostedBy._id === userId),
   );
 
-  // Handle Post Editing
-  const { data: achievementData, isLoading: achievementsLoading } = useQuery<AchievementData>({
-    queryKey: ["achievements"],
-    queryFn: getUserAchievements,
-    staleTime: 1000 * 60 * 5
-  });
+  const { data: achievementData, isLoading: achievementsLoading } =
+    useQuery<AchievementData>({
+      queryKey: ["achievements"],
+      queryFn: getUserAchievements,
+      staleTime: 1000 * 60 * 5,
+    });
 
   const equipMutation = useMutation<any, Error, string>({
     mutationFn: equipAchievement,
@@ -206,9 +238,9 @@ const Profile = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to equip achievement",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const unequipMutation = useMutation<any, Error, string>({
@@ -224,13 +256,15 @@ const Profile = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to unequip achievement",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
-  // Drag-and-Drop Logic
-  const handleAchievementDragStart = (e: React.DragEvent, achievement: Achievement) => {
+  const handleAchievementDragStart = (
+    e: React.DragEvent,
+    achievement: Achievement,
+  ) => {
     e.dataTransfer.effectAllowed = "move";
     setDraggedAchievement(achievement);
   };
@@ -256,8 +290,9 @@ const Profile = () => {
     if (equipped.length >= 3) {
       toast({
         title: "Maximum Equipped",
-        description: "You can only equip 3 achievements at a time. Unequip one first.",
-        variant: "destructive"
+        description:
+          "You can only equip 3 achievements at a time. Unequip one first.",
+        variant: "destructive",
       });
       return;
     }
@@ -286,22 +321,21 @@ const Profile = () => {
   const equipped = achievementData?.equipped || [];
   const stats = achievementData?.stats || {};
 
-  const unlockedAchievements = achievements.filter(a => a.unlocked);
-  const equippedAchievements = achievements.filter(a => 
-    equipped.some(e => e.achievementId === a.achievementId)
+  const unlockedAchievements = achievements.filter((a) => a.unlocked);
+  const equippedAchievements = achievements.filter((a) =>
+    equipped.some((e) => e.achievementId === a.achievementId),
   );
 
   const tierIcons = {
-    bronze: '🥉',
-    silver: '🥈',
-    gold: '🥇',
-    platinum: '💎'
+    bronze: "🥉",
+    silver: "🥈",
+    gold: "🥇",
+    platinum: "💎",
   };
 
   const handleSignOut = () => {
     signOut();
   };
-
 
   const handleEditClick = () => {
     if (!isEditing) {
@@ -325,17 +359,17 @@ const Profile = () => {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('profilePic', selectedFile);
+      formData.append("profilePic", selectedFile);
 
       const response = await updateProfile(formData);
 
       if (response.newAvatarUrl) {
-        setCurrentUser(prevUser => ({
+        setCurrentUser((prevUser) => ({
           ...prevUser,
           avatarUrl: response.newAvatarUrl,
         }));
       } else {
-        setCurrentUser(prevUser => ({
+        setCurrentUser((prevUser) => ({
           ...prevUser,
           avatarUrl: URL.createObjectURL(selectedFile),
         }));
@@ -345,11 +379,11 @@ const Profile = () => {
       setSelectedFile(null);
     } catch (error) {
       console.error("Upload error:", error);
-        
+
       const message =
         (error && typeof error === "object" && error.error) ||
         "Could not upload your picture. Try again later.";
-        
+
       toast({
         title: "Upload failed",
         description: message,
@@ -362,13 +396,11 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setPreviewUrl(null); // if you want to clear the preview
+    setPreviewUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = null; // reset the file input
+      fileInputRef.current.value = null;
     }
   };
-
-
 
   if (isPending) {
     return <Spinner />;
@@ -377,24 +409,24 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
-      
+
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Avatar Section */}
               <div className="flex flex-col items-center md:items-start">
                 <Avatar className="h-32 w-32 mb-4">
-                  <AvatarImage src={previewUrl || currentUser.avatarUrl || undefined} />
+                  <AvatarImage
+                    src={previewUrl || currentUser.avatarUrl || undefined}
+                  />
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
                     {currentUser.fullName
-                      .split(' ')
+                      .split(" ")
                       .map((n) => n[0])
-                      .join('')}
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
-                    
+
                 <input
                   type="file"
                   accept="image/*"
@@ -405,7 +437,7 @@ const Profile = () => {
 
                 <div className="flex flex-col gap-2 w-full md:w-auto">
                   <Button
-                    variant={isEditing ? 'default' : 'outline'}
+                    variant={isEditing ? "default" : "outline"}
                     className="transition-all duration-300 ease-out"
                     onClick={handleEditClick}
                     disabled={isUploading}
@@ -415,10 +447,13 @@ const Profile = () => {
                     ) : (
                       <Edit className="h-4 w-4 mr-2" />
                     )}
-                    {isUploading ? 'Saving...' : isEditing ? 'Save Photo' : 'Edit Photo'}
+                    {isUploading
+                      ? "Saving..."
+                      : isEditing
+                        ? "Save Photo"
+                        : "Edit Photo"}
                   </Button>
-                  
-                  {/* Show Cancel button only when editing */}
+
                   {isEditing && (
                     <Button
                       variant="destructive"
@@ -431,17 +466,21 @@ const Profile = () => {
                 </div>
               </div>
 
-
-              {/* Profile Info */}
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h1 className="text-3xl font-bold text-foreground mb-1">
                       {currentUser.fullName}
                     </h1>
-                    <p className="text-lg text-muted-foreground">@{currentUser.username}</p>
+                    <p className="text-lg text-muted-foreground">
+                      @{currentUser.username}
+                    </p>
                   </div>
-                  <Button variant="outline" asChild className="transition-all duration-300 ease-out">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="transition-all duration-300 ease-out"
+                  >
                     <Link to="/settings">
                       <Settings className="h-4 w-4 mr-2 " />
                       Settings
@@ -466,14 +505,17 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="flex flex-wrap gap-6">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{myPosts.length || 0}</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {myPosts.length || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Posts</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{myReposts.length || 0}</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {myReposts.length || 0}
+                    </p>
                     <p className="text-sm text-muted-foreground">Reposts</p>
                   </div>
                 </div>
@@ -482,7 +524,6 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Achievements Section */}
         <Card className="mb-8">
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -491,17 +532,21 @@ const Profile = () => {
                 Featured Achievements ({equipped.length}/3)
               </CardTitle>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="transition-all duration-300 ease-out" asChild>
-                  <Link to="/achievements">View All</Link>
-                </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="transition-all duration-300 ease-out"
-                  onClick={() => setIsEditingAchievements(!isEditingAchievements)}
+                  asChild
+                >
+                  <Link to="/achievements">View All</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="transition-all duration-300 ease-out"
+                  onClick={() =>
+                    setIsEditingAchievements(!isEditingAchievements)
+                  }
                 >
                   {isEditingAchievements ? "Done" : "Edit"}
                 </Button>
@@ -512,10 +557,10 @@ const Profile = () => {
             {isEditingAchievements ? (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Drag achievements from your unlocked list to display them (max 3):
+                  Drag achievements from your unlocked list to display them (max
+                  3):
                 </p>
-                
-                {/* Display Slots */}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   {[0, 1, 2].map((index) => {
                     const slotAchievement = equippedAchievements[index];
@@ -530,14 +575,20 @@ const Profile = () => {
                           <div className="text-center w-full">
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="text-2xl">{slotAchievement.icon}</span>
-                                <span className="font-medium text-sm truncate">{slotAchievement.name}</span>
+                                <span className="text-2xl">
+                                  {slotAchievement.icon}
+                                </span>
+                                <span className="font-medium text-sm truncate">
+                                  {slotAchievement.name}
+                                </span>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 transition-all duration-300 ease-out"
-                                onClick={() => handleUnequip(slotAchievement.achievementId)}
+                                onClick={() =>
+                                  handleUnequip(slotAchievement.achievementId)
+                                }
                                 disabled={unequipMutation.isPending}
                               >
                                 {unequipMutation.isPending ? (
@@ -547,9 +598,12 @@ const Profile = () => {
                                 )}
                               </Button>
                             </div>
-                            <p className="text-xs text-muted-foreground">{slotAchievement.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {slotAchievement.description}
+                            </p>
                             <Badge variant="secondary" className="mt-2 text-xs">
-                              {tierIcons[slotAchievement.tier]} {slotAchievement.tier}
+                              {tierIcons[slotAchievement.tier]}{" "}
+                              {slotAchievement.tier}
                             </Badge>
                           </div>
                         ) : (
@@ -562,29 +616,43 @@ const Profile = () => {
                   })}
                 </div>
 
-                {/* Available Achievements */}
                 <div>
-                  <h4 className="font-medium mb-3">Your Unlocked Achievements ({unlockedAchievements.length}):</h4>
+                  <h4 className="font-medium mb-3">
+                    Your Unlocked Achievements ({unlockedAchievements.length}):
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                     {unlockedAchievements.map((achievement) => {
-                      const isEquipped = equipped.some(e => e.achievementId === achievement.achievementId);
+                      const isEquipped = equipped.some(
+                        (e) => e.achievementId === achievement.achievementId,
+                      );
                       return (
                         <div
                           key={achievement.achievementId}
                           draggable={!isEquipped}
-                          onDragStart={(e) => !isEquipped && handleAchievementDragStart(e, achievement)}
+                          onDragStart={(e) =>
+                            !isEquipped &&
+                            handleAchievementDragStart(e, achievement)
+                          }
                           onDragEnd={handleAchievementDragEnd}
                           className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
                             isEquipped
-                              ? 'opacity-50 bg-muted cursor-not-allowed' 
-                              : 'bg-background hover:bg-accent cursor-move hover:shadow-md'
+                              ? "opacity-50 bg-muted cursor-not-allowed"
+                              : "bg-background hover:bg-accent cursor-move hover:shadow-md"
                           }`}
                         >
-                          {!isEquipped && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                          <span className="text-2xl flex-shrink-0">{achievement.icon}</span>
+                          {!isEquipped && (
+                            <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <span className="text-2xl flex-shrink-0">
+                            {achievement.icon}
+                          </span>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{achievement.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{achievement.description}</p>
+                            <p className="font-medium text-sm truncate">
+                              {achievement.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {achievement.description}
+                            </p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="outline" className="text-xs">
                                 {tierIcons[achievement.tier]} {achievement.tier}
@@ -601,7 +669,9 @@ const Profile = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEquip(achievement.achievementId)}
+                              onClick={() =>
+                                handleEquip(achievement.achievementId)
+                              }
                               disabled={equipMutation.isPending}
                               className="flex-shrink-0 transition-all duration-300 ease-out"
                             >
@@ -618,7 +688,8 @@ const Profile = () => {
                   </div>
                   {unlockedAchievements.length === 0 && (
                     <p className="text-center text-muted-foreground py-8">
-                      Complete challenges and track your carbon footprint to unlock achievements!
+                      Complete challenges and track your carbon footprint to
+                      unlock achievements!
                     </p>
                   )}
                 </div>
@@ -628,19 +699,27 @@ const Profile = () => {
                 {equippedAchievements.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {equippedAchievements.map((achievement) => (
-                      <div key={achievement.achievementId} className="flex items-center gap-3 p-4 bg-accent/50 rounded-lg">
+                      <div
+                        key={achievement.achievementId}
+                        className="flex items-center gap-3 p-4 bg-accent/50 rounded-lg"
+                      >
                         <div className="p-2 bg-primary/10 rounded-lg">
                           <span className="text-3xl">{achievement.icon}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{achievement.name}</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{achievement.description}</p>
+                          <h4 className="font-medium text-sm truncate">
+                            {achievement.name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {achievement.description}
+                          </p>
                           <div className="flex items-center gap-1 mt-1">
                             <Badge variant="outline" className="text-xs">
                               {tierIcons[achievement.tier]}
                             </Badge>
                             <p className="text-xs text-success font-medium">
-                              {achievement.unlockedAt && `Earned ${formatDate(achievement.unlockedAt)}`}
+                              {achievement.unlockedAt &&
+                                `Earned ${formatDate(achievement.unlockedAt)}`}
                             </p>
                           </div>
                         </div>
@@ -653,13 +732,15 @@ const Profile = () => {
                     <p className="text-muted-foreground mb-4">
                       You haven't equipped any achievements yet.
                     </p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setIsEditingAchievements(true)}
                       disabled={unlockedAchievements.length === 0}
                       className="transition-all duration-300 ease-out"
                     >
-                      {unlockedAchievements.length > 0 ? "Equip Achievements" : "Unlock Achievements First"}
+                      {unlockedAchievements.length > 0
+                        ? "Equip Achievements"
+                        : "Unlock Achievements First"}
                     </Button>
                   </div>
                 )}
@@ -668,127 +749,176 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Posts and Reposts */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="posts">Posts</TabsTrigger>
-                  <TabsTrigger value="reposts">Reposts</TabsTrigger>
-                  <TabsTrigger value="history">Track History</TabsTrigger>
-                </TabsList>
-                  
-                <TabsContent value="posts" className="space-y-6 mt-6">
-                  {loading && <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}
-                  {!loading && myPosts.length === 0 && (
-                    <p className="text-center text-muted-foreground py-12">No posts yet</p>
-                  )}
-                  {myPosts.map(post => (
-                    <PostCard
-                      key={post._id}
-                      post={post}
-                      currentUserId={userId}
-                      isFollowing={false}
-                      onLike={async (id) => {
-                        const updated = await likePost(id);
-                        updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onRepost={async (id) => {
-                        const updated = await repostPost(id);
-                        updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onShare={async (id) => {
-                        const updated = await sharePost(id);
-                        updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onComment={async (id, content) => {
-                        const updated = await commentOnPost(id, content);
-                        updated && setPosts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onDeletePost={async (id) => {
-                        await deletePost(id);
-                        setPosts(prev => prev.filter(p => p._id !== id));
-                        setReposts(prev => prev.filter(p => p._id !== id));
-                        toast({ title: "Post deleted" });
-                      }}
-                      onDeleteComment={async (postId, commentId) => {
-                        await deleteComment(postId, commentId);
-                        // Optional: refetch or update locally
-                      }}
-                      onToggleFollow={undefined}// no-op or hide follow button
-                      onUpdatePost={(updated) => {
-                        setPosts(prev => prev.map(p => p._id === updated._id ? updated : p));
-                        setReposts(prev => prev.map(p => p._id === updated._id ? updated : p));
-                      }}
-                    />
-                  ))}
-        
-                  {hasMore && (
-                    <div className="text-center mt-8">
-                      <button
-                        onClick={loadMore}
-                        disabled={loadingMore}
-                        className="text-sm text-primary hover:underline"
-                      >
-                        {loadingMore ? "Loading..." : "Load more"}
-                      </button>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="reposts" className="space-y-6 mt-6">
-                  {/* Same content as above — automatically uses reposts state */}
-                  {loading && <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}
-                  {!loading && myReposts.length === 0 && (
-                    <p className="text-center text-muted-foreground py-12">No reposts yet</p>
-                  )}
-                  {myReposts.map(post => (
-                    <PostCard
-                      key={post._id}
-                      post={post}
-                      currentUserId={userId}
-                      isFollowing={false}
-                      onLike={async (id) => {
-                        const updated = await likePost(id);
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onRepost={async (id) => {
-                        const updated = await repostPost(id);
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onShare={async (id) => {
-                        const updated = await sharePost(id);
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onComment={async (id, content) => {
-                        const updated = await commentOnPost(id, content);
-                        updated && setReposts(prev => prev.map(p => p._id === id ? updated : p));
-                      }}
-                      onDeletePost={async () => {}} // can't delete others' posts
-                      onDeleteComment={async () => {}}
-                      onToggleFollow={undefined}
-                      onUpdatePost={(updated) => {
-                        setReposts(prev => prev.map(p => p._id === updated._id ? updated : p));
-                      }}
-                    />
-                  ))}
-        
-                  {hasMore && (
-                    <div className="text-center mt-8">
-                      <button onClick={loadMore} disabled={loadingMore} className="text-sm text-primary hover:underline">
-                        {loadingMore ? "Loading..." : "Load more"}
-                      </button>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="history" className="space-y-4 mt-6">
-                  <UserTrackHistory />
-                </TabsContent>
-              </Tabs>
-              </main>
-            </div>
-          );
-        };
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="reposts">Reposts</TabsTrigger>
+            <TabsTrigger value="history">Track History</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-6 mt-6">
+            {loading && (
+              <div className="text-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+              </div>
+            )}
+            {!loading && myPosts.length === 0 && (
+              <p className="text-center text-muted-foreground py-12">
+                No posts yet
+              </p>
+            )}
+            {myPosts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={userId}
+                isFollowing={false}
+                onLike={async (id) => {
+                  const updated = await likePost(id);
+                  updated &&
+                    setPosts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onRepost={async (id) => {
+                  const updated = await repostPost(id);
+                  updated &&
+                    setPosts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onShare={async (id) => {
+                  const updated = await sharePost(id);
+                  updated &&
+                    setPosts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onComment={async (id, content) => {
+                  const updated = await commentOnPost(id, content);
+                  updated &&
+                    setPosts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onDeletePost={async (id) => {
+                  await deletePost(id);
+                  setPosts((prev) => prev.filter((p) => p._id !== id));
+                  setReposts((prev) => prev.filter((p) => p._id !== id));
+                  toast({ title: "Post deleted" });
+                }}
+                onDeleteComment={async (postId, commentId) => {
+                  await deleteComment(postId, commentId);
+                }}
+                onToggleFollow={undefined}
+                onUpdatePost={(updated) => {
+                  setPosts((prev) =>
+                    prev.map((p) => (p._id === updated._id ? updated : p)),
+                  );
+                  setReposts((prev) =>
+                    prev.map((p) => (p._id === updated._id ? updated : p)),
+                  );
+                }}
+              />
+            ))}
+
+            {hasMore && (
+              <div className="text-center mt-8">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {loadingMore ? "Loading..." : "Load more"}
+                </button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reposts" className="space-y-6 mt-6">
+            {loading && (
+              <div className="text-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+              </div>
+            )}
+            {!loading && myReposts.length === 0 && (
+              <p className="text-center text-muted-foreground py-12">
+                No reposts yet
+              </p>
+            )}
+            {myReposts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={userId}
+                isFollowing={false}
+                onLike={async (id) => {
+                  const updated = await likePost(id);
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onRepost={async (id) => {
+                  const updated = await repostPost(id);
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onShare={async (id) => {
+                  const updated = await sharePost(id);
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onComment={async (id, content) => {
+                  const updated = await commentOnPost(id, content);
+                  updated &&
+                    setReposts((prev) =>
+                      prev.map((p) => (p._id === id ? updated : p)),
+                    );
+                }}
+                onDeletePost={async () => {}} // can't delete others' posts
+                onDeleteComment={async () => {}}
+                onToggleFollow={undefined}
+                onUpdatePost={(updated) => {
+                  setReposts((prev) =>
+                    prev.map((p) => (p._id === updated._id ? updated : p)),
+                  );
+                }}
+              />
+            ))}
+
+            {hasMore && (
+              <div className="text-center mt-8">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {loadingMore ? "Loading..." : "Load more"}
+                </button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4 mt-6">
+            <UserTrackHistory />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+};
 
 export default Profile;

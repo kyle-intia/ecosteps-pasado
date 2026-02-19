@@ -10,8 +10,8 @@ const useSignOut = () => {
     mutationFn: logout,
     onSettled: () => {
       localStorage.clear();
-      queryClient.clear(); 
-      navigate("/login", { replace: true }); 
+      queryClient.clear();
+      navigate("/login", { replace: true });
     },
   });
 

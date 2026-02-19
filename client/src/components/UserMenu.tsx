@@ -18,18 +18,10 @@ const UserMenu: React.FC<UserMenuProps> = () => {
 
   return (
     <div className="relative inline-block">
-      <button
-        className="absolute left-6 bottom-6 border-none bg-none cursor-pointer"
-      >
-        <img
-          src="#"
-          alt="User Avatar"
-          className="rounded-full w-10 h-10"
-        />
+      <button className="absolute left-6 bottom-6 border-none bg-none cursor-pointer">
+        <img src="#" alt="User Avatar" className="rounded-full w-10 h-10" />
       </button>
-      <ul
-        className="absolute right-0 bg-white border border-gray-300 shadow-lg p-4 mt-2 w-48 list-none hidden"
-      >
+      <ul className="absolute right-0 bg-white border border-gray-300 shadow-lg p-4 mt-2 w-48 list-none hidden">
         <li
           className="py-2 cursor-pointer hover:bg-gray-200"
           onClick={() => navigate("/profile")}

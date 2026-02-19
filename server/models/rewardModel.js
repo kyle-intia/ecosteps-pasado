@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const RewardSchema = new mongoose.Schema({
   title: { type: String, required: true },
   body: { type: String },
-  icon: { type: String }, 
+  icon: { type: String },
   color: { type: String },
 
   rewardItem: { type: String, required: true },
@@ -15,9 +15,9 @@ const RewardSchema = new mongoose.Schema({
   },
 
   claimed: { type: Boolean, default: false },
-  
+
   claimRequirement: {
-    type: { type: String, required: true }, 
+    type: { type: String, required: true },
     value: { type: Number, required: true },
   },
 

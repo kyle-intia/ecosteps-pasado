@@ -10,7 +10,7 @@ export const useSessions = (opts = {}) => {
   const { data: sessions = [], ...rest } = useQuery({
     queryKey: [SESSIONS],
     queryFn: getSessions,
-    enabled: !!user, // Only run query if user is authenticated
+    enabled: !!user,
     ...opts,
   });
 

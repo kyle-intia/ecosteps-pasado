@@ -15,21 +15,21 @@ const AssessmentSchema = new mongoose.Schema(
     },
 
     awarenessAnswers: {
-      type: [Number], // Likert 1–5
+      type: [Number],
       required: true,
     },
 
     behaviorAnswers: {
-      type: [Number], // Likert 1–5
+      type: [Number],
       required: true,
     },
 
     monthlyEmissions: {
-      type: Number, // kg CO2
+      type: Number,
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Assessment", AssessmentSchema);

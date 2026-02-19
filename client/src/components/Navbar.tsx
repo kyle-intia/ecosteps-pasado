@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, BarChart3, Users, Trophy, LayoutDashboard, Send } from "lucide-react";
+import {
+  Menu,
+  X,
+  Home,
+  BarChart3,
+  Users,
+  Trophy,
+  LayoutDashboard,
+  Send,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SettingsDropdown } from "./SettingsDropdown";
@@ -25,7 +34,6 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
   ];
 
   const isActivePath = (path: string) => {
-    // If the nav item is "/track-distance", also mark it active when on "/track-history"
     if (path === "/track-distance" && location.pathname === "/track-history") {
       return true;
     }
@@ -41,7 +49,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
             {/* <div className="p-2 bg-gradient-primary rounded-lg shadow-glow group-hover:shadow-elevated transition-smooth">
               <Leaf className="h-6 w-6 text-primary-foreground" />
             </div> */}
-            <img 
+            <img
               src="/ecosteps.svg"
               alt="EcoSteps Logo"
               className="h-9 w-9 rounded"
@@ -62,7 +70,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                       "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out",
                       isActivePath(item.href)
                         ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted "
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted ",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -79,13 +87,17 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
               <SettingsDropdown onLogout={onLogout} />
             ) : (
               <>
-                <Button variant="ghost" asChild
-                className="transition-transform duration-200 ease-in-out hover:scale-105"
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="transition-transform duration-200 ease-in-out hover:scale-105"
                 >
                   <Link to="/login">Login</Link>
                 </Button>
-                <Button variant="hero" asChild
-                className="transition-transform duration-200 ease-in-out hover:scale-105"
+                <Button
+                  variant="hero"
+                  asChild
+                  className="transition-transform duration-200 ease-in-out hover:scale-105"
                 >
                   <Link to="/register">Get Started</Link>
                 </Button>
@@ -125,7 +137,7 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                           "flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium transition-smooth",
                           isActivePath(item.href)
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent",
                         )}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
@@ -136,10 +148,12 @@ export const Navbar = ({ isLoggedIn = false, onLogout }: NavbarProps) => {
                   })}
                   <div className="border-t border-border pt-3 mt-3">
                     <div className="px-3">
-                      <SettingsDropdown onLogout={() => {
-                        onLogout?.();
-                        setIsMobileMenuOpen(false);
-                      }} />
+                      <SettingsDropdown
+                        onLogout={() => {
+                          onLogout?.();
+                          setIsMobileMenuOpen(false);
+                        }}
+                      />
                     </div>
                   </div>
                 </>

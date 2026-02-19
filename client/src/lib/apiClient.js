@@ -1,27 +1,19 @@
-// File: client/src/lib/apiClient.js
-// API client utility for handling requests to the backend
-// This provides a centralized way to manage API calls
-
 class ApiClient {
   constructor() {
-    // Vite uses import.meta.env instead of process.env
     let viteUrl;
     try {
-      // Accessing import.meta.env only in ESM/browser context
-      // This try/catch avoids ReferenceErrors in non-browser tooling
-      // eslint-disable-next-line no-undef
-      viteUrl = `$${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
+      viteUrl = `$${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api`;
     } catch (_) {}
-    // Avoid using process.env in the browser; default to localhost if Vite var missing
-    this.baseURL = viteUrl || `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
+    this.baseURL =
+      viteUrl || `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api`;
   }
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       credentials: "include",
@@ -43,10 +35,9 @@ class ApiClient {
     }
   }
 
-  // Daily tracking methods
   async submitDailyTracking(trackingData) {
-    return this.request('/daily-tracking/submit', {
-      method: 'POST',
+    return this.request("/daily-tracking/submit", {
+      method: "POST",
       body: JSON.stringify(trackingData),
     });
   }
@@ -65,14 +56,13 @@ class ApiClient {
 
   async deleteDailyTracking(entryId) {
     return this.request(`/daily-tracking/${entryId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
-  // Pre-assessment methods (existing)
   async submitPreAssessment(assessmentData) {
-    return this.request('/preassessment/submit', {
-      method: 'POST',
+    return this.request("/preassessment/submit", {
+      method: "POST",
       body: JSON.stringify(assessmentData),
     });
   }

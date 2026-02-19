@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Leaf, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Leaf, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useDashboardData } from "../hooks/useDashboard";
 
 const AWARENESS_QUESTIONS = [
@@ -10,7 +16,7 @@ const AWARENESS_QUESTIONS = [
   "2.) I am aware of the environmental impact of my transportation choices",
   "3.) I know how my food choices affect the environment",
   "4.) I am aware that household electricity usage contributes to emissions.",
-  "5.) I understand the importance of reducing my carbon footprint"
+  "5.) I understand the importance of reducing my carbon footprint",
 ];
 
 const BEHAVIOR_QUESTIONS = [
@@ -26,7 +32,7 @@ const BEHAVIOR_QUESTIONS = [
 
 interface AssessmentDialogProps {
   userId: string;
-  assessmentType: 'pre' | 'post';
+  assessmentType: "pre" | "post";
   isOpen: boolean;
   onComplete: () => void;
 }
@@ -35,15 +41,15 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
   userId,
   assessmentType,
   isOpen,
-  onComplete
+  onComplete,
 }) => {
   const [step, setStep] = useState(1);
   const [awarenessAnswers, setAwarenessAnswers] = useState<number[]>([]);
   const [behaviorAnswers, setBehaviorAnswers] = useState<number[]>([]);
-  const [monthlyEmissions, setMonthlyEmissions] = useState<string>('');
+  const [monthlyEmissions, setMonthlyEmissions] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string>('');
-  const { data: dashboardData, } = useDashboardData();
+  const [error, setError] = useState<string>("");
+  const { data: dashboardData } = useDashboardData();
 
   const { metrics } = dashboardData?.data || {};
 
@@ -51,7 +57,7 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
   const currentEmissions = metrics?.currentEmissions || 0;
 
   const totalSteps = 3;
-  const isPre = assessmentType === 'pre';
+  const isPre = assessmentType === "pre";
 
   useEffect(() => {
     const baselineMonthly = (baselineAnnual / 12).toFixed(2);
@@ -59,8 +65,12 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
     setMonthlyEmissions(isPre ? baselineMonthly : currentMonthly);
   }, [baselineAnnual, currentEmissions, isPre]);
 
-  const handleLikertAnswer = (questionIndex: number, value: number, type: 'awareness' | 'behavior') => {
-    if (type === 'awareness') {
+  const handleLikertAnswer = (
+    questionIndex: number,
+    value: number,
+    type: "awareness" | "behavior",
+  ) => {
+    if (type === "awareness") {
       const newAnswers = [...awarenessAnswers];
       newAnswers[questionIndex] = value;
       setAwarenessAnswers(newAnswers);
@@ -73,60 +83,69 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
 
   const canProceed = () => {
     if (step === 1) {
-      return awarenessAnswers.length === AWARENESS_QUESTIONS.length &&
-             awarenessAnswers.every(a => a >= 1 && a <= 5);
+      return (
+        awarenessAnswers.length === AWARENESS_QUESTIONS.length &&
+        awarenessAnswers.every((a) => a >= 1 && a <= 5)
+      );
     }
     if (step === 2) {
-      return behaviorAnswers.length === BEHAVIOR_QUESTIONS.length &&
-             behaviorAnswers.every(a => a >= 1 && a <= 5);
+      return (
+        behaviorAnswers.length === BEHAVIOR_QUESTIONS.length &&
+        behaviorAnswers.every((a) => a >= 1 && a <= 5)
+      );
     }
     if (step === 3) {
-      return !isNaN(parseFloat(monthlyEmissions)) && parseFloat(monthlyEmissions) > 0;
+      return (
+        !isNaN(parseFloat(monthlyEmissions)) && parseFloat(monthlyEmissions) > 0
+      );
     }
     return false;
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api/assessments`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          type: assessmentType,
-          awarenessAnswers,
-          behaviorAnswers,
-          monthlyEmissions: parseFloat(monthlyEmissions),
-        })
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/assessments`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            type: assessmentType,
+            awarenessAnswers,
+            behaviorAnswers,
+            monthlyEmissions: parseFloat(monthlyEmissions),
+          }),
+        },
+      );
 
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.message || 'Failed to save assessment');
+        throw new Error(data.message || "Failed to save assessment");
       }
 
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const LikertScale = ({ 
-    question, 
-    questionIndex, 
+  const LikertScale = ({
+    question,
+    questionIndex,
     type,
-    currentValue 
-  }: { 
-    question: string; 
-    questionIndex: number; 
-    type: 'awareness' | 'behavior';
+    currentValue,
+  }: {
+    question: string;
+    questionIndex: number;
+    type: "awareness" | "behavior";
     currentValue?: number;
   }) => (
     <div className="mb-6">
@@ -138,16 +157,16 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
             onClick={() => handleLikertAnswer(questionIndex, value, type)}
             className={`flex-1 py-2 px-1 rounded-lg border-2 transition-all ${
               currentValue === value
-                ? 'border-green-600 bg-green-50 text-green-900'
-                : 'border-gray-200 hover:border-green-300 bg-white'
+                ? "border-green-600 bg-green-50 text-green-900"
+                : "border-gray-200 hover:border-green-300 bg-white"
             }`}
           >
             <div className="text-xs font-bold mt-1">
-              {value === 1 && 'Strongly Disagree'}
-              {value === 2 && 'Slightly Disagree'}
-              {value === 3 && 'Neutral'}
-              {value === 4 && 'Slightly Agree'}
-              {value === 5 && 'Strongly Agree'}
+              {value === 1 && "Strongly Disagree"}
+              {value === 2 && "Slightly Disagree"}
+              {value === 3 && "Neutral"}
+              {value === 4 && "Slightly Agree"}
+              {value === 5 && "Strongly Agree"}
             </div>
           </button>
         ))}
@@ -164,13 +183,13 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
               <img src="/favicon.ico" alt="EcoStep Logo" className="h-5 w-5" />
             </div>
             <DialogTitle className="text-2xl">
-              {isPre ? 'Welcome! Initial Assessment' : 'Monthly Assessment'}
+              {isPre ? "Welcome! Initial Assessment" : "Monthly Assessment"}
             </DialogTitle>
           </div>
           <DialogDescription>
-            {isPre 
-              ? 'Help us understand your current environmental awareness and behaviors.'
-              : 'Let\'s see how you\'ve progressed this month!'}
+            {isPre
+              ? "Help us understand your current environmental awareness and behaviors."
+              : "Let's see how you've progressed this month!"}
           </DialogDescription>
         </DialogHeader>
 
@@ -178,11 +197,15 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
           {/* Progress indicator */}
           <div className="mb-6">
             <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Step {step} of {totalSteps}</span>
-              <span className="text-sm text-gray-500">{Math.round((step / totalSteps) * 100)}%</span>
+              <span className="text-sm font-medium">
+                Step {step} of {totalSteps}
+              </span>
+              <span className="text-sm text-gray-500">
+                {Math.round((step / totalSteps) * 100)}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-green-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(step / totalSteps) * 100}%` }}
               />
@@ -192,7 +215,9 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
           {error && (
             <Alert className="mb-4 border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">{error}</AlertDescription>
+              <AlertDescription className="text-red-800">
+                {error}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -204,7 +229,8 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
                 Environmental Awareness
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Rate your agreement with each statement (1 = Strongly Disagree, 5 = Strongly Agree)
+                Rate your agreement with each statement (1 = Strongly Disagree,
+                5 = Strongly Agree)
               </p>
               {AWARENESS_QUESTIONS.map((question, index) => (
                 <LikertScale
@@ -226,7 +252,8 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
                 Environmental Behaviors
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Rate your agreement with each statement (1 = Strongly Disagree, 5 = Strongly Agree)
+                Rate your agreement with each statement (1 = Strongly Disagree,
+                5 = Strongly Agree)
               </p>
               {BEHAVIOR_QUESTIONS.map((question, index) => (
                 <LikertScale
@@ -250,8 +277,8 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
 
               <p className="text-sm text-gray-600 mb-6">
                 {isPre
-                  ? 'Based on your pre-assessment earlier, your estimated monthly carbon emissions are '
-                  : 'Based on your progress, your current estimated monthly carbon emissions are '}
+                  ? "Based on your pre-assessment earlier, your estimated monthly carbon emissions are "
+                  : "Based on your progress, your current estimated monthly carbon emissions are "}
                 <strong>{monthlyEmissions} kg CO₂</strong>.
               </p>
 
@@ -298,7 +325,7 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
                 disabled={!canProceed() || isSubmitting}
                 className="flex-1 bg-green-600 hover:bg-green-700"
               >
-                {isSubmitting ? 'Submitting...' : 'Complete Assessment'}
+                {isSubmitting ? "Submitting..." : "Complete Assessment"}
               </Button>
             )}
           </div>
@@ -311,7 +338,7 @@ export const AssessmentDialog: React.FC<AssessmentDialogProps> = ({
 // Hook to manage assessment state
 export const useAssessmentDialog = (userId: string) => {
   const [showAssessment, setShowAssessment] = useState(false);
-  const [assessmentType, setAssessmentType] = useState<'pre' | 'post'>('pre');
+  const [assessmentType, setAssessmentType] = useState<"pre" | "post">("pre");
   const [isLoading, setIsLoading] = useState(true);
 
   const isEndOfMonth = (date = new Date()) => {
@@ -319,7 +346,6 @@ export const useAssessmentDialog = (userId: string) => {
     tomorrow.setDate(date.getDate() + 1);
     return tomorrow.getDate() === 1;
   };
-
 
   useEffect(() => {
     const checkAssessmentStatus = async () => {
@@ -329,27 +355,28 @@ export const useAssessmentDialog = (userId: string) => {
       }
 
       try {
-       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/assessments/user/${userId}`, {
-         credentials: 'include',
-       });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/assessments/user/${userId}`,
+          {
+            credentials: "include",
+          },
+        );
 
-        if (!response.ok) throw new Error('Failed to fetch assessments');
+        if (!response.ok) throw new Error("Failed to fetch assessments");
 
         const data = await response.json();
         const assessments = data.assessments || [];
 
-        const hasPreAssessment = assessments.some(
-          (a: any) => a.type === 'pre'
-        );
+        const hasPreAssessment = assessments.some((a: any) => a.type === "pre");
 
         if (!hasPreAssessment) {
-          setAssessmentType('pre');
+          setAssessmentType("pre");
           setShowAssessment(true);
           setIsLoading(false);
           return;
         }
 
-        const now = new Date("1-31-2026");
+        const now = new Date();
         if (!isEndOfMonth(now)) {
           setShowAssessment(false);
           setIsLoading(false);
@@ -357,7 +384,7 @@ export const useAssessmentDialog = (userId: string) => {
         }
 
         const hasPostThisMonth = assessments.some((a: any) => {
-          if (a.type !== 'post') return false;
+          if (a.type !== "post") return false;
 
           const d = new Date(a.createdAt);
           return (
@@ -367,7 +394,7 @@ export const useAssessmentDialog = (userId: string) => {
         });
 
         if (!hasPostThisMonth) {
-          setAssessmentType('post');
+          setAssessmentType("post");
           setShowAssessment(true);
         } else {
           setShowAssessment(false);
@@ -375,14 +402,13 @@ export const useAssessmentDialog = (userId: string) => {
 
         setIsLoading(false);
       } catch (err) {
-        console.error('Assessment check failed:', err);
+        console.error("Assessment check failed:", err);
         setIsLoading(false);
       }
     };
 
     checkAssessmentStatus();
   }, [userId]);
-
 
   const handleComplete = () => {
     setShowAssessment(false);
@@ -392,14 +418,15 @@ export const useAssessmentDialog = (userId: string) => {
     showAssessment,
     assessmentType,
     handleComplete,
-    isLoading
+    isLoading,
   };
 };
 
 // Example usage component
 export default function App() {
   const userId = "user123"; // Replace with actual user ID
-  const { showAssessment, assessmentType, handleComplete, isLoading } = useAssessmentDialog(userId);
+  const { showAssessment, assessmentType, handleComplete, isLoading } =
+    useAssessmentDialog(userId);
 
   if (isLoading) {
     return (
@@ -415,7 +442,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Environmental Impact Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-4">
+          Environmental Impact Dashboard
+        </h1>
         <p className="text-gray-600 mb-8">
           Track your carbon footprint and environmental progress
         </p>

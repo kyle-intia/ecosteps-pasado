@@ -14,7 +14,6 @@ class RewardService {
   }
 
   static async claimReward(userId, rewardId) {
-    // prevent double claim
     const alreadyClaimed = await UserReward.findOne({ userId, rewardId });
     if (alreadyClaimed) return null;
 
@@ -38,7 +37,6 @@ class RewardService {
 
     if (total < reward.requirement.value) return false;
 
-    // save claim
     const claim = new UserReward({
       userId,
       rewardId,

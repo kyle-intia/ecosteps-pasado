@@ -1,4 +1,3 @@
-// src/hooks/useSocket.ts
 import { useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import useAuth from "./useAuth";
@@ -14,7 +13,7 @@ export function useSocket(onNotification?: (data: any) => void) {
     if (!socket || !socket.connected) {
       socket = io(import.meta.env.VITE_API_URL, {
         withCredentials: true,
-        transports: ["websocket"], // ← Force WebSocket (no polling delay!)
+        transports: ["websocket"],
       });
     }
 
@@ -28,7 +27,6 @@ export function useSocket(onNotification?: (data: any) => void) {
       s.on("notification", onNotification);
     }
 
-    // Optional: handle reconnects
     s.on("reconnect", () => {
       s.emit("joinRoom", user._id);
     });

@@ -14,7 +14,6 @@ const useCO2Savings = () => {
     queryFn: () => getDailyTrackingStats(1),
   });
 
-  // Calculate CO2 savings
   let todaysSavings = 0;
   let weeklySavings = 0;
   let totalSavings = 0;
@@ -24,7 +23,6 @@ const useCO2Savings = () => {
     weeklySavings = summaryData.data.weeklyCO2Saved || 0;
     totalSavings = summaryData.data.totalCO2Saved || 0;
   } else if (statsData?.data) {
-    // Fallback to stats
     todaysSavings = statsData.data.todaysEmissionSaved || 0;
     weeklySavings = statsData.data.weeklyEmissionSaved || 0;
     totalSavings = statsData.data.totalEmissionSaved || 0;
@@ -40,7 +38,7 @@ const useCO2Savings = () => {
     refetch: () => {
       summaryRest.refetch();
       statsRest.refetch();
-    }
+    },
   };
 };
 

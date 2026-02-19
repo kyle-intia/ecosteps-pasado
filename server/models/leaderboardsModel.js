@@ -24,7 +24,7 @@ const leaderboardSchema = new mongoose.Schema({
   },
   totalScore: {
     type: Number,
-    default: 0, // lifetime accumulated points
+    default: 0,
   },
   rank: {
     type: Number,

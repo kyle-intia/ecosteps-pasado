@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { MapPin, UserCircle } from "lucide-react";
@@ -7,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 
-
 const TREE =
   "https://th.bing.com/th/id/R.3296d1e5beddbe7bb441ff416f5bbfe1?rik=AcTM3UbKAxP31w&riu=http%3a%2f%2fclipart-library.com%2fimage_gallery%2fn724865.png&ehk=fG4%2bk1tvUBSEie5Rrh5uIlCq%2bMCJrKcslbskWDfg2Sw%3d&risl=&pid=ImgRaw&r=0";
 
-const plant_pic = "https://ilovepangasinan.com/wp-content/uploads/2019/06/Bangrin-Mangrove-Marine-Protected-Area-3.jpg"
+const plant_pic =
+  "https://ilovepangasinan.com/wp-content/uploads/2019/06/Bangrin-Mangrove-Marine-Protected-Area-3.jpg";
 
 type MangroveSite = {
   name: string;
@@ -25,30 +23,36 @@ const mangroveSites: MangroveSite[] = [
   {
     name: "Banacon Island Mangrove Forest",
     region: "Bohol, Visayas",
-    description: "Largest man-made mangrove forest in Asia; active community restoration.",
+    description:
+      "Largest man-made mangrove forest in Asia; active community restoration.",
     coords: [10.15, 124.25],
     imageUrl: plant_pic,
   },
 ];
 
 export default function MangroveMap() {
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null,
+  );
   const [selectedSite, setSelectedSite] = useState<MangroveSite | null>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          setUserLocation([
+            position.coords.latitude,
+            position.coords.longitude,
+          ]);
         },
         (error) => {
           console.error("Error getting location:", error);
-        }
+        },
       );
     }
   }, []);
 
-  const initialLng = userLocation ? userLocation[1] : 121.7740;
+  const initialLng = userLocation ? userLocation[1] : 121.774;
   const initialLat = userLocation ? userLocation[0] : 12.8797;
 
   return (
@@ -58,20 +62,27 @@ export default function MangroveMap() {
           <CardTitle>Planting Locations Map</CardTitle>
         </CardHeader>
         <CardContent>
-          <div style={{ height: 600, width: "100%", borderRadius: "12px", overflow: "hidden" }}>
+          <div
+            style={{
+              height: 600,
+              width: "100%",
+              borderRadius: "12px",
+              overflow: "hidden",
+            }}
+          >
             <Map
               initialViewState={{
                 latitude: initialLat,
                 longitude: initialLng,
                 zoom: 8,
-                pitch: 50,    // 3D tilt effect
+                pitch: 50, // 3D tilt effect
                 bearing: 0,
               }}
               mapStyle="mapbox://styles/mapbox/streets-v12"
               mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
               style={{ width: "100%", height: "100%" }}
               terrain={{ source: "mapbox-dem", exaggeration: 5 }}
-              attributionControl={false} 
+              attributionControl={false}
             >
               {/* Mangrove site markers */}
               {mangroveSites.map((site) => (
@@ -109,7 +120,9 @@ export default function MangroveMap() {
                 >
                   <div className="p-2">
                     <h3 className="font-bold text-lg">{selectedSite.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedSite.region}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedSite.region}
+                    </p>
                     <p className="text-xs mt-1">{selectedSite.description}</p>
                     <img
                       src={selectedSite.imageUrl}

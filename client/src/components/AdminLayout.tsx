@@ -1,25 +1,31 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AdminSidebar } from "@/components/AdminSidebar"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Bell } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Bell } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Outlet } from "react-router-dom";
-import { getAllNotification, markAsReadNotification } from "../lib/api"
-
+import { getAllNotification, markAsReadNotification } from "../lib/api";
 
 export function AdminLayout() {
-  const [notificationOpen, setNotificationOpen] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const { toast } = useToast()
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchAllNotifications = async () => {
       try {
-        const response = await getAllNotification();  
+        const response = await getAllNotification();
 
         const formatted = response.map((n: any) => ({
           id: n._id,
@@ -30,13 +36,27 @@ export function AdminLayout() {
           time: new Date(n.createdAt).toLocaleString(),
           unread: !n.isRead,
           type: n.type,
-          role: n.user.role
+          role: n.user.role,
         }));
 
         setNotifications(formatted);
-        setUnreadCount(formatted.filter((n) => n.unread && n.type !== "daily-tracking-reminder" && n.type !== "community" && n.type !== "reward" && n.type !== "certificate" && n.type !== "achievement" && n.role !== "admin").length);
+        setUnreadCount(
+          formatted.filter(
+            (n) =>
+              n.unread &&
+              n.type !== "daily-tracking-reminder" &&
+              n.type !== "community" &&
+              n.type !== "reward" &&
+              n.type !== "certificate" &&
+              n.type !== "achievement" &&
+              n.role !== "admin",
+          ).length,
+        );
       } catch (err: any) {
-        console.error("Failed to fetch all notifications", err?.response ?? err);
+        console.error(
+          "Failed to fetch all notifications",
+          err?.response ?? err,
+        );
       }
     };
 
@@ -45,30 +65,31 @@ export function AdminLayout() {
 
   const markAsRead = async (id: string) => {
     try {
-      await markAsReadNotification(id)
+      await markAsReadNotification(id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-      )
-      setUnreadCount((prev) => Math.max(prev - 1, 0))
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
+      );
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
 
       toast({
         title: "Notification",
         description: "Marked as read",
-      })
+      });
     } catch (err) {
-      console.error("Failed to mark notification as read", err)
+      console.error("Failed to mark notification as read", err);
     }
-  }
+  };
 
   const markAllAsRead = async () => {
     const unreadNotifications = notifications.filter(
-      (n) => n.unread && n.type !== "daily-tracking-reminder" && n.role !== "admin"
+      (n) =>
+        n.unread && n.type !== "daily-tracking-reminder" && n.role !== "admin",
     );
 
     try {
       // Send all requests in parallel
       await Promise.all(
-        unreadNotifications.map((n) => markAsReadNotification(n.id))
+        unreadNotifications.map((n) => markAsReadNotification(n.id)),
       );
 
       // Update local state
@@ -76,8 +97,8 @@ export function AdminLayout() {
         prev.map((n) =>
           n.unread && n.type !== "daily-tracking-reminder" && n.role !== "admin"
             ? { ...n, unread: false }
-            : n
-        )
+            : n,
+        ),
       );
       setUnreadCount(0);
 
@@ -95,7 +116,6 @@ export function AdminLayout() {
     }
   };
 
-
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-admin-surface">
@@ -105,11 +125,16 @@ export function AdminLayout() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="hover:bg-admin-hover" />
-                <h1 className="text-lg font-semibold">Carbon Footprint Admin</h1>
+                <h1 className="text-lg font-semibold">
+                  Carbon Footprint Admin
+                </h1>
               </div>
 
               <div className="flex items-center gap-2">
-                <Dialog open={notificationOpen} onOpenChange={setNotificationOpen}>
+                <Dialog
+                  open={notificationOpen}
+                  onOpenChange={setNotificationOpen}
+                >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="relative">
                       <Bell className="h-4 w-4" />
@@ -125,37 +150,61 @@ export function AdminLayout() {
                       <DialogTitle className="flex items-center justify-between mx-4">
                         Notifications
                         {unreadCount > 0 && (
-                          <Badge variant="secondary">{unreadCount} unread</Badge>
+                          <Badge variant="secondary">
+                            {unreadCount} unread
+                          </Badge>
                         )}
                       </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No notifications</p>
+                        <p className="text-sm text-muted-foreground">
+                          No notifications
+                        </p>
                       ) : (
                         notifications
-                          .filter((notification) => notification.type !== "achievement" && notification.type !== "certificate" && notification.type !== "reward" && notification.type !== "community" && notification.type !== "daily-tracking-reminder" && notification.role !== "admin")
-                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                          .map((notification) =>(
-                          <div
-                            key={notification.id}
-                            className={`p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors ${
-                              notification.unread ? "bg-accent/20 border-primary/20" : "bg-background"
-                            }`}
-                            onClick={() => markAsRead(notification.id)}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-sm">{notification.title}</h4>
-                                <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
+                          .filter(
+                            (notification) =>
+                              notification.type !== "achievement" &&
+                              notification.type !== "certificate" &&
+                              notification.type !== "reward" &&
+                              notification.type !== "community" &&
+                              notification.type !== "daily-tracking-reminder" &&
+                              notification.role !== "admin",
+                          )
+                          .sort(
+                            (a, b) =>
+                              new Date(b.createdAt).getTime() -
+                              new Date(a.createdAt).getTime(),
+                          )
+                          .map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors ${
+                                notification.unread
+                                  ? "bg-accent/20 border-primary/20"
+                                  : "bg-background"
+                              }`}
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm">
+                                    {notification.title}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {notification.message}
+                                  </p>
+                                </div>
+                                {notification.unread && (
+                                  <div className="w-2 h-2 bg-primary rounded-full ml-2 mt-1" />
+                                )}
                               </div>
-                              {notification.unread && (
-                                <div className="w-2 h-2 bg-primary rounded-full ml-2 mt-1" />
-                              )}
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {notification.time}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
-                          </div>
-                        ))
+                          ))
                       )}
                     </div>
                     <DialogFooter>
@@ -180,5 +229,5 @@ export function AdminLayout() {
         </div>
       </div>
     </SidebarProvider>
-  )
+  );
 }

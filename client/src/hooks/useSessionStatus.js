@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSessions } from './useSessions';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSessions } from "./useSessions";
 
 const useSessionStatus = () => {
   const { sessions, isPending, isError } = useSessions();
@@ -17,12 +17,9 @@ const useSessionStatus = () => {
       localStorage.removeItem("isLoggedIn");
       navigate("/", { replace: true });
     }
-
   }, [isPending, isError, sessions, navigate]);
 
   return { isPending, isLoggedIn };
 };
-
-
 
 export default useSessionStatus;

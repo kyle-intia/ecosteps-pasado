@@ -1,22 +1,63 @@
-import { useEffect, useRef, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Tooltip, Legend } from "recharts"
+import { useEffect, useRef, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+} from "recharts";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
-import { Users, Activity, Leaf, Brain, TrendingUp, TrendingDown, Eye, Car, UtensilsCrossed, Home, CheckCircle, CloudRain, Zap } from "lucide-react"
-import { getUserGrowthStats, getActivityGrowthStats, getAvgFootprintGrowthStats, getMonthlyFootprintByCategory, listDailyTrackings, listUsers, getOverallAssessmentResults } from "../lib/api"
-import { Spinner } from "@/components/ui/spinner"
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { get } from "http"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Users,
+  Activity,
+  Leaf,
+  Brain,
+  TrendingUp,
+  TrendingDown,
+  Eye,
+  Car,
+  UtensilsCrossed,
+  Home,
+  CheckCircle,
+  CloudRain,
+  Zap,
+} from "lucide-react";
+import {
+  getUserGrowthStats,
+  getActivityGrowthStats,
+  getAvgFootprintGrowthStats,
+  getMonthlyFootprintByCategory,
+  listDailyTrackings,
+  listUsers,
+  getOverallAssessmentResults,
+} from "../lib/api";
+import { Spinner } from "@/components/ui/spinner";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type EmissionCategory = {
   name: string;
@@ -30,7 +71,6 @@ type CategoryCountsResponse = {
   homeEnergyCount: number;
 };
 
-// Define types for the response data
 interface Emissions {
   avgReductionKg: number;
   avgReductionPercent: number;
@@ -50,18 +90,17 @@ interface AssessmentData {
 }
 
 const AdminDashboard = () => {
-  const [selectedActivity, setSelectedActivity] = useState<any>(null)
-  const { toast } = useToast()
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [kpiData, setKpiData] = useState([
     {
       title: "Total Users",
       value: "—",
       change: "—",
-      trend: "up", 
+      trend: "up",
       icon: Users,
     },
-   
   ]);
 
   const [data, setData] = useState<AssessmentData | null>(null);
@@ -69,17 +108,21 @@ const AdminDashboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleActivityClick = (activity: any) => {
-    setSelectedActivity(activity)
-  }
+    setSelectedActivity(activity);
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'transport': return Car
-      case 'food': return UtensilsCrossed
-      case 'home': return Home
-      default: return Brain
+      case "transport":
+        return Car;
+      case "food":
+        return UtensilsCrossed;
+      case "home":
+        return Home;
+      default:
+        return Brain;
     }
-  }
+  };
 
   const getDaysAgo = (dateString) => {
     if (!dateString) return "N/A";
@@ -106,7 +149,6 @@ const AdminDashboard = () => {
     return `${diffDays} days ago`;
   };
 
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -130,16 +172,25 @@ const AdminDashboard = () => {
     const fetchKpis = async () => {
       try {
         setLoading(true);
-      
+
         const [userRes, activityRes, footprintRes] = await Promise.all([
           getUserGrowthStats(),
           getActivityGrowthStats(),
           getAvgFootprintGrowthStats(),
         ]);
-      
-        const { totalUser: totalUser, currentTotal: userCurrent, percentageIncrease: userPercent, previousTotal: userPrevious } = userRes;
-        const { currentTotal: activityCurrent, percentageIncrease: activityPercent } = activityRes;
-        const { currentAvg, percentageIncrease: footprintPercent } = footprintRes;
+
+        const {
+          totalUser: totalUser,
+          currentTotal: userCurrent,
+          percentageIncrease: userPercent,
+          previousTotal: userPrevious,
+        } = userRes;
+        const {
+          currentTotal: activityCurrent,
+          percentageIncrease: activityPercent,
+        } = activityRes;
+        const { currentAvg, percentageIncrease: footprintPercent } =
+          footprintRes;
 
         setKpiData([
           {
@@ -166,12 +217,15 @@ const AdminDashboard = () => {
         ]);
       } catch (error) {
         console.error("Failed to fetch KPI data:", error);
-        toast({ title: "Error", description: "Failed to load dashboard data." });
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data.",
+        });
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchKpis();
   }, []);
 
@@ -184,39 +238,40 @@ const AdminDashboard = () => {
         const currentYear = currentDate.getFullYear();
 
         const months = Array.from({ length: 12 }, (_, i) => {
-          const date = new Date(currentYear, i, 1); 
+          const date = new Date(currentYear, i, 1);
           return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         });
 
-        console.log(months)
+        console.log(months);
 
-        const promises = months.map(m => getMonthlyFootprintByCategory(m));
+        const promises = months.map((m) => getMonthlyFootprintByCategory(m));
         const results = await Promise.all(promises);
 
         const formattedData = results.map((res, index) => ({
           date: months[index],
           transport: res?.transport ?? 0,
-          food: res?.food ?? 0,           
-          home: res?.homeEnergy ?? 0,     
+          food: res?.food ?? 0,
+          home: res?.homeEnergy ?? 0,
         }));
-        console.log(formattedData)
+        console.log(formattedData);
         setChartData(formattedData);
       } catch (error) {
         console.error("Failed to fetch chart data:", error);
         toast({ title: "Error", description: "Failed to load chart data." });
-
       }
     };
 
     fetchChartData();
   }, []);
 
-
   const [emissionData, setEmissionData] = useState<EmissionCategory[]>([]);
 
   useEffect(() => {
     const calculateBreakdown = () => {
-      const totalTransport = chartData.reduce((sum, entry) => sum + entry.transport, 0);
+      const totalTransport = chartData.reduce(
+        (sum, entry) => sum + entry.transport,
+        0,
+      );
       const totalFood = chartData.reduce((sum, entry) => sum + entry.food, 0);
       const totalHome = chartData.reduce((sum, entry) => sum + entry.home, 0);
       const totalEmissions = totalTransport + totalFood + totalHome;
@@ -225,26 +280,46 @@ const AdminDashboard = () => {
         return;
       }
       const breakdown = [
-        { name: "Transport", value: parseFloat(((totalTransport / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-1))" },
-        { name: "Food", value: parseFloat(((totalFood / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-2))" },
-        { name: "Home Energy", value: parseFloat(((totalHome / totalEmissions) * 100).toFixed(1)), color: "hsl(var(--chart-3))" },
+        {
+          name: "Transport",
+          value: parseFloat(
+            ((totalTransport / totalEmissions) * 100).toFixed(1),
+          ),
+          color: "hsl(var(--chart-1))",
+        },
+        {
+          name: "Food",
+          value: parseFloat(((totalFood / totalEmissions) * 100).toFixed(1)),
+          color: "hsl(var(--chart-2))",
+        },
+        {
+          name: "Home Energy",
+          value: parseFloat(((totalHome / totalEmissions) * 100).toFixed(1)),
+          color: "hsl(var(--chart-3))",
+        },
       ];
       setEmissionData(breakdown);
-    }
+    };
     calculateBreakdown();
   }, [chartData]);
-
 
   const [activityData, setActivityData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchActivityData = async () => {
       try {
-        const res = await listDailyTrackings({ limit: 5, sortBy: 'createdAt', order: 'desc' });
+        const res = await listDailyTrackings({
+          limit: 5,
+          sortBy: "createdAt",
+          order: "desc",
+        });
         setActivityData(res.data || []);
       } catch (error) {
         console.error("Failed to fetch activity data:", error);
-        toast({ title: "Error", description: "Failed to load recent activity." });
+        toast({
+          title: "Error",
+          description: "Failed to load recent activity.",
+        });
       }
     };
 
@@ -255,107 +330,90 @@ const AdminDashboard = () => {
   const emissionChartRef = useRef();
 
   const handleExportImage = () => {
-    // Capture both charts into a single canvas image
-    const chart1 = html2canvas(barChartRef .current);
+    const chart1 = html2canvas(barChartRef.current);
     const chart2 = html2canvas(emissionChartRef.current);
 
     Promise.all([chart1, chart2]).then(([canvas1, canvas2]) => {
+      const combinedCanvas = document.createElement("canvas");
+      const ctx = combinedCanvas.getContext("2d");
 
-      // Create a canvas to combine the two images
-      const combinedCanvas = document.createElement('canvas');
-      const ctx = combinedCanvas.getContext('2d');
-
-      // Set the combined canvas size (adjust width/height as needed)
-      const combinedWidth = canvas1.width + canvas2.width + 20; // Add some space between images
+      const combinedWidth = canvas1.width + canvas2.width + 20;
       const combinedHeight = Math.max(canvas1.height, canvas2.height);
 
       combinedCanvas.width = combinedWidth;
       combinedCanvas.height = combinedHeight;
 
-      // Draw the first chart on the left side
       ctx.drawImage(canvas1, 0, 0);
 
-      // Draw the second chart on the right side (or below if stacked vertically)
-      ctx.drawImage(canvas2, canvas1.width + 10, 0); // Adjust position (10px space between charts)
+      ctx.drawImage(canvas2, canvas1.width + 10, 0);
 
-      const combinedImgData = combinedCanvas.toDataURL('image/png');
+      const combinedImgData = combinedCanvas.toDataURL("image/png");
 
-      // Create a link and trigger the download
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = combinedImgData;
-      link.download = 'combined_chart.png';
+      link.download = "combined_chart.png";
       link.click();
     });
   };
 
   const handleExportPDF = () => {
-    const currentDate = new Date().toLocaleDateString(); // Get the current date in the format "MM/DD/YYYY"
+    const currentDate = new Date().toLocaleDateString();
 
-    // Capture both charts into a single canvas for PDF export
     const chart1 = html2canvas(barChartRef.current, { scale: 2 });
     const chart2 = html2canvas(emissionChartRef.current, { scale: 2 });
 
     Promise.all([chart1, chart2]).then(([canvas1, canvas2]) => {
+      const pdf = new jsPDF("p", "mm", "a4");
 
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation, A4 size
-
-      // Add title and date text
       pdf.setFontSize(16);
-      pdf.text('Carbon Footprint Trend: Monthly', 10, 10); // Add title at the top-left
-      pdf.text(`Exported on Date: ${currentDate}`, 10, 20); // Add current date below the title
+      pdf.text("Carbon Footprint Trend: Monthly", 10, 10);
+      pdf.text(`Exported on Date: ${currentDate}`, 10, 20);
 
-      // Combine the charts into a single image (side by side or stacked)
-      const combinedCanvas = document.createElement('canvas');
-      const ctx = combinedCanvas.getContext('2d');
+      const combinedCanvas = document.createElement("canvas");
+      const ctx = combinedCanvas.getContext("2d");
 
-      // Set the combined canvas size
-      const combinedWidth = canvas1.width + canvas2.width + 20; // Add some space between images
+      const combinedWidth = canvas1.width + canvas2.width + 20;
       const combinedHeight = Math.max(canvas1.height, canvas2.height);
 
       combinedCanvas.width = combinedWidth;
       combinedCanvas.height = combinedHeight;
 
-      // Draw the first chart on the left side
       ctx.drawImage(canvas1, 0, 0);
 
-      // Draw the second chart on the right side (or below if stacked vertically)
-      ctx.drawImage(canvas2, canvas1.width + 10, 0); // Adjust position (10px space between charts)
+      ctx.drawImage(canvas2, canvas1.width + 10, 0);
 
-      const combinedImgData = combinedCanvas.toDataURL('image/png');
+      const combinedImgData = combinedCanvas.toDataURL("image/png");
 
-      // Add the combined image to the PDF
-      const imageWidth = 180; // Image width for the PDF (adjust as needed)
-      const imageHeight = (combinedCanvas.height * imageWidth) / combinedCanvas.width; // Maintain aspect ratio
-      pdf.addImage(combinedImgData, 'PNG', 10, 30, imageWidth, imageHeight);
+      const imageWidth = 180;
+      const imageHeight =
+        (combinedCanvas.height * imageWidth) / combinedCanvas.width;
+      pdf.addImage(combinedImgData, "PNG", 10, 30, imageWidth, imageHeight);
 
-      // Save the PDF
-      pdf.save(`Footprint_Trends_${currentDate.replace(/\//g, '-')}.pdf`);
+      pdf.save(`Footprint_Trends_${currentDate.replace(/\//g, "-")}.pdf`);
     });
   };
 
-
-
-
-
-  if (loading) return <Spinner />
+  if (loading) return <Spinner />;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-          <p className="text-muted-foreground">Monitor your carbon footprint tracking platform</p>
+          <p className="text-muted-foreground">
+            Monitor your carbon footprint tracking platform
+          </p>
         </div>
       </div>
 
-        <div className="flex justify-end gap-2">
-          <Button onClick={handleExportImage} variant="outline">
-            Export as Image
-          </Button>
-          <Button onClick={handleExportPDF} variant="outline">
-            Export as PDF
-          </Button>
-        </div>
+      <div className="flex justify-end gap-2">
+        <Button onClick={handleExportImage} variant="outline">
+          Export as Image
+        </Button>
+        <Button onClick={handleExportPDF} variant="outline">
+          Export as PDF
+        </Button>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -370,10 +428,16 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-bold">{kpi.value}</div>
-                <div className={`flex items-center gap-1 text-sm ${
-                  kpi.trend === 'up' ? 'text-eco' : 'text-primary'
-                }`}>
-                  {kpi.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1 text-sm ${
+                    kpi.trend === "up" ? "text-eco" : "text-primary"
+                  }`}
+                >
+                  {kpi.trend === "up" ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
                   {kpi.change}
                 </div>
               </div>
@@ -387,7 +451,9 @@ const AdminDashboard = () => {
         <Card className="shadow-sm border-admin-border" ref={barChartRef}>
           <CardHeader>
             <CardTitle className="text-lg">Carbon Footprint Trend</CardTitle>
-            <p className="text-sm text-muted-foreground">Monthly emissions by category</p>
+            <p className="text-sm text-muted-foreground">
+              Monthly emissions by category
+            </p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -395,28 +461,39 @@ const AdminDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px hsl(0 0% 0% / 0.1)'
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px hsl(0 0% 0% / 0.1)",
                   }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
-                <Bar dataKey="transport" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="food" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="home" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="transport"
+                  fill="hsl(var(--chart-1))"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="food"
+                  fill="hsl(var(--chart-2))"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="home"
+                  fill="hsl(var(--chart-3))"
+                  radius={[4, 4, 0, 0]}
+                />
 
-                <Legend 
-                  verticalAlign="top"      // Position the legend at the top
-                  align="center"           // Center-align the legend
-                  iconSize={10}            // Size of the legend icon
-                  iconType="square"        // Shape of the legend icon (square or line)
-                  wrapperStyle={{ paddingTop: 10 }}  // Add some spacing at the top
+                <Legend
+                  verticalAlign="top"
+                  align="center"
+                  iconSize={10}
+                  iconType="square"
+                  wrapperStyle={{ paddingTop: 10 }}
                 />
               </BarChart>
-                
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -425,7 +502,9 @@ const AdminDashboard = () => {
         <Card className="shadow-sm border-admin-border" ref={emissionChartRef}>
           <CardHeader>
             <CardTitle className="text-lg">Emissions Breakdown</CardTitle>
-            <p className="text-sm text-muted-foreground">Distribution by category</p>
+            <p className="text-sm text-muted-foreground">
+              Distribution by category
+            </p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -443,26 +522,27 @@ const AdminDashboard = () => {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px hsl(0 0% 0% / 0.1)'
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px hsl(0 0% 0% / 0.1)",
                   }}
                   formatter={(value, name) => [`${value}%`, name]}
                 />
               </PieChart>
-
             </ResponsiveContainer>
             <div className="mt-4 flex flex-wrap gap-4 justify-center">
               {emissionData.map((entry) => (
                 <div key={entry.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
+                  <div
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   />
-                  <span className="text-sm text-muted-foreground">{entry.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {entry.name}
+                  </span>
                   <span className="text-sm font-medium">{entry.value}%</span>
                 </div>
               ))}
@@ -471,107 +551,146 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-
-
-
-     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-sm border-admin-border" ref={barChartRef}>
           <CardHeader>
-            <CardTitle className="text-lg">Overall Assessment Results</CardTitle>
+            <CardTitle className="text-lg">
+              Overall Assessment Results
+            </CardTitle>
             <p className="text-sm text-muted-foreground">Performance metrics</p>
           </CardHeader>
           <CardContent>
-        <div className="space-y-6">
-          {/* Total Users */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <BarChart className="text-gray-500" />
-              <span className="text-gray-600 font-medium">Total Users:</span>
-            </div>
-            <span className="text-gray-900">{data?.totalUsers}</span>
-          </div>
+            <div className="space-y-6">
+              {/* Total Users */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <BarChart className="text-gray-500" />
+                  <span className="text-gray-600 font-medium">
+                    Total Users:
+                  </span>
+                </div>
+                <span className="text-gray-900">{data?.totalUsers}</span>
+              </div>
 
-          {/* Awareness Avg. Change */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="text-green-500" size={18} />
-              <span className="text-gray-600 font-medium">Awareness Avg. Change:</span>
-            </div>
-            <span className="text-gray-900">{data?.awareness?.avgChange.toFixed(2)}</span>
-          </div>
+              {/* Awareness Avg. Change */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="text-green-500" size={18} />
+                  <span className="text-gray-600 font-medium">
+                    Awareness Avg. Change:
+                  </span>
+                </div>
+                <span className="text-gray-900">
+                  {data?.awareness?.avgChange.toFixed(2)}
+                </span>
+              </div>
 
-          {/* Behavior Avg. Change */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Activity className="text-yellow-500" size={18} />
-              <span className="text-gray-600 font-medium">Behavior Avg. Change:</span>
-            </div>
-            <span className="text-gray-900">{data?.behavior?.avgChange.toFixed(2)}</span>
-          </div>
+              {/* Behavior Avg. Change */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <Activity className="text-yellow-500" size={18} />
+                  <span className="text-gray-600 font-medium">
+                    Behavior Avg. Change:
+                  </span>
+                </div>
+                <span className="text-gray-900">
+                  {data?.behavior?.avgChange.toFixed(2)}
+                </span>
+              </div>
 
-          {/* Emissions Avg. Reduction (kg) */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <CloudRain className="text-blue-500" size={18} />
-              <span className="text-gray-600 font-medium">Emissions Avg. Reduction (kg):</span>
-            </div>
-            <span className="text-gray-900">{data?.emissions?.avgReductionKg.toFixed(2)} kg</span>
-          </div>
+              {/* Emissions Avg. Reduction (kg) */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <CloudRain className="text-blue-500" size={18} />
+                  <span className="text-gray-600 font-medium">
+                    Emissions Avg. Reduction (kg):
+                  </span>
+                </div>
+                <span className="text-gray-900">
+                  {data?.emissions?.avgReductionKg.toFixed(2)} kg
+                </span>
+              </div>
 
-          {/* Emissions Avg. Reduction (%) */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <CloudRain className="text-blue-500" size={18} />
-              <span className="text-gray-600 font-medium">Emissions Avg. Reduction (%):</span>
-            </div>
-            <span className="text-gray-900">{data?.emissions?.avgReductionPercent.toFixed(2)}%</span>
-          </div>
+              {/* Emissions Avg. Reduction (%) */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <CloudRain className="text-blue-500" size={18} />
+                  <span className="text-gray-600 font-medium">
+                    Emissions Avg. Reduction (%):
+                  </span>
+                </div>
+                <span className="text-gray-900">
+                  {data?.emissions?.avgReductionPercent.toFixed(2)}%
+                </span>
+              </div>
 
-          {/* Overall Improvement */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="text-green-500" size={18} />
-              <span className="text-gray-600 font-medium">Overall Improvement:</span>
+              {/* Overall Improvement */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="text-green-500" size={18} />
+                  <span className="text-gray-600 font-medium">
+                    Overall Improvement:
+                  </span>
+                </div>
+                <span className="text-gray-900">
+                  {data?.overall?.improvedCount} / {data?.totalUsers} (
+                  {data?.overall?.improvedPercent.toFixed(2)}%)
+                </span>
+              </div>
             </div>
-            <span className="text-gray-900">
-              {data?.overall?.improvedCount} / {data?.totalUsers} (
-              {data?.overall?.improvedPercent.toFixed(2)}%)
-            </span>
-          </div>
-        </div>
           </CardContent>
         </Card>
 
         {/* Emissions Breakdown */}
         <Card>
           <CardContent>
-              {/* Bar Chart for Awareness and Behavior */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Awareness & Behavior Average Change</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={[{ name: 'Awareness', value: data?.awareness?.avgChange }, { name: 'Behavior', value: data?.behavior?.avgChange }]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="hsl(var(--chart-1))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Bar Chart for Awareness and Behavior */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Awareness & Behavior Average Change
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={[
+                    { name: "Awareness", value: data?.awareness?.avgChange },
+                    { name: "Behavior", value: data?.behavior?.avgChange },
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--chart-1))" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
 
-              {/* Bar Chart for Emissions Reduction */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Emissions Reduction</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={[{ name: 'Reduction (kg)', value: data?.emissions?.avgReductionKg }, { name: 'Reduction (%)', value: data?.emissions?.avgReductionPercent }]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="hsl(var(--chart-2))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Bar Chart for Emissions Reduction */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Emissions Reduction
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={[
+                    {
+                      name: "Reduction (kg)",
+                      value: data?.emissions?.avgReductionKg,
+                    },
+                    {
+                      name: "Reduction (%)",
+                      value: data?.emissions?.avgReductionPercent,
+                    },
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--chart-2))" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -580,35 +699,49 @@ const AdminDashboard = () => {
       <Card className="shadow-sm border-admin-border">
         <CardHeader>
           <CardTitle className="text-lg">Recent Activity</CardTitle>
-          <p className="text-sm text-muted-foreground">Latest user submissions</p>
+          <p className="text-sm text-muted-foreground">
+            Latest user submissions
+          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {activityData.map((activity, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="flex items-center justify-between py-2 border-b border-admin-border last:border-0 cursor-pointer hover:bg-admin-hover rounded-sm px-2 transition-colors"
                 onClick={() => handleActivityClick(activity)}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.type === 'transport' ? 'bg-chart-1' :
-                    activity.type === 'food' ? 'bg-chart-2' :
-                    activity.type === 'home' ? 'bg-chart-3' :
-                    'bg-chart-4'
-                  }`} />
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      activity.type === "transport"
+                        ? "bg-chart-1"
+                        : activity.type === "food"
+                          ? "bg-chart-2"
+                          : activity.type === "home"
+                            ? "bg-chart-3"
+                            : "bg-chart-4"
+                    }`}
+                  />
                   <div>
                     <p className="font-medium text-sm">{activity.email}</p>
-                    <p className="text-xs text-muted-foreground">Logged Daily Trackings</p>
+                    <p className="text-xs text-muted-foreground">
+                      Logged Daily Trackings
+                    </p>
                     <p>
-                      <span className="text-xs text-muted-foreground">CO₂e: </span>
-                      <span className="text-xs font-medium">{activity.total.toFixed(2)} kg</span>
-
+                      <span className="text-xs text-muted-foreground">
+                        CO₂e:{" "}
+                      </span>
+                      <span className="text-xs font-medium">
+                        {activity.total.toFixed(2)} kg
+                      </span>
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{getDaysAgo(activity.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {getDaysAgo(activity.createdAt)}
+                  </span>
                   <Eye className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
@@ -618,7 +751,10 @@ const AdminDashboard = () => {
       </Card>
 
       {/* Activity Detail Dialog */}
-      <Dialog open={!!selectedActivity} onOpenChange={(open) => !open && setSelectedActivity(null)}>
+      <Dialog
+        open={!!selectedActivity}
+        onOpenChange={(open) => !open && setSelectedActivity(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -629,24 +765,38 @@ const AdminDashboard = () => {
               Recent user activity information
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedActivity && (
             <div className="space-y-4">
               <div className="space-y-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">User</p>
-                  <p className="text-sm text-muted-foreground ml-2">{selectedActivity.email}</p>
+                  <p className="text-sm text-muted-foreground ml-2">
+                    {selectedActivity.email}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Total:</p>
-                  <p className="text-sm font-medium ml-2">{selectedActivity.total.toFixed(2)} kg CO₂e</p>
-                  <p className="text-sm text-muted-foreground ml-4">Transport: {selectedActivity.transport}</p>
-                  <p className="text-sm text-muted-foreground ml-4">Food: {selectedActivity.food}</p>
-                  <p className="text-sm text-muted-foreground ml-4">Home Energy: {selectedActivity.homeEnergy}</p>
+                  <p className="text-sm font-medium ml-2">
+                    {selectedActivity.total.toFixed(2)} kg CO₂e
+                  </p>
+                  <p className="text-sm text-muted-foreground ml-4">
+                    Transport: {selectedActivity.transport}
+                  </p>
+                  <p className="text-sm text-muted-foreground ml-4">
+                    Food: {selectedActivity.food}
+                  </p>
+                  <p className="text-sm text-muted-foreground ml-4">
+                    Home Energy: {selectedActivity.homeEnergy}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Time</p>
-                  <p className="text-sm text-muted-foreground ml-2">{new Date(selectedActivity.createdAt).toISOString().slice(0, 10)}</p>
+                  <p className="text-sm text-muted-foreground ml-2">
+                    {new Date(selectedActivity.createdAt)
+                      .toISOString()
+                      .slice(0, 10)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -654,7 +804,7 @@ const AdminDashboard = () => {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;

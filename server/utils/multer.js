@@ -1,13 +1,6 @@
-const multer = require('multer');
-const { v2: cloudinary } = require('cloudinary');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
-console.log('Cloudinary Config:', {
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
-  api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET',
-});
-
+const multer = require("multer");
+const { v2: cloudinary } = require("cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -15,11 +8,11 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
 
 const fileFilter = (req, file, cb) => {
   if (!allowedMimeTypes.includes(file.mimetype)) {
-    cb(new Error('Only jpg, jpeg, and png files are allowed!'), false);
+    cb(new Error("Only jpg, jpeg, and png files are allowed!"), false);
   } else {
     cb(null, true);
   }
@@ -28,8 +21,8 @@ const fileFilter = (req, file, cb) => {
 const profileStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'profile_pics',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
+    folder: "profile_pics",
+    allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
 
@@ -41,8 +34,8 @@ const uploadProfilePic = multer({
 const communityStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'community_posts',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
+    folder: "community_posts",
+    allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
 

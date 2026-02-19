@@ -50,13 +50,16 @@ export default function CreateProfile() {
   useEffect(() => {
     const checkAssessmentStatus = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/profile/user/status`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/profile/user/status`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
           },
-          credentials: "include",
-        });
+        );
 
         const data = await response.json();
 
@@ -100,7 +103,11 @@ export default function CreateProfile() {
 
     if (!formData.birthday.trim()) {
       newErrors.birthday = "Birthday is required.";
-    } else if (!/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/.test(formData.birthday.trim())) {
+    } else if (
+      !/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/.test(
+        formData.birthday.trim(),
+      )
+    ) {
       newErrors.birthday = "Enter a valid date in MM-DD-YYYY format.";
     }
 
@@ -118,10 +125,7 @@ export default function CreateProfile() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const {
-    mutate: userProfile,
-    isPending,
-  } = useMutation({
+  const { mutate: userProfile, isPending } = useMutation({
     mutationFn: createProfile,
     onSuccess: () => {
       toast({
@@ -131,10 +135,8 @@ export default function CreateProfile() {
       navigate(redirectUrl, { replace: true });
     },
     onError: (error: any) => {
-      const message =
-        error?.error ||
-        "Please try again.";
-        
+      const message = error?.error || "Please try again.";
+
       toast({
         title: "Something went wrong",
         description: message,
@@ -161,7 +163,7 @@ export default function CreateProfile() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name } = e.target;
 
@@ -183,8 +185,6 @@ export default function CreateProfile() {
   }
 
   return (
-    
-  
     <form
       onSubmit={handleSubmit}
       className="max-w-3xl mx-auto p-6 bg-white shadow-sm rounded-2xl"
@@ -192,7 +192,9 @@ export default function CreateProfile() {
     >
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
-        <p className="text-muted-foreground">Manage your personal information and preferences.</p>
+        <p className="text-muted-foreground">
+          Manage your personal information and preferences.
+        </p>
       </div>
       <div className="flex flex-col md:grid md:grid-cols-10 gap-10">
         <div className="col-span-4 space-y-4 flex flex-col items-center">
@@ -230,7 +232,6 @@ export default function CreateProfile() {
         </div>
 
         <div className=" col-span-6 space-y-4">
-          {/* First Name */}
           <div>
             <label
               htmlFor="firstName"
@@ -250,8 +251,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
             )}
           </div>
-          
-          {/* Last Name */}
+
           <div>
             <label
               htmlFor="lastName"
@@ -271,8 +271,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
             )}
           </div>
-          
-          {/* Username */}
+
           <div>
             <label
               htmlFor="username"
@@ -292,8 +291,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.username}</p>
             )}
           </div>
-          
-          {/* Birthday */}
+
           <div>
             <label
               htmlFor="birthday"
@@ -312,8 +310,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.birthday}</p>
             )}
           </div>
-          
-          {/* Address */}
+
           <div>
             <label
               htmlFor="address"
@@ -333,8 +330,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.address}</p>
             )}
           </div>
-          
-          {/* Bio (textarea) */}
+
           <div>
             <label
               htmlFor="bio"
@@ -359,8 +355,7 @@ export default function CreateProfile() {
               <p className="text-red-500 text-xs mt-1">{errors.bio}</p>
             )}
           </div>
-          
-          {/* Submit Button */}
+
           <button
             type="submit"
             className="w-full py-2 px-3 bg-green-600 text-white rounded-lg font-medium text-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

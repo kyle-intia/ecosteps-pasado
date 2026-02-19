@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.use(authenticate);
 
-// Create new activity
 router.post("/", async (req, res) => {
   try {
     const { category, subtype, points, totalDistance, duration } = req.body;
@@ -24,20 +23,21 @@ router.post("/", async (req, res) => {
   }
 });
 
-
 router.get("/", async (req, res) => {
   try {
     const { category, subType } = req.query;
     const filter = {};
     if (category) filter.category = category;
     if (subType) filter.subType = subType;
-    const activities = await ActivityService.getUserActivities(req.userId, filter);
+    const activities = await ActivityService.getUserActivities(
+      req.userId,
+      filter,
+    );
     res.json(activities);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 router.patch("/:id", async (req, res) => {
   try {
@@ -54,6 +54,5 @@ router.patch("/:id", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 module.exports = router;

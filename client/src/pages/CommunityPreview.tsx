@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 
 const API = "http://localhost:8080/api/community";
@@ -43,7 +41,11 @@ export default function SharedPostPreview() {
       setPost(data);
     } catch (err) {
       console.error(err);
-      toast({ title: "Failed to load post", description: String(err), variant: "destructive" });
+      toast({
+        title: "Failed to load post",
+        description: String(err),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,11 @@ export default function SharedPostPreview() {
       setPost(updatedPost);
     } catch (err) {
       console.error(err);
-      toast({ title: `${action} failed`, description: String(err), variant: "destructive" });
+      toast({
+        title: `${action} failed`,
+        description: String(err),
+        variant: "destructive",
+      });
     }
   };
 
@@ -84,7 +90,11 @@ export default function SharedPostPreview() {
       setCommentText("");
     } catch (err) {
       console.error(err);
-      toast({ title: "Comment failed", description: String(err), variant: "destructive" });
+      toast({
+        title: "Comment failed",
+        description: String(err),
+        variant: "destructive",
+      });
     }
   };
 
@@ -93,9 +103,17 @@ export default function SharedPostPreview() {
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white rounded-lg shadow-md">
-      <h3 className="font-semibold">{post.author.firstName} {post.author.lastName} (@{post.author.username})</h3>
+      <h3 className="font-semibold">
+        {post.author.firstName} {post.author.lastName} (@{post.author.username})
+      </h3>
       <p className="mt-2">{post.content}</p>
-      {post.image && <img src={post.image} alt="Post" className="mt-4 rounded-md max-w-full" />}
+      {post.image && (
+        <img
+          src={post.image}
+          alt="Post"
+          className="mt-4 rounded-md max-w-full"
+        />
+      )}
       <div className="mt-4 flex gap-4">
         <span>Likes: {post.likes.length}</span>
         <span>Reposts: {post.reposts.length}</span>

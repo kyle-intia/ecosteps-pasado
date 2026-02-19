@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { sendPasswordResetEmail } from "../lib/api";
-import { Spinner } from "@/components/ui/spinner"; 
+import { Spinner } from "@/components/ui/spinner";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -17,7 +17,9 @@ const ForgotPassword = () => {
     mutationFn: sendPasswordResetEmail,
   });
 
-  const isValidEmail = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(email);
+  const isValidEmail = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(
+    email,
+  );
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -58,7 +60,11 @@ const ForgotPassword = () => {
                 disabled={!isValidEmail || isPending}
                 onClick={() => sendPasswordReset(email)}
               >
-                {isPending ? <Spinner size="8" color="border-white" loading={isPending} /> : "Reset Password"}
+                {isPending ? (
+                  <Spinner size="8" color="border-white" loading={isPending} />
+                ) : (
+                  "Reset Password"
+                )}
               </button>
             </div>
           )}

@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,13 +9,20 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Timer, Gauge, Activity, Calendar } from "lucide-react";
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Polyline,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import { getActivityTrack } from "../lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Navbar } from "@/components/Navbar";
-import useSessionStatus from "../hooks/useSessionStatus"
-import useSignOut from "../hooks/useLogout"
+import useSessionStatus from "../hooks/useSessionStatus";
+import useSignOut from "../hooks/useLogout";
 import { Spinner } from "@/components/ui/spinner";
 
 type Category = "all" | "private" | "public" | "basic";
@@ -69,12 +71,17 @@ const transportTypes = {
   basic: ["walk", "bicycle"],
 };
 
-// Map helper to fit bounds to all points
-function FitBounds({ points }: { points: { latitude: number; longitude: number }[] }) {
+function FitBounds({
+  points,
+}: {
+  points: { latitude: number; longitude: number }[];
+}) {
   const map = useMap();
   useEffect(() => {
     if (points.length > 0) {
-      const bounds = points.map(p => [p.latitude, p.longitude] as [number, number]);
+      const bounds = points.map(
+        (p) => [p.latitude, p.longitude] as [number, number],
+      );
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [points, map]);
@@ -82,11 +89,13 @@ function FitBounds({ points }: { points: { latitude: number; longitude: number }
 }
 
 export default function UserTrackHistory() {
+  const { isPending, isLoggedIn } = useSessionStatus();
+  const { signOut } = useSignOut();
 
-  const { isPending, isLoggedIn} = useSessionStatus();
-  const { signOut } = useSignOut()
-
-  const [filters, setFilters] = useState<{ category: Category; subType: Subtype }>({
+  const [filters, setFilters] = useState<{
+    category: Category;
+    subType: Subtype;
+  }>({
     category: "all",
     subType: "all",
   });
@@ -105,7 +114,10 @@ export default function UserTrackHistory() {
         if (filters.category !== "all") params.category = filters.category;
         if (filters.subType !== "all") params.subtype = filters.subType;
 
-        const dataFromApi: ApiActivity[] = await getActivityTrack({ params, signal });
+        const dataFromApi: ApiActivity[] = await getActivityTrack({
+          params,
+          signal,
+        });
 
         const normalizedData: ActivityRecord[] = dataFromApi.map((item) => ({
           _id: item._id,
@@ -130,10 +142,9 @@ export default function UserTrackHistory() {
         setLoading(false);
       }
     },
-    [filters]
+    [filters],
   );
 
-  // Debounced fetch
   useEffect(() => {
     const controller = new AbortController();
     const timeout = setTimeout(() => fetchActivities(controller.signal), 400);
@@ -143,7 +154,6 @@ export default function UserTrackHistory() {
     };
   }, [fetchActivities]);
 
-  // Filter handlers
   const handleCategoryChange = (value: Category) => {
     setFilters({ category: value, subType: "all" });
   };
@@ -152,7 +162,6 @@ export default function UserTrackHistory() {
     setFilters((prev) => ({ ...prev, subType: value }));
   };
 
-  // Helpers
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     const hrs = Math.floor(seconds / 3600);
@@ -182,18 +191,22 @@ export default function UserTrackHistory() {
     }
   };
 
-  const availableSubtypes = filters.category === "all" ? [] : transportTypes[filters.category as keyof typeof transportTypes];
+  const availableSubtypes =
+    filters.category === "all"
+      ? []
+      : transportTypes[filters.category as keyof typeof transportTypes];
 
-  // Memoized filtered activities
   const filteredActivities = useMemo(() => {
     return activities.filter((activity) => {
-      if (filters.category !== "all" && activity.category !== filters.category) return false;
-      if (filters.subType !== "all" && activity.subtype !== filters.subType) return false;
+      if (filters.category !== "all" && activity.category !== filters.category)
+        return false;
+      if (filters.subType !== "all" && activity.subtype !== filters.subType)
+        return false;
       return true;
     });
   }, [activities, filters]);
 
-    const handleSignOut = () => {
+  const handleSignOut = () => {
     signOut();
   };
 
@@ -201,210 +214,208 @@ export default function UserTrackHistory() {
     return <Spinner />;
   }
 
-return (
-  <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-    
-    <div>
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
-    </div>
-    
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {/* Header */}
-    <header className="space-y-5">
-      <h1 className="text-4xl font-semibold tracking-tight flex items-center gap-3">
-        <Activity className="h-10 w-10 text-primary" />
-        Track History
-      </h1>
-      <p className="text-muted-foreground text-base">
-        Review and explore your recorded activities.
-      </p>
-    </header>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div>
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleSignOut} />
+      </div>
 
-    {/* Filters */}
-    <Card className="rounded-3xl shadow-sm border border-gray-200 my-8">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-semibold">Filters</CardTitle>
-      </CardHeader>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <header className="space-y-5">
+          <h1 className="text-4xl font-semibold tracking-tight flex items-center gap-3">
+            <Activity className="h-10 w-10 text-primary" />
+            Track History
+          </h1>
+          <p className="text-muted-foreground text-base">
+            Review and explore your recorded activities.
+          </p>
+        </header>
 
-      <CardContent className="pt-2">
-        <div className="flex flex-col sm:flex-row gap-6">
-          <Select value={filters.category} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-full sm:w-[220px] h-11 px-4 rounded-xl bg-muted/40">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="basic">Basic</SelectItem>
-            </SelectContent>
-          </Select>
+        <Card className="rounded-3xl shadow-sm border border-gray-200 my-8">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-semibold">Filters</CardTitle>
+          </CardHeader>
 
-          {filters.category !== "all" && (
-            <Select value={filters.subType} onValueChange={handleSubTypeChange}>
-              <SelectTrigger className="w-full sm:w-[220px] h-11 px-4 rounded-xl bg-muted/40">
-                <SelectValue placeholder="Subtype" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">All Types</SelectItem>
-                {availableSubtypes.map(type => (
-                  <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          <CardContent className="pt-2">
+            <div className="flex flex-col sm:flex-row gap-6">
+              <Select
+                value={filters.category}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger className="w-full sm:w-[220px] h-11 px-4 rounded-xl bg-muted/40">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
+                </SelectContent>
+              </Select>
 
-    {/* Loading */}
-    {loading && (
-      <Card className="rounded-3xl p-10 flex flex-col gap-6 border border-gray-200">
-        <div className="flex flex-col gap-4 items-center">
-          <Skeleton className="h-4 w-3/4 rounded" />
-          <Skeleton className="h-4 w-1/2 rounded" />
-        </div>
-        <p className="text-muted-foreground text-center">Loading activities…</p>
-      </Card>
-    )}
-
-    {/* Error */}
-    {!loading && error && (
-      <Card className="rounded-3xl p-10 text-center border border-red-300 bg-red-50">
-        <p className="text-red-700">{error}</p>
-        <button
-          onClick={() => fetchActivities(new AbortController().signal)}
-          className="mt-4 px-5 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700"
-        >
-          Retry
-        </button>
-      </Card>
-    )}
-
-    {/* Empty */}
-    {!loading && !error && filteredActivities.length === 0 && (
-      <Card className="rounded-3xl p-14 text-center border border-gray-200">
-        <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-lg font-medium">No activities found</p>
-        <p className="text-muted-foreground text-sm">
-          Adjust your filters or record a new activity.
-        </p>
-      </Card>
-    )}
-
-    {/* Activities Grid — 2 Cards per Row */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {filteredActivities.map(activity => {
-        const center: [number, number] =
-          activity.points.length > 0
-            ? [activity.points[0].latitude, activity.points[0].longitude]
-            : [0, 0];
-
-        return (
-          <Card
-            key={activity._id}
-            className="rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition"
-          >
-            <CardContent className="p-8 space-y-6">
-
-              {/* Header */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <Badge
-                    className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getCategoryColor(
-                      activity.category
-                    )}`}
-                  >
-                    {activity.category.toUpperCase()}
-                  </Badge>
-
-                  <span className="text-lg font-semibold">
-                    {activity.subtype.charAt(0).toUpperCase() +
-                      activity.subtype.slice(1)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(activity.timestamp)}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-8">
-
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Distance</p>
-                    <p className="text-lg font-semibold">
-                      {activity.distance.toFixed(2)} km
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Timer className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-lg font-semibold">
-                      {formatDuration(activity.duration)}
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Bigger Map */}
-              {activity.points.length > 0 && (
-                <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                  <MapContainer
-                    center={center}
-                    zoom={15}
-                    style={{ height: 420, width: "100%" }}  // BIGGER MAP
-                  >
-                    <TileLayer
-                      url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow`}
-                      attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    />
-
-                    <Polyline
-                      positions={activity.points.map(p => [
-                        p.latitude,
-                        p.longitude,
-                      ])}
-                    />
-
-                    <Marker position={center}>
-                      <Popup>Start</Popup>
-                    </Marker>
-
-                    <Marker
-                      position={[
-                        activity.points[activity.points.length - 1].latitude,
-                        activity.points[activity.points.length - 1].longitude,
-                      ]}
-                    >
-                      <Popup>End</Popup>
-                    </Marker>
-
-                    <FitBounds points={activity.points} />
-                  </MapContainer>
-                </div>
+              {filters.category !== "all" && (
+                <Select
+                  value={filters.subType}
+                  onValueChange={handleSubTypeChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[220px] h-11 px-4 rounded-xl bg-muted/40">
+                    <SelectValue placeholder="Subtype" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all">All Types</SelectItem>
+                    {availableSubtypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
+            </div>
+          </CardContent>
+        </Card>
 
-            </CardContent>
+        {loading && (
+          <Card className="rounded-3xl p-10 flex flex-col gap-6 border border-gray-200">
+            <div className="flex flex-col gap-4 items-center">
+              <Skeleton className="h-4 w-3/4 rounded" />
+              <Skeleton className="h-4 w-1/2 rounded" />
+            </div>
+            <p className="text-muted-foreground text-center">
+              Loading activities…
+            </p>
           </Card>
-        );
-      })}
+        )}
+
+        {!loading && error && (
+          <Card className="rounded-3xl p-10 text-center border border-red-300 bg-red-50">
+            <p className="text-red-700">{error}</p>
+            <button
+              onClick={() => fetchActivities(new AbortController().signal)}
+              className="mt-4 px-5 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </Card>
+        )}
+
+        {!loading && !error && filteredActivities.length === 0 && (
+          <Card className="rounded-3xl p-14 text-center border border-gray-200">
+            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg font-medium">No activities found</p>
+            <p className="text-muted-foreground text-sm">
+              Adjust your filters or record a new activity.
+            </p>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {filteredActivities.map((activity) => {
+            const center: [number, number] =
+              activity.points.length > 0
+                ? [activity.points[0].latitude, activity.points[0].longitude]
+                : [0, 0];
+
+            return (
+              <Card
+                key={activity._id}
+                className="rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition"
+              >
+                <CardContent className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getCategoryColor(
+                          activity.category,
+                        )}`}
+                      >
+                        {activity.category.toUpperCase()}
+                      </Badge>
+
+                      <span className="text-lg font-semibold">
+                        {activity.subtype.charAt(0).toUpperCase() +
+                          activity.subtype.slice(1)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(activity.timestamp)}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Distance
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {activity.distance.toFixed(2)} km
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Timer className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Duration
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatDuration(activity.duration)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {activity.points.length > 0 && (
+                    <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+                      <MapContainer
+                        center={center}
+                        zoom={15}
+                        style={{ height: 420, width: "100%" }}
+                      >
+                        <TileLayer
+                          url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow`}
+                          attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        />
+
+                        <Polyline
+                          positions={activity.points.map((p) => [
+                            p.latitude,
+                            p.longitude,
+                          ])}
+                        />
+
+                        <Marker position={center}>
+                          <Popup>Start</Popup>
+                        </Marker>
+
+                        <Marker
+                          position={[
+                            activity.points[activity.points.length - 1]
+                              .latitude,
+                            activity.points[activity.points.length - 1]
+                              .longitude,
+                          ]}
+                        >
+                          <Popup>End</Popup>
+                        </Marker>
+
+                        <FitBounds points={activity.points} />
+                      </MapContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </main>
     </div>
-    </main>
-
-  </div>
-);
-
+  );
 }

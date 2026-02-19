@@ -9,27 +9,26 @@ const useCommunityHighlights = (limit = 5) => {
     queryFn: () => getCommunityPosts(),
   });
 
-  // Process posts: sort by createdAt, take recent ones, format for display
   const highlights = data?.data
     ? data.data
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, limit)
-        .map(post => ({
+        .map((post) => ({
           id: post.id,
-          username: post.user?.username || 'Anonymous',
+          username: post.user?.username || "Anonymous",
           avatar: post.user?.profilePic || null,
           content: post.content,
           timestamp: new Date(post.createdAt),
           likes: post.likesCount || 0,
           comments: post.commentsCount || 0,
-          isAchievement: post.isAchievement || false, // Assuming API has this
-          achievementBadge: post.achievementBadge || null
+          isAchievement: post.isAchievement || false,
+          achievementBadge: post.achievementBadge || null,
         }))
     : [];
 
   return {
     highlights,
-    ...rest
+    ...rest,
   };
 };
 

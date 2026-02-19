@@ -1,15 +1,18 @@
-// client/src/components/AchievementNotifier.tsx - Continued
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, X, Star } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, X, Star } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = true }) => {
+const AchievementNotifier = ({
+  notifications = [],
+  onDismiss,
+  soundEnabled = true,
+}) => {
   const [audioContext, setAudioContext] = useState(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.AudioContext) {
+    if (typeof window !== "undefined" && window.AudioContext) {
       const ctx = new (window.AudioContext || window.AudioContext)();
       setAudioContext(ctx);
     }
@@ -17,32 +20,38 @@ const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = tru
 
   const playAchievementSound = () => {
     if (!soundEnabled || !audioContext) return;
-    
+
     try {
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
       oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.2);
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3,
+      );
+
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (error) {
-      console.warn('Could not play achievement sound:', error);
+      console.warn("Could not play achievement sound:", error);
     }
   };
 
   useEffect(() => {
     if (notifications.length > 0) {
       const latestNotification = notifications[0];
-      if (!latestNotification.read && latestNotification.type === 'achievement_unlock') {
+      if (
+        !latestNotification.read &&
+        latestNotification.type === "achievement_unlock"
+      ) {
         playAchievementSound();
       }
     }
@@ -50,11 +59,16 @@ const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = tru
 
   const getTierIcon = (tier) => {
     switch (tier) {
-      case 'bronze': return '🥉';
-      case 'silver': return '🥈';
-      case 'gold': return '🥇';
-      case 'platinum': return '💎';
-      default: return '🏆';
+      case "bronze":
+        return "🥉";
+      case "silver":
+        return "🥈";
+      case "gold":
+        return "🥇";
+      case "platinum":
+        return "💎";
+      default:
+        return "🏆";
     }
   };
 
@@ -67,11 +81,11 @@ const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = tru
             initial={{ opacity: 0, x: 300, scale: 0.8 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 300, scale: 0.8 }}
-            transition={{ 
+            transition={{
               type: "spring",
               stiffness: 300,
               damping: 30,
-              duration: 0.4 
+              duration: 0.4,
             }}
           >
             <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200 shadow-lg">
@@ -83,14 +97,14 @@ const AchievementNotifier = ({ notifications = [], onDismiss, soundEnabled = tru
                         <Trophy className="h-8 w-8 text-yellow-500" />
                         <motion.div
                           className="absolute -top-1 -right-1"
-                          animate={{ 
+                          animate={{
                             scale: [1, 1.3, 1],
-                            rotate: [0, 10, -10, 0]
+                            rotate: [0, 10, -10, 0],
                           }}
-                          transition={{ 
+                          transition={{
                             duration: 0.6,
                             repeat: 2,
-                            repeatType: "reverse"
+                            repeatType: "reverse",
                           }}
                         >
                           <Star className="h-3 w-3 text-yellow-400 fill-current" />

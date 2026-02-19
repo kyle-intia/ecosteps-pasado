@@ -8,7 +8,6 @@ const router = express.Router();
 router.use(authenticate);
 router.use(isAdmin);
 
-// CREATE
 router.post("/create", async (req, res) => {
   try {
     const reward = await AdminRewardService.createReward(req.body);
@@ -18,7 +17,6 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// READ ALL
 router.get("/", async (req, res) => {
   try {
     const list = await AdminRewardService.getAllRewards();
@@ -28,7 +26,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// READ ONE
 router.get("/:id", async (req, res) => {
   try {
     const reward = await AdminRewardService.getRewardById(req.params.id);
@@ -39,10 +36,12 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// UPDATE
 router.patch("/:id", async (req, res) => {
   try {
-    const reward = await AdminRewardService.updateReward(req.params.id, req.body);
+    const reward = await AdminRewardService.updateReward(
+      req.params.id,
+      req.body,
+    );
     if (!reward) return res.status(404).json({ message: "Not found" });
     res.json(reward);
   } catch (err) {
@@ -50,7 +49,6 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// DELETE
 router.delete("/:id", async (req, res) => {
   try {
     const reward = await AdminRewardService.deleteReward(req.params.id);

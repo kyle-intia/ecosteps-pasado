@@ -15,7 +15,9 @@ export default function Login() {
     email: "",
     password: "",
   });
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
@@ -42,26 +44,29 @@ export default function Login() {
     } else if (!emailRegex.test(email)) {
       newErrors.email = "Please enter a valid email address";
     }
-  
+
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     }
-  
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const checkPreAssessmentStatus = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/preassessment/user/status`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/preassessment/user/status`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
         },
-        credentials: "include",
-      });
+      );
 
       const data = await response.json();
 
@@ -72,67 +77,44 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Error checking assessment status:", error);
-      // Default to pre-assessment if error
       navigate("/pre-assessment", { replace: true });
     }
   };
 
-  const {
-  mutate: signIn,
-  isPending,
-} = useMutation({
-  mutationFn: (data: typeof formData) => login(data),
-  onSuccess: (res: { role?: string }) => {
-    const role = res?.role;
+  const { mutate: signIn, isPending } = useMutation({
+    mutationFn: (data: typeof formData) => login(data),
+    onSuccess: (res: { role?: string }) => {
+      const role = res?.role;
 
-    localStorage.setItem("isLoggedIn", "true");
-    toast({
-      title: "Welcome back!",
-      description: "You've successfully logged in to EcoStep.",
-    });
-
-    if (role === "admin") {
-      navigate("/admin", { replace: true });
-    } else {
-      navigate(redirectUrl, { replace: true });
-    }
-  },
-  onError: (error: any) => {
-    let description = "Invalid email or password. Please try again.";
-
-/*
-    mutate: signIn,
-    isPending,
-  } = useMutation({
-    mutationFn:  (data: typeof formData) => login(data),
-    onSuccess: () => {
       localStorage.setItem("isLoggedIn", "true");
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in to EcoStep.",
       });
-      queryClient.invalidateQueries(["userProfileDetails"]);
-      queryClient.invalidateQueries(["auth"]);
-      checkPreAssessmentStatus();
+
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate(redirectUrl, { replace: true });
+      }
     },
     onError: (error: any) => {
       let description = "Invalid email or password. Please try again.";
-*/
 
-    if (error?.message?.includes("verify your email")) {
-      description =
-        "Please verify your email before logging in. Check your inbox for the verification link.";
-    } else if (error?.message) {
-      description = error.message;
-    }
+      if (error?.message?.includes("verify your email")) {
+        description =
+          "Please verify your email before logging in. Check your inbox for the verification link.";
+      } else if (error?.message) {
+        description = error.message;
+      }
 
-    toast({
-      title: "Login failed",
-      description,
-      variant: "destructive",
-    });
-  },
-});
+      toast({
+        title: "Login failed",
+        description,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,9 +135,8 @@ export default function Login() {
   const isEmailValid = formData.email;
   const isPasswordValid = formData.password.length >= 8;
   const isNoErrors = Object.keys(errors).length === 0;
-  
+
   const isFormValid = isNoErrors && isEmailValid && isPasswordValid;
-      
 
   return (
     <AuthLayout
@@ -205,7 +186,11 @@ export default function Login() {
               className="absolute transition-all duration-300 ease-out right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
           </div>
           {errors.password && (
@@ -220,17 +205,22 @@ export default function Login() {
             formData.password.length === 0
               ? "text-muted-foreground"
               : isPasswordValid
-              ? "text-green-600"
-              : "text-red-500"
+                ? "text-green-600"
+                : "text-red-500"
           }`}
         >
           <li> Minimum 8 characters. </li>
-          <li>Letters, numbers, and
-          <span className="font-mono"> !@#$%^&*()-_=+</span> are allowed</li>
+          <li>
+            Letters, numbers, and
+            <span className="font-mono"> !@#$%^&*()-_=+</span> are allowed
+          </li>
         </ul>
 
         <div className="flex items-center justify-between">
-          <Link to="/password/forgot" className="text-sm text-primary hover:underline">
+          <Link
+            to="/password/forgot"
+            className="text-sm text-primary hover:underline"
+          >
             Forgot password?
           </Link>
         </div>
@@ -246,7 +236,10 @@ export default function Login() {
 
         <div className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link to="/register" className="text-primary hover:underline font-medium">
+          <Link
+            to="/register"
+            className="text-primary hover:underline font-medium"
+          >
             Sign up
           </Link>
         </div>

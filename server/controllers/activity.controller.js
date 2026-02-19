@@ -1,8 +1,7 @@
 const activityService = require("../services/activity.service");
-const CertificateRewardService = require('../services/certificateRewardService');
-const AchievementService = require('../services/achievementService');
+const CertificateRewardService = require("../services/certificateRewardService");
+const AchievementService = require("../services/achievementService");
 
-// Add new activity
 exports.addActivity = async (req, res) => {
   try {
     const userId = req.userId;
@@ -14,11 +13,12 @@ exports.addActivity = async (req, res) => {
 
     const saved = await activityService.createActivity(userId, activityData);
 
-    // ADD THESE 3 LINES HERE TOO
     await CertificateRewardService.checkCertificatesForUser(userId);
     await CertificateRewardService.checkRewardsForUser(userId);
-    await AchievementService.checkAchievements(userId, 'activity_completed', { activity: saved });
-    
+    await AchievementService.checkAchievements(userId, "activity_completed", {
+      activity: saved,
+    });
+
     return res.status(201).json(saved);
   } catch (err) {
     console.error("Add activity error:", err.message);
@@ -26,7 +26,6 @@ exports.addActivity = async (req, res) => {
   }
 };
 
-// Get today's activities
 exports.getTodayActivities = async (req, res) => {
   try {
     const userId = req.userId;
@@ -38,7 +37,6 @@ exports.getTodayActivities = async (req, res) => {
   }
 };
 
-// Update an activity completely (PUT)
 exports.updateActivity = async (req, res) => {
   try {
     const userId = req.userId;
@@ -49,7 +47,11 @@ exports.updateActivity = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const updated = await activityService.updateActivity(userId, activityId, activityData);
+    const updated = await activityService.updateActivity(
+      userId,
+      activityId,
+      activityData,
+    );
     if (!updated) {
       return res.status(404).json({ error: "Activity not found" });
     }
@@ -61,14 +63,17 @@ exports.updateActivity = async (req, res) => {
   }
 };
 
-// Partially update an activity (PATCH)
 exports.patchActivity = async (req, res) => {
   try {
     const userId = req.userId;
     const activityId = req.params.id;
     const updates = req.body;
 
-    const patched = await activityService.patchActivity(userId, activityId, updates);
+    const patched = await activityService.patchActivity(
+      userId,
+      activityId,
+      updates,
+    );
     if (!patched) {
       return res.status(404).json({ error: "Activity not found" });
     }
@@ -80,7 +85,6 @@ exports.patchActivity = async (req, res) => {
   }
 };
 
-// Delete an activity
 exports.deleteActivity = async (req, res) => {
   try {
     const userId = req.userId;

@@ -8,7 +8,6 @@ const router = express.Router();
 router.use(authenticate);
 router.use(isAdmin);
 
-// CREATE
 router.post("/create", async (req, res) => {
   try {
     const cert = await AdminCertificateService.createCertificate(req.body);
@@ -18,7 +17,6 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// READ ALL
 router.get("/", async (req, res) => {
   try {
     const list = await AdminCertificateService.getAllCertificates();
@@ -28,10 +26,11 @@ router.get("/", async (req, res) => {
   }
 });
 
-// READ ONE
 router.get("/:id", async (req, res) => {
   try {
-    const cert = await AdminCertificateService.getCertificateById(req.params.id);
+    const cert = await AdminCertificateService.getCertificateById(
+      req.params.id,
+    );
     if (!cert) return res.status(404).json({ message: "Not found" });
     res.json(cert);
   } catch (err) {
@@ -39,10 +38,12 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// UPDATE
 router.patch("/:id", async (req, res) => {
   try {
-    const cert = await AdminCertificateService.updateCertificate(req.params.id, req.body);
+    const cert = await AdminCertificateService.updateCertificate(
+      req.params.id,
+      req.body,
+    );
     if (!cert) return res.status(404).json({ message: "Not found" });
     res.json(cert);
   } catch (err) {
@@ -50,7 +51,6 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// DELETE
 router.delete("/:id", async (req, res) => {
   try {
     const cert = await AdminCertificateService.deleteCertificate(req.params.id);

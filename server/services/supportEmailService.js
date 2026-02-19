@@ -1,5 +1,4 @@
 "use strict";
-
 const resend = require("../config/resend").default;
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL;
 const EMAIL_SENDER = process.env.EMAIL_SENDER;
@@ -7,8 +6,8 @@ const EMAIL_SENDER = process.env.EMAIL_SENDER;
 const sendSupportMail = async ({ from, subject, text, html }) => {
   try {
     const response = await resend.emails.send({
-      from: EMAIL_SENDER, 
-      to: SUPPORT_EMAIL,   
+      from: EMAIL_SENDER,
+      to: SUPPORT_EMAIL,
       subject,
       text,
       html,

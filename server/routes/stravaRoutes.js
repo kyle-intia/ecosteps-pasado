@@ -1,17 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-// ⚙️ Configure from your Strava app
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI;
 
-// Store user tokens (replace with DB in production)
 const userTokens = new Map();
 
-/**
- * 1️⃣ Step 1: Redirect user to Strava authorization page
- */
 router.get("/auth", (req, res) => {
   const url = new URL("https://www.strava.com/oauth/authorize");
   url.searchParams.set("client_id", STRAVA_CLIENT_ID);
@@ -21,9 +16,6 @@ router.get("/auth", (req, res) => {
   res.redirect(url.toString());
 });
 
-/**
- * 2️⃣ Step 2: Handle callback from Strava, exchange code for tokens
- */
 router.get("/callback", async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).send("Missing code");
@@ -37,7 +29,7 @@ router.get("/callback", async (req, res) => {
         client_secret: STRAVA_CLIENT_SECRET,
         code,
         grant_type: "authorization_code",
-        redirect_uri: STRAVA_REDIRECT_URI, // REQUIRED by Strava
+        redirect_uri: STRAVA_REDIRECT_URI,
       }),
     });
 
@@ -59,29 +51,28 @@ router.get("/callback", async (req, res) => {
   }
 });
 
-
-/**
- * 3️⃣ Step 3: Fetch Strava activities
- */
 router.get("/activities", async (req, res) => {
   try {
     const tokenData = userTokens.get("user");
-    if (!tokenData) return res.status(401).json({ message: "User not connected to Strava" });
+    if (!tokenData)
+      return res.status(401).json({ message: "User not connected to Strava" });
 
     let accessToken = tokenData.accessToken;
 
-    // Refresh token if expired
     if (Date.now() / 1000 > tokenData.expiresAt) {
-      const refreshResponse = await fetch("https://www.strava.com/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_id: STRAVA_CLIENT_ID,
-          client_secret: STRAVA_CLIENT_SECRET,
-          grant_type: "refresh_token",
-          refresh_token: tokenData.refreshToken,
-        }),
-      });
+      const refreshResponse = await fetch(
+        "https://www.strava.com/oauth/token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_id: STRAVA_CLIENT_ID,
+            client_secret: STRAVA_CLIENT_SECRET,
+            grant_type: "refresh_token",
+            refresh_token: tokenData.refreshToken,
+          }),
+        },
+      );
 
       const refreshed = await refreshResponse.json();
       accessToken = refreshed.access_token;
@@ -93,10 +84,12 @@ router.get("/activities", async (req, res) => {
       });
     }
 
-    // Fetch activities
-    const response = await fetch("https://www.strava.com/api/v3/athlete/activities?per_page=20", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const response = await fetch(
+      "https://www.strava.com/api/v3/athlete/activities?per_page=20",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
     const activities = await response.json();
     res.json({ success: true, activities });
@@ -106,22 +99,16 @@ router.get("/activities", async (req, res) => {
   }
 });
 
-
-/**
- * 4️⃣ Check Strava connection status
- */
 router.get("/status", (req, res) => {
   const tokenData = userTokens.get("user");
   if (!tokenData) {
     return res.json({ connected: false });
   }
 
-  // Optionally check if token expired
   const expired = Date.now() / 1000 > tokenData.expiresAt;
   if (expired) return res.json({ connected: false });
 
   res.json({ connected: true });
 });
-
 
 module.exports = router;

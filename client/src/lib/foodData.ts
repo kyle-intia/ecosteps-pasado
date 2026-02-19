@@ -104,7 +104,7 @@ export const FOOD_BY_CATEGORY = {
     "Bistek Baka",
     "Lechon Kawali Crispy",
     "Tocino Breakfast",
-    "Chicken Nuggets Filipino Style"
+    "Chicken Nuggets Filipino Style",
   ],
   fish: [
     "Bangus",
@@ -203,7 +203,7 @@ export const FOOD_BY_CATEGORY = {
     "Tilapia Sinigang",
     "Grilled Sardines",
     "Grilled Tamban",
-    "Baked Bangus"
+    "Baked Bangus",
   ],
   plant: [
     "Kangkong",
@@ -303,7 +303,7 @@ export const FOOD_BY_CATEGORY = {
     "Ginisang Patola at Pork",
     "Ginisang Baguio Beans at Hipon",
     "Ginisang Upo at Tofu",
-    "Ginisang Sitaw at Hipon"
+    "Ginisang Sitaw at Hipon",
   ],
   mixed: [
     "Sinigang",
@@ -405,7 +405,7 @@ export const FOOD_BY_CATEGORY = {
     "Halo-Halo with Leche Flan",
     "Chowking Lauriat with Fried Chicken",
     "Beef Macaroni Soup with Vegetables",
-    "Chowking Siomai with Sauce"
+    "Chowking Siomai with Sauce",
   ],
   dairy: [
     "Leche Flan",
@@ -428,9 +428,9 @@ export const FOOD_BY_CATEGORY = {
     "Queso de Bola Desserts",
     "McDonald's McFloat",
     "McDonald's Sundae",
-    "Jollibee Halo-Halo"
+    "Jollibee Halo-Halo",
   ],
-  skipped: ["skipped"]
+  skipped: ["skipped"],
 } as const;
 
 export type FoodCategory = keyof typeof FOOD_BY_CATEGORY;

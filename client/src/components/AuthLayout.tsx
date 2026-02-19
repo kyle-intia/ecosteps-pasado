@@ -1,6 +1,11 @@
 import { ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Leaf } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import regImage from "@/assets/register.png";
 
 interface AuthLayoutProps {
@@ -9,15 +14,19 @@ interface AuthLayoutProps {
   description: string;
 }
 
-export const AuthLayout = ({ children, title, description }: AuthLayoutProps) => {
+export const AuthLayout = ({
+  children,
+  title,
+  description,
+}: AuthLayoutProps) => {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gradient-subtle">
         <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
+          {/* Logo */}
           <div className="flex items-center justify-center space-x-2">
-            <img 
+            <img
               src="/ecosteps.svg"
               alt="EcoSteps Logo"
               className="h-9 w-9 rounded"
@@ -27,8 +36,12 @@ export const AuthLayout = ({ children, title, description }: AuthLayoutProps) =>
 
           <Card className="shadow-elevated border-border">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-foreground">{title}</CardTitle>
-              <CardDescription className="text-muted-foreground">{description}</CardDescription>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                {title}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                {description}
+              </CardDescription>
             </CardHeader>
             <CardContent>{children}</CardContent>
           </Card>
@@ -48,7 +61,8 @@ export const AuthLayout = ({ children, title, description }: AuthLayoutProps) =>
             <h1 className="text-4xl font-bold leading-tight">
               Track Your Carbon <br />
               <span className="text-accent">Footprint</span>
-            </h1><br></br>
+            </h1>
+            <br></br>
             <p className="text-xl text-primary-foreground/90 max-w-md">
               Small changes. Big impact. Let’s take eco-steps together.
             </p>

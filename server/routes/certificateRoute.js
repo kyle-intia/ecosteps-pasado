@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.use(authenticate);
 
-// fetch all certificates
 router.get("/", async (req, res) => {
   try {
     const list = await CertificateService.getAllCertificates();

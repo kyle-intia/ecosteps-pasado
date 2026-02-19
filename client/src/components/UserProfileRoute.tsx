@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
-import { userProfileDone } from "../lib/api";  // Import the API function
+import { userProfileDone } from "../lib/api";
 
 const PrivateRoute3 = () => {
   const [loading, setLoading] = useState(true);
@@ -10,7 +10,7 @@ const PrivateRoute3 = () => {
   useEffect(() => {
     const checkUserProfileStatus = async () => {
       try {
-        const response = await userProfileDone(); // Use the API function here
+        const response = await userProfileDone();
         if (response?.userProfileDone) {
           setIsAllowed(true);
         }
@@ -24,8 +24,7 @@ const PrivateRoute3 = () => {
     checkUserProfileStatus();
   }, []);
 
-  if (loading) 
-    return <Spinner />; 
+  if (loading) return <Spinner />;
 
   return isAllowed ? <Outlet /> : <Navigate to="/userprofile" replace />;
 };

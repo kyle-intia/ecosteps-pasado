@@ -1,7 +1,6 @@
-const EmissionFactorModel = require('../models/emissionFactorModel');
+const EmissionFactorModel = require("../models/emissionFactorModel");
 
 class EmissionFactorService {
-    
   static async createEmissionFactor(data) {
     const factor = new EmissionFactorModel(data);
     return await factor.save();
@@ -31,10 +30,10 @@ class EmissionFactorService {
       flights: {},
       homeEnergy: {},
       appliances: {},
-      food: {}
+      food: {},
     };
 
-    allFactors.forEach(factor => {
+    allFactors.forEach((factor) => {
       const { category, type, value } = factor;
 
       if (CO2_FACTORS_DAILY.hasOwnProperty(category)) {
@@ -50,16 +49,15 @@ class EmissionFactorService {
 
     const CO2_FACTORS = {};
 
-    factor.forEach(( { category, type, factor }) => {
-        if (!CO2_FACTORS[category]) {
-            CO2_FACTORS[category] = {};
-        }
-        CO2_FACTORS[category][type] = factor;
+    factor.forEach(({ category, type, factor }) => {
+      if (!CO2_FACTORS[category]) {
+        CO2_FACTORS[category] = {};
+      }
+      CO2_FACTORS[category][type] = factor;
     });
 
     return CO2_FACTORS;
   }
-
 }
 
 module.exports = EmissionFactorService;

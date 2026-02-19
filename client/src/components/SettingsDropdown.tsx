@@ -1,4 +1,3 @@
-// src/components/SettingsDropdown.tsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +49,9 @@ interface SettingsDropdownProps {
 }
 
 export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
-  const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem("darkMode") === "true");
+  const [isDarkMode, setIsDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true",
+  );
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -61,7 +62,6 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
 
   const currentUserId = user?._id?.toString();
 
-  // Fetch & format notifications
   useEffect(() => {
     if (!user?._id) return;
 
@@ -80,10 +80,13 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
             link: n.link || null,
             action: n.data?.action || extractActionFromMessage(n.message),
           }))
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
 
         setNotifications(filtered);
-        setUnreadCount(filtered.filter(n => !n.isRead).length);
+        setUnreadCount(filtered.filter((n) => !n.isRead).length);
       } catch (err) {
         console.error("Failed to load notifications", err);
       }
@@ -92,18 +95,17 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
     fetchNotifications();
   }, [user?._id]);
 
-  // Extract action from message if backend doesn't send `data.action`
   const extractActionFromMessage = (msg: string): string => {
     if (msg.includes("liked")) return "like";
     if (msg.includes("reposted")) return "repost";
     if (msg.includes("shared")) return "share";
     if (msg.includes("commented")) return "comment";
     if (msg.includes("following")) return "follow";
-    if (msg.includes("achievement") || msg.includes("badge")) return "achievement";
+    if (msg.includes("achievement") || msg.includes("badge"))
+      return "achievement";
     return "notification";
   };
 
-  // Icon + color per action
   const getNotificationIcon = (action: string) => {
     switch (action) {
       case "like":
@@ -117,26 +119,31 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
       case "follow":
         return <UserPlus className="h-4.5 w-4.5 text-indigo-500" />;
       case "achievement":
-        return <Trophy className="h-4.5 w-4.5 text-yellow-500 fill-yellow-500" />;
+        return (
+          <Trophy className="h-4.5 w-4.5 text-yellow-500 fill-yellow-500" />
+        );
       case "certificate":
         return <Award className="h-4.5 w-4.5 text-amber-600 fill-amber-600" />;
       case "reward":
         return <Gift className="h-4.5 w-4.5 text-pink-500 fill-pink-500" />;
       case "reward_claimed":
-        return <Sparkles className="h-4.5 w-4.5 text-purple-600 fill-purple-600" />;
+        return (
+          <Sparkles className="h-4.5 w-4.5 text-purple-600 fill-purple-600" />
+        );
       default:
         return <Bell className="h-4.5 w-4.5 text-primary" />;
     }
   };
 
-  // Handle click: mark read + navigate
   const handleNotificationClick = async (notif: any) => {
     if (!notif.isRead) {
       try {
         await markAsReadNotification(notif.id);
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
-        setUnreadCount(prev => Math.max(prev - 1, 0));
-      } catch (err) { /* silent */ }
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
+        );
+        setUnreadCount((prev) => Math.max(prev - 1, 0));
+      } catch (err) {}
     }
 
     if (notif.link) {
@@ -158,8 +165,7 @@ export const SettingsDropdown = ({ onLogout }: SettingsDropdownProps) => {
     });
   };
 
-useSocket((rawNotification) => {
-
+  useSocket((rawNotification) => {
     const incomingUserId = rawNotification.userId?.toString();
 
     if (!currentUserId || !incomingUserId || incomingUserId !== currentUserId) {
@@ -170,7 +176,7 @@ useSocket((rawNotification) => {
     if (!incomingId) return;
 
     // Prevent duplicates
-    if (notifications.some(n => n.id === incomingId)) return;
+    if (notifications.some((n) => n.id === incomingId)) return;
 
     const formatted = {
       id: incomingId,
@@ -179,32 +185,40 @@ useSocket((rawNotification) => {
       createdAt: rawNotification.createdAt || new Date().toISOString(),
       isRead: false,
       link: rawNotification.link || null,
-      action: rawNotification.data?.action || extractActionFromMessage(rawNotification.message),
+      action:
+        rawNotification.data?.action ||
+        extractActionFromMessage(rawNotification.message),
     };
 
-  unstable_batchedUpdates(() => {
-    setNotifications(prev => [formatted, ...prev]);
-    setUnreadCount(prev => prev + 1);
-  });
+    unstable_batchedUpdates(() => {
+      setNotifications((prev) => [formatted, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    });
 
-  const message = rawNotification.type.replace(/\b\w/g, c => c.toUpperCase());
+    const message = rawNotification.type.replace(/\b\w/g, (c) =>
+      c.toUpperCase(),
+    );
 
-  toast({
-    title: "New Notification",
-    description: message,
-    duration: 3000,
-    variant: "success",
+    toast({
+      title: "New Notification",
+      description: message,
+      duration: 3000,
+      variant: "success",
+    });
   });
-});
 
   const markAllAsRead = async () => {
     try {
       // Mark all unread notifications as read
       await Promise.all(
-        notifications.filter(notif => !notif.isRead).map(async (notif) => {
-          await markAsReadNotification(notif.id);
-          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
-        })
+        notifications
+          .filter((notif) => !notif.isRead)
+          .map(async (notif) => {
+            await markAsReadNotification(notif.id);
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
+            );
+          }),
       );
       // Update unread count to zero
       setUnreadCount(0);
@@ -235,11 +249,11 @@ useSocket((rawNotification) => {
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-4.5 w-4.5" />
-              {unreadCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
-                  {unreadCount}
-                </Badge>
-              )}
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                    {unreadCount}
+                  </Badge>
+                )}
               </Button>
             </DialogTrigger>
 
@@ -247,7 +261,9 @@ useSocket((rawNotification) => {
               <DialogHeader className="p-5 pb-3 border-b">
                 <DialogTitle className="text-xl flex items-center justify-between">
                   Notifications
-                  {unreadCount > 0 && <Badge variant="secondary">{unreadCount} new</Badge>}
+                  {unreadCount > 0 && (
+                    <Badge variant="secondary">{unreadCount} new</Badge>
+                  )}
                 </DialogTitle>
               </DialogHeader>
 
@@ -265,16 +281,20 @@ useSocket((rawNotification) => {
                         onClick={() => handleNotificationClick(n)}
                         className={cn(
                           "p-4 hover:bg-accent/70 transition-colors cursor-pointer flex gap-3",
-                          !n.isRead && "bg-primary/5"
+                          !n.isRead && "bg-primary/5",
                         )}
                       >
                         <div className="mt-0.5 flex-shrink-0">
                           {getNotificationIcon(n.action)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-tight">{n.message}</p>
+                          <p className="text-sm font-medium leading-tight">
+                            {n.message}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(n.createdAt), {
+                              addSuffix: true,
+                            })}
                           </p>
                         </div>
                         {!n.isRead && (
@@ -296,7 +316,6 @@ useSocket((rawNotification) => {
                 </Button>
               </DialogFooter>
             </DialogContent>
-
           </Dialog>
         </div>
 
@@ -309,8 +328,15 @@ useSocket((rawNotification) => {
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center gap-2">
-          {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        <DropdownMenuItem
+          onClick={toggleDarkMode}
+          className="flex items-center gap-2"
+        >
+          {isDarkMode ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
           {isDarkMode ? "Light Mode" : "Dark Mode"}
         </DropdownMenuItem>
 
@@ -325,7 +351,10 @@ useSocket((rawNotification) => {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={onLogout} className="text-red-600 dark:text-red-400">
+        <DropdownMenuItem
+          onClick={onLogout}
+          className="text-red-600 dark:text-red-400"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Logout
         </DropdownMenuItem>

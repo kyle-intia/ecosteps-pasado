@@ -1,6 +1,16 @@
-// UserTrackDistance.tsx – Industree-style Fullscreen Map
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Map, { Source, Layer, Marker, NavigationControl } from "react-map-gl/mapbox";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import Map, {
+  Source,
+  Layer,
+  Marker,
+  NavigationControl,
+} from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { point, distance } from "@turf/turf";
@@ -79,7 +89,7 @@ const UserTrackDistance: React.FC = () => {
     longitude: 120.9842,
     zoom: 19,
     pitch: 50,
-    bearing: 0  
+    bearing: 0,
   });
   const [isAutoCenter, setIsAutoCenter] = useState(true);
 
@@ -93,7 +103,7 @@ const UserTrackDistance: React.FC = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setViewState(v => ({
+          setViewState((v) => ({
             ...v,
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
@@ -102,40 +112,63 @@ const UserTrackDistance: React.FC = () => {
           setLoadingLocation(false);
         },
         () => setLoadingLocation(false),
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 10000 },
       );
     } else {
       setLoadingLocation(false);
     }
   }, []);
 
-  const stateRef = useRef({ positions, totalDistance, elapsedTime, category, subtype });
+  const stateRef = useRef({
+    positions,
+    totalDistance,
+    elapsedTime,
+    category,
+    subtype,
+  });
   useEffect(() => {
-    stateRef.current = { positions, totalDistance, elapsedTime, category, subtype };
+    stateRef.current = {
+      positions,
+      totalDistance,
+      elapsedTime,
+      category,
+      subtype,
+    };
   }, [positions, totalDistance, elapsedTime, category, subtype]);
 
   const calcDistance = useCallback((p1: Position, p2: Position) => {
-    return distance(point([p1.longitude, p1.latitude]), point([p2.longitude, p2.latitude]), {
-      units: "kilometers",
-    });
+    return distance(
+      point([p1.longitude, p1.latitude]),
+      point([p2.longitude, p2.latitude]),
+      {
+        units: "kilometers",
+      },
+    );
   }, []);
 
-  /** Format elapsed time */
   const formatTime = useCallback((s: number) => {
     const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60).toString().padStart(2, "0");
+    const m = Math.floor((s % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
     const sec = (s % 60).toString().padStart(2, "0");
     return h > 0 ? `${h}:${m}:${sec}` : `${m}:${sec}`;
   }, []);
 
-  /** Wake Lock */
   const requestWakeLock = useCallback(async () => {
     try {
       if ("wakeLock" in navigator) {
-        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        wakeLockRef.current = await (navigator as any).wakeLock.request(
+          "screen",
+        );
         setWakeLockActive(true);
-        wakeLockRef.current.addEventListener("release", () => setWakeLockActive(false));
-        toast({ title: "Screen Stay Awake", description: "Screen will stay on during tracking" });
+        wakeLockRef.current.addEventListener("release", () =>
+          setWakeLockActive(false),
+        );
+        toast({
+          title: "Screen Stay Awake",
+          description: "Screen will stay on during tracking",
+        });
       }
     } catch (err) {
       console.error("Wake Lock failed:", err);
@@ -150,10 +183,16 @@ const UserTrackDistance: React.FC = () => {
     }
   }, []);
 
-  /** Persist and restore state */
   const saveState = useCallback(() => {
     if (tracking && positions.length > 0) {
-      localStorage.setItem("tracking_state", JSON.stringify({ ...stateRef.current, savedAt: Date.now(), tracking: true }));
+      localStorage.setItem(
+        "tracking_state",
+        JSON.stringify({
+          ...stateRef.current,
+          savedAt: Date.now(),
+          tracking: true,
+        }),
+      );
     }
   }, [tracking, positions]);
 
@@ -169,7 +208,10 @@ const UserTrackDistance: React.FC = () => {
         setElapsedTime(parsed.elapsedTime);
         setCategory(parsed.category);
         setSubtype(parsed.subtype);
-        toast({ title: "Session Restored", description: `Resumed with ${parsed.positions.length} points` });
+        toast({
+          title: "Session Restored",
+          description: `Resumed with ${parsed.positions.length} points`,
+        });
         return true;
       } else localStorage.removeItem("tracking_state");
     } catch {
@@ -180,7 +222,8 @@ const UserTrackDistance: React.FC = () => {
 
   useEffect(() => {
     const restored = restoreState();
-    if (restored && window.confirm("Continue previous tracking session?")) startTracking(true);
+    if (restored && window.confirm("Continue previous tracking session?"))
+      startTracking(true);
   }, [restoreState]);
 
   useEffect(() => {
@@ -190,69 +233,86 @@ const UserTrackDistance: React.FC = () => {
     }
   }, [tracking, saveState]);
 
-  useEffect(() => () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    releaseWakeLock();
-  }, [releaseWakeLock]);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (watchIdRef.current !== null)
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      releaseWakeLock();
+    },
+    [releaseWakeLock],
+  );
 
-  /** Tracking controls */
-  const startTracking = useCallback((resume = false) => {
-    if (!resume) {
-      setPositions([]);
-      setTotalDistance(0);
-      setElapsedTime(0);
-    }
+  const startTracking = useCallback(
+    (resume = false) => {
+      if (!resume) {
+        setPositions([]);
+        setTotalDistance(0);
+        setElapsedTime(0);
+      }
 
-    setTracking(true);
-    requestWakeLock();
+      setTracking(true);
+      requestWakeLock();
 
-    timerRef.current = window.setInterval(() => setElapsedTime(t => t + 1), 1000);
-
-    if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        pos => {
-          const now = Date.now();
-          if (now - lastPositionTimeRef.current < 1000) return;
-          lastPositionTimeRef.current = now;
-
-          const coord: Position = {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            timestamp: new Date(pos.timestamp),
-            accuracy: pos.coords.accuracy,
-          };
-
-          setPositions(prev => {
-            const updated = [...prev, coord];
-            if (prev.length > 0) {
-              const dist = calcDistance(prev[prev.length - 1], coord);
-              if (dist > 0.001) setTotalDistance(d => d + dist);
-            }
-            return updated;
-          });
-        },
-        err => {
-          toast({
-            title: "Location Error",
-            description: ["Permission denied", "Position unavailable", "Timeout"][err.code - 1] || "GPS error",
-            variant: "destructive",
-          });
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      timerRef.current = window.setInterval(
+        () => setElapsedTime((t) => t + 1),
+        1000,
       );
-    }
-  }, [calcDistance, requestWakeLock, toast]);
+
+      if (navigator.geolocation) {
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const now = Date.now();
+            if (now - lastPositionTimeRef.current < 1000) return;
+            lastPositionTimeRef.current = now;
+
+            const coord: Position = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              timestamp: new Date(pos.timestamp),
+              accuracy: pos.coords.accuracy,
+            };
+
+            setPositions((prev) => {
+              const updated = [...prev, coord];
+              if (prev.length > 0) {
+                const dist = calcDistance(prev[prev.length - 1], coord);
+                if (dist > 0.001) setTotalDistance((d) => d + dist);
+              }
+              return updated;
+            });
+          },
+          (err) => {
+            toast({
+              title: "Location Error",
+              description:
+                ["Permission denied", "Position unavailable", "Timeout"][
+                  err.code - 1
+                ] || "GPS error",
+              variant: "destructive",
+            });
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+        );
+      }
+    },
+    [calcDistance, requestWakeLock, toast],
+  );
 
   const stopTracking = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (watchIdRef.current !== null)
+      navigator.geolocation.clearWatch(watchIdRef.current);
     setTracking(false);
     releaseWakeLock();
     localStorage.removeItem("tracking_state");
 
     if (positions.length < 2 || totalDistance < 0.0000001) {
-      toast({ title: "Not Saved", description: "Trip too short or no movement detected.", variant: "destructive" });
+      toast({
+        title: "Not Saved",
+        description: "Trip too short or no movement detected.",
+        variant: "destructive",
+      });
       setPositions([]);
       setTotalDistance(0);
       setElapsedTime(0);
@@ -260,33 +320,71 @@ const UserTrackDistance: React.FC = () => {
     }
 
     try {
-      await submitLivetracking({ category, subtype, points: positions, totalDistance, duration: elapsedTime });
-      toast({ title: "Activity Saved!", description: "Your trip has been recorded." });
+      await submitLivetracking({
+        category,
+        subtype,
+        points: positions,
+        totalDistance,
+        duration: elapsedTime,
+      });
+      toast({
+        title: "Activity Saved!",
+        description: "Your trip has been recorded.",
+      });
       setPositions([]);
       setTotalDistance(0);
       setElapsedTime(0);
     } catch (err: any) {
-      toast({ title: "Save Failed", description: err?.message || "Could not save activity", variant: "destructive" });
+      toast({
+        title: "Save Failed",
+        description: err?.message || "Could not save activity",
+        variant: "destructive",
+      });
     }
-  }, [positions, totalDistance, elapsedTime, category, subtype, toast, releaseWakeLock]);
+  }, [
+    positions,
+    totalDistance,
+    elapsedTime,
+    category,
+    subtype,
+    toast,
+    releaseWakeLock,
+  ]);
 
   useEffect(() => {
     if (tracking && isAutoCenter && positions.length > 0) {
       const latest = positions[positions.length - 1];
-      setViewState(v => ({ ...v, latitude: latest.latitude, longitude: latest.longitude, zoom: Math.max(v.zoom, 16) }));
+      setViewState((v) => ({
+        ...v,
+        latitude: latest.latitude,
+        longitude: latest.longitude,
+        zoom: Math.max(v.zoom, 16),
+      }));
     }
   }, [positions, tracking, isAutoCenter]);
 
-  const geojson = useMemo(() => ({
-    type: "FeatureCollection" as const,
-    features: positions.length > 0 ? [{
-      type: "Feature" as const,
-      geometry: { type: "LineString" as const, coordinates: positions.map(p => [p.longitude, p.latitude]) },
-      properties: {},
-    }] : [],
-  }), [positions]);
+  const geojson = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features:
+        positions.length > 0
+          ? [
+              {
+                type: "Feature" as const,
+                geometry: {
+                  type: "LineString" as const,
+                  coordinates: positions.map((p) => [p.longitude, p.latitude]),
+                },
+                properties: {},
+              },
+            ]
+          : [],
+    }),
+    [positions],
+  );
 
-  const avgSpeed = elapsedTime > 0 ? (totalDistance / (elapsedTime / 3600)).toFixed(1) : "0";
+  const avgSpeed =
+    elapsedTime > 0 ? (totalDistance / (elapsedTime / 3600)).toFixed(1) : "0";
   const TransportIcon = transportIcons[subtype];
 
   if (isPending) return <Spinner />;
@@ -295,66 +393,70 @@ const UserTrackDistance: React.FC = () => {
   return (
     <div className="fixed inset-0 flex flex-col bg-gray-900">
       <Navbar isLoggedIn={isLoggedIn} onLogout={signOut} />
-      
+
       {positions.length > 0 ? (
-      <Map
-        {...viewState}
-        onMove={evt => {
-          setViewState(evt.viewState);
-          if (isAutoCenter) setIsAutoCenter(false);
-        }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-        mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
-        attributionControl={false} 
-      >
-        <NavigationControl position="top-right" />
-      
-        {/* 3D Buildings */}
-        <Source id="composite" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
-          <Layer
-            id="3d-buildings"
-            type="fill-extrusion"
-            source-layer="building"
-            filter={['==', 'extrude', 'true']}
-            paint={{
-              'fill-extrusion-color': '#aaa',
-              'fill-extrusion-height': ['get', 'height'],
-              'fill-extrusion-base': ['get', 'min_height'],
-              'fill-extrusion-opacity': 0.6
-            }}
-          />
-        </Source>
-          
-        {/* Route */}
-        {geojson.features.length > 0 && (
-          <Source type="geojson" data={geojson}>
+        <Map
+          {...viewState}
+          onMove={(evt) => {
+            setViewState(evt.viewState);
+            if (isAutoCenter) setIsAutoCenter(false);
+          }}
+          mapStyle="mapbox://styles/mapbox/streets-v12"
+          mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
+          attributionControl={false}
+        >
+          <NavigationControl position="top-right" />
+
+          <Source
+            id="composite"
+            type="vector"
+            url="mapbox://mapbox.mapbox-streets-v8"
+          >
             <Layer
-              id="route"
-              type="line"
+              id="3d-buildings"
+              type="fill-extrusion"
+              source-layer="building"
+              filter={["==", "extrude", "true"]}
               paint={{
-                'line-color': '#10b981',
-                'line-width': 6,
-                'line-opacity': 0.9
+                "fill-extrusion-color": "#aaa",
+                "fill-extrusion-height": ["get", "height"],
+                "fill-extrusion-base": ["get", "min_height"],
+                "fill-extrusion-opacity": 0.6,
               }}
             />
           </Source>
-        )}
-      
-        {/* Marker */}
-        {positions.length > 0 && (
-          <Marker
-            latitude={positions[positions.length - 1].latitude}
-            longitude={positions[positions.length - 1].longitude}
-            anchor="center"
-          >
-            <div className="animate-pulse">
-              <TransportIcon className="w-12 h-12 text-emerald-500 drop-shadow-2xl" />
-            </div>
-          </Marker>
-        )}
-      </Map>
+
+          {geojson.features.length > 0 && (
+            <Source type="geojson" data={geojson}>
+              <Layer
+                id="route"
+                type="line"
+                paint={{
+                  "line-color": "#10b981",
+                  "line-width": 6,
+                  "line-opacity": 0.9,
+                }}
+              />
+            </Source>
+          )}
+
+          {positions.length > 0 && (
+            <Marker
+              latitude={positions[positions.length - 1].latitude}
+              longitude={positions[positions.length - 1].longitude}
+              anchor="center"
+            >
+              <div className="animate-pulse">
+                <TransportIcon className="w-12 h-12 text-emerald-500 drop-shadow-2xl" />
+              </div>
+            </Marker>
+          )}
+        </Map>
       ) : (
-        <div className="flex flex-col items-center justify-center" style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}>
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}
+        >
           <div className="p-6 bg-gray-100 rounded-full mb-6">
             <MapPin className="w-12 h-12 text-gray-400" />
           </div>
@@ -367,27 +469,48 @@ const UserTrackDistance: React.FC = () => {
         </div>
       )}
 
-      {/* Bottom Sheet */}
-      <div className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ${sheetOpen ? "h-100" : "h-32"} z-20`}>
-        <button onClick={() => setSheetOpen(!sheetOpen)} className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-gray-300 rounded-full" />
+      <div
+        className={`absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 ${sheetOpen ? "h-100" : "h-32"} z-20`}
+      >
+        <button
+          onClick={() => setSheetOpen(!sheetOpen)}
+          className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-gray-300 rounded-full"
+        />
         <div className="p-6">
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6 text-center">
-            <div><p className="text-2xl font-bold text-gray-900">{totalDistance.toFixed(2)}</p><p className="text-sm text-gray-500">Distance (km)</p></div>
-            <div><p className="text-2xl font-bold text-gray-900">{formatTime(elapsedTime)}</p><p className="text-sm text-gray-500">Time</p></div>
-            <div><p className="text-2xl font-bold text-gray-900">{avgSpeed}</p><p className="text-sm text-gray-500">Avg Speed (km/h)</p></div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {totalDistance.toFixed(2)}
+              </p>
+              <p className="text-sm text-gray-500">Distance (km)</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatTime(elapsedTime)}
+              </p>
+              <p className="text-sm text-gray-500">Time</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{avgSpeed}</p>
+              <p className="text-sm text-gray-500">Avg Speed (km/h)</p>
+            </div>
           </div>
 
           {sheetOpen && (
             <>
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-3">Transport Mode</p>
+                <p className="text-sm font-medium text-gray-700 mb-3">
+                  Transport Mode
+                </p>
                 <div className="grid grid-cols-3 gap-3">
-                  {(["private", "public", "basic"] as Category[]).map(cat => (
+                  {(["private", "public", "basic"] as Category[]).map((cat) => (
                     <button
                       key={cat}
                       disabled={tracking}
-                      onClick={() => { setCategory(cat); setSubtype(transportTypes[cat][0]); }}
+                      onClick={() => {
+                        setCategory(cat);
+                        setSubtype(transportTypes[cat][0]);
+                      }}
                       className={`py-3 rounded-2xl font-medium transition ${category === cat ? `bg-gradient-to-r ${categoryColors[cat]} text-white` : "bg-gray-100 text-gray-700"} ${tracking ? "opacity-50" : ""}`}
                     >
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -396,7 +519,7 @@ const UserTrackDistance: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3 my-2">
-                {transportTypes[category].map(sub => {
+                {transportTypes[category].map((sub) => {
                   const Icon = transportIcons[sub];
                   return (
                     <button
@@ -406,7 +529,9 @@ const UserTrackDistance: React.FC = () => {
                       className={`py-4 rounded-2xl flex flex-col items-center gap-2 transition ${subtype === sub ? `bg-gradient-to-r ${categoryColors[category]} text-white` : "bg-gray-100"} ${tracking ? "opacity-50" : ""}`}
                     >
                       <Icon className="w-6 h-6" />
-                      <span className="text-xs capitalize">{sub.replace("-", " ")}</span>
+                      <span className="text-xs capitalize">
+                        {sub.replace("-", " ")}
+                      </span>
                     </button>
                   );
                 })}
@@ -416,18 +541,24 @@ const UserTrackDistance: React.FC = () => {
         </div>
       </div>
 
-      {/* Start/Stop Button */}
       <div className="absolute bottom-36 left-1/2 -translate-x-1/2">
         <Button
           onClick={() => (tracking ? stopTracking() : startTracking())}
           size="lg"
           className={`w-20 h-20 rounded-full shadow-2xl flex items-center justify-center text-3xl ${tracking ? "bg-red-500 hover:bg-red-600" : "bg-emerald-500 hover:bg-emerald-600"} text-white`}
         >
-          {tracking ? <Square className="w-10 h-10" /> : <Play className="w-10 h-10" />}
+          {tracking ? (
+            <Square className="w-10 h-10" />
+          ) : (
+            <Play className="w-10 h-10" />
+          )}
         </Button>
       </div>
 
-      <Link to="/track-history" className="absolute top-20 left-4 z-10 bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+      <Link
+        to="/track-history"
+        className="absolute top-20 left-4 z-10 bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
+      >
         <History className="w-5 h-5" />
         History
       </Link>
@@ -437,21 +568,20 @@ const UserTrackDistance: React.FC = () => {
           onClick={() => {
             if (positions.length > 0) {
               const latest = positions[positions.length - 1];
-              setViewState(v => ({
+              setViewState((v) => ({
                 ...v,
                 latitude: latest.latitude,
                 longitude: latest.longitude,
                 zoom: Math.max(v.zoom, 16),
               }));
-              setIsAutoCenter(true); // optional: re-enable auto-center
+              setIsAutoCenter(true);
             }
           }}
           className="bg-blue-500 hover:bg-blue-600 text-white"
         >
-          <PinIcon/> My Location
+          <PinIcon /> My Location
         </Button>
       </div>
-
     </div>
   );
 };

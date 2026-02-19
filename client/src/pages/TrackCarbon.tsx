@@ -31,7 +31,19 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { logout, updateLivetracking, getTodaysTracking, getDailyTrackingHistory, getTodayEntries, addActivityEntry, updateActivityEntry, deleteActivityEntry, submitDailyTracking, getRecommendations, clearDailyData } from "../lib/api";
+import {
+  logout,
+  updateLivetracking,
+  getTodaysTracking,
+  getDailyTrackingHistory,
+  getTodayEntries,
+  addActivityEntry,
+  updateActivityEntry,
+  deleteActivityEntry,
+  submitDailyTracking,
+  getRecommendations,
+  clearDailyData,
+} from "../lib/api";
 import queryClient from "../config/queryClient";
 import useSessions from "../hooks/useSessions";
 import useAuth from "../hooks/useAuth";
@@ -173,17 +185,16 @@ function RollingNumber({
   const fromRef = useRef<number>(value);
 
   useEffect(() => {
-    // Only animate when value actually changes
     if (value === fromRef.current) return;
 
     const start = performance.now();
-    const duration = 800; // animation speed
+    const duration = 800;
     const from = fromRef.current;
     const to = value;
 
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      const ease = 1 - Math.pow(1 - t, 3); // cubic ease-out
+      const ease = 1 - Math.pow(1 - t, 3);
       const current = from + (to - from) * ease;
       setDisplay(parseFloat(current.toFixed(decimals)));
 
@@ -206,9 +217,7 @@ function RollingNumber({
   return (
     <div className={`text-2xl md:text-3xl font-semibold ${className}`}>
       {display.toFixed(decimals)}{" "}
-      <span className="text-sm font-medium text-muted-foreground">
-        kg CO₂e
-      </span>
+      <span className="text-sm font-medium text-muted-foreground">kg CO₂e</span>
     </div>
   );
 }
@@ -221,12 +230,10 @@ export default function TrackCarbonDynamic() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // entries state (server-backed, optimistic + session persist)
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [isSubmittingEntry, setIsSubmittingEntry] = useState(false);
 
-  // dialogs
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -235,13 +242,10 @@ export default function TrackCarbonDynamic() {
   const [IsConfirmTransportOpen, setIsConfirmTransportOpen] = useState(false);
   const [IsConfirmHomeOpen, setIsConfirmHomeOpen] = useState(false);
   const [IsConfirmFoodOpen, setIsConfirmFoodOpen] = useState(false);
-  
 
-  // editing
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TopCategory>("transport");
 
-  // forms
   const [transportForm, setTransportForm] = useState<Partial<TransportEntry>>({
     transportGroup: "private",
     subtype: transportTypes.private[0],
@@ -265,29 +269,38 @@ export default function TrackCarbonDynamic() {
     refetch: refetchActivities,
   } = useActivityTrack();
 
-const {
-  activities: stravaActivities,
-  isLoading: isStravaLoading,
-  error: stravaError,
-  refetch: refetchStrava,
-  isConnected,
-} = useStravaTrack();
-
+  const {
+    activities: stravaActivities,
+    isLoading: isStravaLoading,
+    error: stravaError,
+    refetch: refetchStrava,
+    isConnected,
+  } = useStravaTrack();
 
   const [isStravaImportOpen, setIsStravaImportOpen] = useState(false);
-  const [stravaSelection, setStravaSelection] = useState<Record<string, boolean>>({});
+  const [stravaSelection, setStravaSelection] = useState<
+    Record<string, boolean>
+  >({});
 
-  const [importSelection, setImportSelection] = useState<Record<string, boolean>>({});
-  const [accordionOpen, setAccordionOpen] = useState<Record<TransportGroup, boolean>>({
+  const [importSelection, setImportSelection] = useState<
+    Record<string, boolean>
+  >({});
+  const [accordionOpen, setAccordionOpen] = useState<
+    Record<TransportGroup, boolean>
+  >({
     private: true,
     public: false,
     basic: false,
   });
 
-  const [footprintData, setFootprintData] = useState<FootprintResponse["data"] | null>(null);
+  const [footprintData, setFootprintData] = useState<
+    FootprintResponse["data"] | null
+  >(null);
   const [footprintId, setFootprintId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [loadingStatus, setLoadingStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [loadingStatus, setLoadingStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const API_BASE = import.meta.env.VITE_API_URL.replace(/\/+$/, "");
@@ -310,7 +323,10 @@ const {
     }
   };
 
-  const updateEntry = async (id: string, entry: Partial<Entry>): Promise<Entry> => {
+  const updateEntry = async (
+    id: string,
+    entry: Partial<Entry>,
+  ): Promise<Entry> => {
     try {
       const payload = await updateActivityEntry(id, entry);
       return payload;
@@ -318,7 +334,7 @@ const {
       throw new Error(err?.message || "Failed to submit entry");
     }
   };
-  
+
   const deleteEntry = async (id: string): Promise<void> => {
     try {
       await deleteActivityEntry(id);
@@ -326,7 +342,6 @@ const {
 
       try {
         await updateLivetracking(id, { isImported: false });
-    
       } catch (err) {
         console.warn(`Failed to mark ${id} as imported`, err);
       }
@@ -335,46 +350,44 @@ const {
     }
   };
 
-const DeleteAllEntries = async (): Promise<void> => {
-  const prevEntries = entries;
+  const DeleteAllEntries = async (): Promise<void> => {
+    const prevEntries = entries;
 
-  if (!entries || entries.length === 0) {
-    toast({ title: "Nothing to delete", description: "No entries found." });
-    return;
-  }
+    if (!entries || entries.length === 0) {
+      toast({ title: "Nothing to delete", description: "No entries found." });
+      return;
+    }
 
-  try {
-    setEntries([]);
-    toast({ title: "Deleting...", description: "Removing all entries." });
+    try {
+      setEntries([]);
+      toast({ title: "Deleting...", description: "Removing all entries." });
 
-    const deletionPromises = entries.map((item) =>
-      deleteEntry(item.id).catch((err) => {
-        console.warn(`Failed to delete entry ${item.id}`, err);
-        throw err; 
-      })
-    );
+      const deletionPromises = entries.map((item) =>
+        deleteEntry(item.id).catch((err) => {
+          console.warn(`Failed to delete entry ${item.id}`, err);
+          throw err;
+        }),
+      );
 
-    await Promise.all(deletionPromises);
+      await Promise.all(deletionPromises);
 
-    sessionStorage.removeItem("carbon_entries_session");
+      sessionStorage.removeItem("carbon_entries_session");
 
-    toast({ title: "Deleted", description: "All entries removed." });
-  } catch (err: any) {
-    setEntries(prevEntries);
+      toast({ title: "Deleted", description: "All entries removed." });
+    } catch (err: any) {
+      setEntries(prevEntries);
 
-    toast({
-      title: "Error",
-      description: err?.message || "Failed to delete all entries",
-      variant: "destructive",
-    });
-  }
-};
-
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to delete all entries",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleEditEntry = (id: string) => {
     const e = entries.find((x) => x.id === id);
-    if (!e) 
-      return;
+    if (!e) return;
 
     setEditingId(id);
     setIsAddOpen(true);
@@ -382,13 +395,25 @@ const DeleteAllEntries = async (): Promise<void> => {
 
     if (e.category === "transport") {
       const t = e as TransportEntry;
-      setTransportForm({ transportGroup: t.transportGroup, subtype: t.subtype, distanceKm: t.distanceKm || 0 });
+      setTransportForm({
+        transportGroup: t.transportGroup,
+        subtype: t.subtype,
+        distanceKm: t.distanceKm || 0,
+      });
     } else if (e.category === "home") {
       const h = e as HomeEntry;
-      setHomeForm({ homeType: h.homeType, occupants: h.occupants, appliances: h.appliances });
+      setHomeForm({
+        homeType: h.homeType,
+        occupants: h.occupants,
+        appliances: h.appliances,
+      });
     } else {
       const f = e as FoodEntry;
-      setFoodForm({ mealSlot: f.mealSlot, mealType: f.mealType, description: f.description });
+      setFoodForm({
+        mealSlot: f.mealSlot,
+        mealType: f.mealType,
+        description: f.description,
+      });
     }
   };
 
@@ -398,10 +423,17 @@ const DeleteAllEntries = async (): Promise<void> => {
       try {
         const fetched = await fetchTodayEntries();
         setEntries(fetched);
-        sessionStorage.setItem("carbon_entries_session", JSON.stringify(fetched));
+        sessionStorage.setItem(
+          "carbon_entries_session",
+          JSON.stringify(fetched),
+        );
       } catch (err: any) {
         console.error("fetch entries", err);
-        toast({ title: "Failed to load entries", description: err.message || String(err), variant: "destructive" });
+        toast({
+          title: "Failed to load entries",
+          description: err.message || String(err),
+          variant: "destructive",
+        });
         const saved = sessionStorage.getItem("carbon_entries_session");
         if (saved) {
           try {
@@ -413,7 +445,6 @@ const DeleteAllEntries = async (): Promise<void> => {
       }
     };
     load();
-    
   }, []);
 
   useEffect(() => {
@@ -421,7 +452,6 @@ const DeleteAllEntries = async (): Promise<void> => {
       sessionStorage.setItem("carbon_entries_session", JSON.stringify(entries));
     } catch {}
   }, [entries]);
-
 
   const { mutate: signOut } = useMutation({
     mutationFn: logout,
@@ -455,12 +485,25 @@ const DeleteAllEntries = async (): Promise<void> => {
 
   const handleCreateTransport = async () => {
     if (!transportForm.transportGroup || !transportForm.subtype) {
-      toast({ title: "Invalid", description: "Choose transport group & subtype.", variant: "destructive" });
+      toast({
+        title: "Invalid",
+        description: "Choose transport group & subtype.",
+        variant: "destructive",
+      });
       return;
     }
-    const distanceNeeded = !["walk", "bicycle"].includes(String(transportForm.subtype));
-    if (distanceNeeded && (!transportForm.distanceKm || Number(transportForm.distanceKm) <= 0)) {
-      toast({ title: "Invalid", description: "Enter a valid distance (km).", variant: "destructive" });
+    const distanceNeeded = !["walk", "bicycle"].includes(
+      String(transportForm.subtype),
+    );
+    if (
+      distanceNeeded &&
+      (!transportForm.distanceKm || Number(transportForm.distanceKm) <= 0)
+    ) {
+      toast({
+        title: "Invalid",
+        description: "Enter a valid distance (km).",
+        variant: "destructive",
+      });
       return;
     }
     const payload: Partial<TransportEntry> = {
@@ -473,28 +516,40 @@ const DeleteAllEntries = async (): Promise<void> => {
     try {
       setIsSubmittingEntry(true);
       await optimisticCreate(payload);
-      setTransportForm({ transportGroup: "private", subtype: transportTypes.private[0], distanceKm: 0 });
+      setTransportForm({
+        transportGroup: "private",
+        subtype: transportTypes.private[0],
+        distanceKm: 0,
+      });
       setIsAddOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add transport", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add transport",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingEntry(false);
     }
   };
 
   const handleCreateHome = async () => {
-
     if (hasHomeEntry) {
-    toast({
-      title: "Already added",
-      description: "You can only add one home entry per day. Please edit the existing one instead.",
-      variant: "destructive",
-    });
-    return;
-  }
+      toast({
+        title: "Already added",
+        description:
+          "You can only add one home entry per day. Please edit the existing one instead.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!homeForm.homeType || Number(homeForm.occupants || 0) < 1) {
-      toast({ title: "Invalid", description: "Choose home type & Enter a valid occupants.", variant: "destructive" });
+      toast({
+        title: "Invalid",
+        description: "Choose home type & Enter a valid occupants.",
+        variant: "destructive",
+      });
       return;
     }
     const payload: Partial<HomeEntry> = {
@@ -509,31 +564,47 @@ const DeleteAllEntries = async (): Promise<void> => {
       setHomeForm({ homeType: "apartment", occupants: 0, appliances: "none" });
       setIsAddOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add home", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add home",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingEntry(false);
     }
   };
 
   const handleCreateFood = async () => {
-
     if (submittedFoodSlots.size >= 3) {
       toast({
         title: "All meals added",
-        description: "You've already logged breakfast, lunch, and dinner for today.",
+        description:
+          "You've already logged breakfast, lunch, and dinner for today.",
         variant: "destructive",
       });
       return;
     }
 
     if (!foodForm.mealSlot) {
-      toast({ title: "Invalid", description: "Choose a meal slot.", variant: "destructive" });
+      toast({
+        title: "Invalid",
+        description: "Choose a meal slot.",
+        variant: "destructive",
+      });
       return;
     }
-   
-    const already = entries.find((e) => e.category === "food" && (e as FoodEntry).mealSlot === foodForm.mealSlot);
+
+    const already = entries.find(
+      (e) =>
+        e.category === "food" &&
+        (e as FoodEntry).mealSlot === foodForm.mealSlot,
+    );
     if (already) {
-      toast({ title: "Already submitted", description: `${foodForm.mealSlot} already submitted today.`, variant: "destructive" });
+      toast({
+        title: "Already submitted",
+        description: `${foodForm.mealSlot} already submitted today.`,
+        variant: "destructive",
+      });
       return;
     }
     const payload: Partial<FoodEntry> = {
@@ -548,7 +619,11 @@ const DeleteAllEntries = async (): Promise<void> => {
       setFoodForm({ mealSlot: "breakfast", mealType: "meat", description: "" });
       setIsAddOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add food", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add food",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingEntry(false);
     }
@@ -574,9 +649,17 @@ const DeleteAllEntries = async (): Promise<void> => {
         appliances: homeForm.appliances as HomeEntry["appliances"],
       } as Partial<HomeEntry>;
     } else {
-      const existingFoodSlot = entries.find((en) => en.category === "food" && (en as FoodEntry).mealSlot === foodForm.mealSlot);
+      const existingFoodSlot = entries.find(
+        (en) =>
+          en.category === "food" &&
+          (en as FoodEntry).mealSlot === foodForm.mealSlot,
+      );
       if (existingFoodSlot && existingFoodSlot.id !== editingId) {
-        toast({ title: "Slot already used", description: `${foodForm.mealSlot} already submitted.`, variant: "destructive" });
+        toast({
+          title: "Slot already used",
+          description: `${foodForm.mealSlot} already submitted.`,
+          variant: "destructive",
+        });
         return;
       }
       payload = {
@@ -588,7 +671,11 @@ const DeleteAllEntries = async (): Promise<void> => {
     }
 
     const prevEntries = entries;
-    setEntries((prev) => prev.map((e) => (e.id === editingId ? { ...e, ...payload, isTemp: false } as Entry : e)));
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === editingId ? ({ ...e, ...payload, isTemp: false } as Entry) : e,
+      ),
+    );
 
     try {
       setIsSubmittingEntry(true);
@@ -598,9 +685,12 @@ const DeleteAllEntries = async (): Promise<void> => {
       setIsAddOpen(false);
       toast({ title: "Saved", description: "Entry updated." });
     } catch (err: any) {
-      // rollback
       setEntries(prevEntries);
-      toast({ title: "Error", description: err.message || "Failed to update entry", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update entry",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingEntry(false);
     }
@@ -614,17 +704,20 @@ const DeleteAllEntries = async (): Promise<void> => {
   const executeDelete = async () => {
     if (!deleteTargetId) return;
     const prevEntries = entries;
-    
+
     setEntries((prev) => prev.filter((e) => e.id !== deleteTargetId));
     setIsDeleteConfirmOpen(false);
     try {
       await deleteEntry(deleteTargetId);
       toast({ title: "Deleted", description: "Entry removed." });
-      refetchActivities(); 
+      refetchActivities();
     } catch (err: any) {
-      
       setEntries(prevEntries);
-      toast({ title: "Error", description: err.message || "Delete failed", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Delete failed",
+        variant: "destructive",
+      });
     } finally {
       setDeleteTargetId(null);
     }
@@ -645,17 +738,16 @@ const DeleteAllEntries = async (): Promise<void> => {
     });
   }, [activities]);
 
-const stravaCandidates = useMemo(() => {
-  if (!stravaActivities || stravaActivities.length === 0) return [];
-  return stravaActivities.map((act: any, idx: number) => ({
-    key: `${idx}_${act.id}`,
-    subtype: String(act.type || "unknown").toLowerCase(),
-    distanceKm: Number((act.distance || 0) / 1000),
-    createdAt: act.start_date || new Date().toISOString(),
-    label: `${act.name || "Activity"} — ${Math.round((act.distance || 0) / 1000)} km`,
-  }));
-}, [stravaActivities]);
-
+  const stravaCandidates = useMemo(() => {
+    if (!stravaActivities || stravaActivities.length === 0) return [];
+    return stravaActivities.map((act: any, idx: number) => ({
+      key: `${idx}_${act.id}`,
+      subtype: String(act.type || "unknown").toLowerCase(),
+      distanceKm: Number((act.distance || 0) / 1000),
+      createdAt: act.start_date || new Date().toISOString(),
+      label: `${act.name || "Activity"} — ${Math.round((act.distance || 0) / 1000)} km`,
+    }));
+  }, [stravaActivities]);
 
   useEffect(() => {
     const s: Record<string, boolean> = {};
@@ -667,165 +759,177 @@ const stravaCandidates = useMemo(() => {
     setImportSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleAddSelectedImports = async () => {
+    const selectedKeys = Object.entries(importSelection)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
 
-const handleAddSelectedImports = async () => {
-  const selectedKeys = Object.entries(importSelection)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
+    if (selectedKeys.length === 0) {
+      toast({
+        title: "No selection",
+        description: "Select items to import.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (selectedKeys.length === 0) {
-    toast({
-      title: "No selection",
-      description: "Select items to import.",
-      variant: "destructive",
-    });
-    return;
-  }
+    const selectedItems = importCandidates.filter((c) =>
+      selectedKeys.includes(c.key),
+    );
 
-  const selectedItems = importCandidates.filter((c) => selectedKeys.includes(c.key));
-
-  const tempEntries: Entry[] = selectedItems.map((item) => {
-    const subtype = item.subtype;
-    let group: TransportGroup = "basic";
-    if (transportTypes.private.includes(subtype)) group = "private";
-    else if (transportTypes.public.includes(subtype)) group = "public";
-
-    return {
-      id: `temp_${makeId()}`,
-      category: "transport",
-      createdAt: new Date().toISOString(),
-      transportGroup: group,
-      subtype,
-      distanceKm: Number(item.distanceKm || 0),
-      isTemp: true,
-    } as TransportEntry;
-  });
-
-  setEntries((prev) => [...tempEntries, ...prev]);
-  setIsSubmittingEntry(true);
-
-  try {
-    const createdList: Entry[] = [];
-
-    for (const item of selectedItems) {
+    const tempEntries: Entry[] = selectedItems.map((item) => {
       const subtype = item.subtype;
       let group: TransportGroup = "basic";
       if (transportTypes.private.includes(subtype)) group = "private";
       else if (transportTypes.public.includes(subtype)) group = "public";
 
-      const payload: Partial<TransportEntry> = {
-        id: item.raw._id,
+      return {
+        id: `temp_${makeId()}`,
         category: "transport",
+        createdAt: new Date().toISOString(),
         transportGroup: group,
         subtype,
         distanceKm: Number(item.distanceKm || 0),
-      };
+        isTemp: true,
+      } as TransportEntry;
+    });
 
-      const created = await submitEntry(payload);
-      createdList.push(created);
+    setEntries((prev) => [...tempEntries, ...prev]);
+    setIsSubmittingEntry(true);
 
-      try {
-        await updateLivetracking(item.raw._id, { isImported: true });
-      } catch (err) {
-        console.warn(`Failed to mark ${item.raw._id} as imported`, err);
+    try {
+      const createdList: Entry[] = [];
+
+      for (const item of selectedItems) {
+        const subtype = item.subtype;
+        let group: TransportGroup = "basic";
+        if (transportTypes.private.includes(subtype)) group = "private";
+        else if (transportTypes.public.includes(subtype)) group = "public";
+
+        const payload: Partial<TransportEntry> = {
+          id: item.raw._id,
+          category: "transport",
+          transportGroup: group,
+          subtype,
+          distanceKm: Number(item.distanceKm || 0),
+        };
+
+        const created = await submitEntry(payload);
+        createdList.push(created);
+
+        try {
+          await updateLivetracking(item.raw._id, { isImported: true });
+        } catch (err) {
+          console.warn(`Failed to mark ${item.raw._id} as imported`, err);
+        }
       }
+
+      setEntries((prev) => {
+        let remaining = prev.filter(
+          (p) =>
+            !(
+              p.isTemp &&
+              createdList.some(
+                (c) =>
+                  (c as any).subtype === (p as any).subtype &&
+                  (c as any).distanceKm === (p as any).distanceKm,
+              )
+            ),
+        );
+        return [...(createdList as Entry[]), ...remaining];
+      });
+
+      toast({
+        title: "Imported",
+        description: `Imported ${createdList.length} activities.`,
+      });
+      setIsImportOpen(false);
+      setIsAddOpen(false);
+      refetchActivities();
+    } catch (err: any) {
+      setEntries((prev) => prev.filter((e) => !e.isTemp));
+      toast({
+        title: "Error",
+        description: err.message || "Import failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingEntry(false);
+      const s: Record<string, boolean> = {};
+      importCandidates.forEach((c) => (s[c.key] = false));
+      setImportSelection(s);
     }
-
-    setEntries((prev) => {
-      let remaining = prev.filter(
-        (p) =>
-          !(
-            p.isTemp &&
-            createdList.some(
-              (c) =>
-                (c as any).subtype === (p as any).subtype &&
-                (c as any).distanceKm === (p as any).distanceKm
-            )
-          )
-      );
-      return [...(createdList as Entry[]), ...remaining];
-    });
-
-    toast({
-      title: "Imported",
-      description: `Imported ${createdList.length} activities.`,
-    });
-    setIsImportOpen(false);
-    setIsAddOpen(false);
-    refetchActivities(); 
-  } catch (err: any) {
-    setEntries((prev) => prev.filter((e) => !e.isTemp));
-    toast({
-      title: "Error",
-      description: err.message || "Import failed",
-      variant: "destructive",
-    });
-  } finally {
-    setIsSubmittingEntry(false);
-    const s: Record<string, boolean> = {};
-    importCandidates.forEach((c) => (s[c.key] = false));
-    setImportSelection(s);
-  }
-};
-
+  };
 
   const toggleStravaSelection = (key: string) => {
-  setStravaSelection((prev) => ({ ...prev, [key]: !prev[key] }));
-};
+    setStravaSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
-const handleAddStravaImports = async () => {
-  const selectedKeys = Object.entries(stravaSelection).filter(([, v]) => v).map(([k]) => k);
-  if (selectedKeys.length === 0) {
-    toast({ title: "No selection", description: "Select Strava items to import.", variant: "destructive" });
-    return;
-  }
-
-  const selectedItems = stravaCandidates.filter((c) => selectedKeys.includes(c.key));
-
-  const tempEntries: Entry[] = selectedItems.map((item) => ({
-    id: `temp_${makeId()}`,
-    category: "transport",
-    createdAt: new Date().toISOString(),
-    transportGroup: "basic",
-    subtype: item.subtype,
-    distanceKm: item.distanceKm,
-    isTemp: true,
-  }));
-
-  setEntries((prev) => [...tempEntries, ...prev]);
-  setIsSubmittingEntry(true);
-
-  try {
-    const createdList: Entry[] = [];
-    for (const item of selectedItems) {
-      const payload: Partial<TransportEntry> = {
-        id: `temp_${makeId()}`,
-        category: "transport",
-        transportGroup: "basic",
-        subtype: item.subtype,
-        distanceKm: Number(item.distanceKm || 0),
-      };
-      const created = await submitEntry(payload);
-      createdList.push(created);
+  const handleAddStravaImports = async () => {
+    const selectedKeys = Object.entries(stravaSelection)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+    if (selectedKeys.length === 0) {
+      toast({
+        title: "No selection",
+        description: "Select Strava items to import.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setEntries((prev) => [
-      ...createdList,
-      ...prev.filter((e) => !e.isTemp),
-    ]);
-    toast({ title: "Imported", description: `Imported ${createdList.length} Strava activities.` });
-    setIsStravaImportOpen(false);
-  } catch (err: any) {
-    setEntries((prev) => prev.filter((e) => !e.isTemp));
-    toast({ title: "Error", description: err.message || "Strava import failed", variant: "destructive" });
-  } finally {
-    setIsSubmittingEntry(false);
-  }
-};
+    const selectedItems = stravaCandidates.filter((c) =>
+      selectedKeys.includes(c.key),
+    );
 
+    const tempEntries: Entry[] = selectedItems.map((item) => ({
+      id: `temp_${makeId()}`,
+      category: "transport",
+      createdAt: new Date().toISOString(),
+      transportGroup: "basic",
+      subtype: item.subtype,
+      distanceKm: item.distanceKm,
+      isTemp: true,
+    }));
 
-  // ---------- Footprint calculation & recommendations ----------
-  const submitFootprint = async (trackingData: any): Promise<FootprintResponse> => {
+    setEntries((prev) => [...tempEntries, ...prev]);
+    setIsSubmittingEntry(true);
+
+    try {
+      const createdList: Entry[] = [];
+      for (const item of selectedItems) {
+        const payload: Partial<TransportEntry> = {
+          id: `temp_${makeId()}`,
+          category: "transport",
+          transportGroup: "basic",
+          subtype: item.subtype,
+          distanceKm: Number(item.distanceKm || 0),
+        };
+        const created = await submitEntry(payload);
+        createdList.push(created);
+      }
+
+      setEntries((prev) => [...createdList, ...prev.filter((e) => !e.isTemp)]);
+      toast({
+        title: "Imported",
+        description: `Imported ${createdList.length} Strava activities.`,
+      });
+      setIsStravaImportOpen(false);
+    } catch (err: any) {
+      setEntries((prev) => prev.filter((e) => !e.isTemp));
+      toast({
+        title: "Error",
+        description: err.message || "Strava import failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingEntry(false);
+    }
+  };
+
+  const submitFootprint = async (
+    trackingData: any,
+  ): Promise<FootprintResponse> => {
     try {
       const payload = await submitDailyTracking(trackingData);
       return payload;
@@ -834,238 +938,255 @@ const handleAddStravaImports = async () => {
     }
   };
 
-  const fetchRecommendations = async (id: string): Promise<RecommendationResponse> => {
-  try {
-    const payload = await getRecommendations(id);
-    return payload;
-  } catch (err: any) {
-    throw new Error(err?.message || "Failed to fetch recommendations");
-  }
+  const fetchRecommendations = async (
+    id: string,
+  ): Promise<RecommendationResponse> => {
+    try {
+      const payload = await getRecommendations(id);
+      return payload;
+    } catch (err: any) {
+      throw new Error(err?.message || "Failed to fetch recommendations");
+    }
   };
 
   const resetDailyData = async (): Promise<void> => {
     try {
       await DeleteAllEntries();
       await clearDailyData();
-      refetchActivities(); 
+      refetchActivities();
     } catch (err: any) {
       throw new Error(err?.message || "Failed to reset daily data");
     }
   };
 
-const handleCalculate = async () => {
-  if (entries.length === 0) {
-    toast({
-      title: "No entries",
-      description: "Add entries before calculating.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  // ---- TRANSPORT ----
-  const transportAgg: Record<string, number> = {};
-  let flightsToday: "none" | "short-haul" | "long-haul" = "none";
-
-  entries.forEach((e) => {
-    if (e.category === "transport") {
-      const t = e as TransportEntry;
-      if (!t.subtype) return;
-      transportAgg[t.subtype] = (transportAgg[t.subtype] || 0) + Number(t.distanceKm || 0);
+  const handleCalculate = async () => {
+    if (entries.length === 0) {
+      toast({
+        title: "No entries",
+        description: "Add entries before calculating.",
+        variant: "destructive",
+      });
+      return;
     }
-  });
 
-  const transportModes = Object.entries(transportAgg).map(([subtype, distance]) => ({
-    id: subtype,
-    distance: Number(distance.toFixed(2)),
-  }));
+    const transportAgg: Record<string, number> = {};
+    let flightsToday: "none" | "short-haul" | "long-haul" = "none";
 
-  const distances = Object.fromEntries(transportModes.map((m) => [m.id, m.distance]));
+    entries.forEach((e) => {
+      if (e.category === "transport") {
+        const t = e as TransportEntry;
+        if (!t.subtype) return;
+        transportAgg[t.subtype] =
+          (transportAgg[t.subtype] || 0) + Number(t.distanceKm || 0);
+      }
+    });
 
-  // ---- HOME ----
-  const homeEntries = entries.filter((e) => e.category === "home") as HomeEntry[];
-  let homeEnergyPayload = {
-    homeType: "small_house",
-    occupants: 0,
-    appliances: ["none"] as any[],
-  };
+    const transportModes = Object.entries(transportAgg).map(
+      ([subtype, distance]) => ({
+        id: subtype,
+        distance: Number(distance.toFixed(2)),
+      }),
+    );
 
-  if (homeEntries.length > 0) {
-    const latest = homeEntries.sort(
-      (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
-    )[0];
-    homeEnergyPayload = {
-      homeType: latest.homeType,
-      occupants: latest.occupants,
-      appliances: [latest.appliances],
+    const distances = Object.fromEntries(
+      transportModes.map((m) => [m.id, m.distance]),
+    );
+
+    const homeEntries = entries.filter(
+      (e) => e.category === "home",
+    ) as HomeEntry[];
+    let homeEnergyPayload = {
+      homeType: "small_house",
+      occupants: 0,
+      appliances: ["none"] as any[],
     };
-  }
 
-  // ---- FOOD ----
-  const foodEntries = entries.filter((e) => e.category === "food") as FoodEntry[];
-  const foodPayload: any = {
-    breakfast: "skipped",
-    lunch: "skipped",
-    dinner: "skipped",
-    breakfastFood: "",
-    lunchFood: "",
-    dinnerFood: "",
-  };
-
-  if (foodEntries.length > 0) {
-    const latestBySlot: Record<string, FoodEntry> = {};
-    foodEntries.forEach((f) => {
-      const prev = latestBySlot[f.mealSlot];
-      if (!prev || new Date(f.createdAt) > new Date(prev.createdAt))
-        latestBySlot[f.mealSlot] = f;
-    });
-
-    if (latestBySlot.breakfast) {
-      foodPayload.breakfast = latestBySlot.breakfast.mealType;
-      foodPayload.breakfastFood = latestBySlot.breakfast.description || "";
-    }
-    if (latestBySlot.lunch) {
-      foodPayload.lunch = latestBySlot.lunch.mealType;
-      foodPayload.lunchFood = latestBySlot.lunch.description || "";
-    }
-    if (latestBySlot.dinner) {
-      foodPayload.dinner = latestBySlot.dinner.mealType;
-      foodPayload.dinnerFood = latestBySlot.dinner.description || "";
-    }
-  }
-
-  // ---- FINAL PAYLOAD ----
-  const payload = {
-    transport: { modes: transportModes, distances },
-    flightsToday: flightsToday === "none" ? "none" : flightsToday,
-    homeEnergy: homeEnergyPayload,
-    food: foodPayload,
-    rawEntries: entries,
-  };
-
-  // ---- SUBMIT + UPDATE ----
-  try {
-    setLoadingStatus("loading");
-    setErrorMessage(null);
-
-    const res = await submitFootprint(payload);
-
-    setFootprintData(res.data);
-    setFootprintId(res.data.footprintId);
-    localStorage.setItem("current_footprint_data", JSON.stringify(res.data));
-
-    // ✅ Trigger <RollingNumber> animation by updating todayEntry
-    setTodayEntry((prev) => ({
-      ...(prev || {}),
-      calculatedFootprint: {
-        ...(prev?.calculatedFootprint || {}),
-        ...res.data.calculatedFootprint,
-      },
-    }));
-
-    setLoadingStatus("success");
-  } catch (err: any) {
-    console.error(err);
-    setLoadingStatus("error");
-    setErrorMessage(err.message || "Failed to calculate footprint");
-
-    toast({
-      title: "Error",
-      description: err.message || "Calculation failed",
-      variant: "destructive",
-    });
-  }
-};
-
-
-   const [isLoadingToday, setIsLoadingToday] = useState(false);
-    const [todayEntry, setTodayEntry] = useState<any>(null);
-    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [historyEntries, setHistoryEntries] = useState<any[]>([]);
-  
-    useEffect(() => {
-      const fetchToday = async () => {
-        try {
-          setIsLoadingToday(true);
-          const res = await getTodaysTracking();
-          setTodayEntry(res?.data || null);
-        } catch (_e) {
-          setTodayEntry(null);
-        } finally {
-          setIsLoadingToday(false);
-        }
+    if (homeEntries.length > 0) {
+      const latest = homeEntries.sort(
+        (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
+      )[0];
+      homeEnergyPayload = {
+        homeType: latest.homeType,
+        occupants: latest.occupants,
+        appliances: [latest.appliances],
       };
-  
+    }
+
+    const foodEntries = entries.filter(
+      (e) => e.category === "food",
+    ) as FoodEntry[];
+    const foodPayload: any = {
+      breakfast: "skipped",
+      lunch: "skipped",
+      dinner: "skipped",
+      breakfastFood: "",
+      lunchFood: "",
+      dinnerFood: "",
+    };
+
+    if (foodEntries.length > 0) {
+      const latestBySlot: Record<string, FoodEntry> = {};
+      foodEntries.forEach((f) => {
+        const prev = latestBySlot[f.mealSlot];
+        if (!prev || new Date(f.createdAt) > new Date(prev.createdAt))
+          latestBySlot[f.mealSlot] = f;
+      });
+
+      if (latestBySlot.breakfast) {
+        foodPayload.breakfast = latestBySlot.breakfast.mealType;
+        foodPayload.breakfastFood = latestBySlot.breakfast.description || "";
+      }
+      if (latestBySlot.lunch) {
+        foodPayload.lunch = latestBySlot.lunch.mealType;
+        foodPayload.lunchFood = latestBySlot.lunch.description || "";
+      }
+      if (latestBySlot.dinner) {
+        foodPayload.dinner = latestBySlot.dinner.mealType;
+        foodPayload.dinnerFood = latestBySlot.dinner.description || "";
+      }
+    }
+
+    const payload = {
+      transport: { modes: transportModes, distances },
+      flightsToday: flightsToday === "none" ? "none" : flightsToday,
+      homeEnergy: homeEnergyPayload,
+      food: foodPayload,
+      rawEntries: entries,
+    };
+
+    try {
+      setLoadingStatus("loading");
+      setErrorMessage(null);
+
+      const res = await submitFootprint(payload);
+
+      setFootprintData(res.data);
+      setFootprintId(res.data.footprintId);
+      localStorage.setItem("current_footprint_data", JSON.stringify(res.data));
+
+      setTodayEntry((prev) => ({
+        ...(prev || {}),
+        calculatedFootprint: {
+          ...(prev?.calculatedFootprint || {}),
+          ...res.data.calculatedFootprint,
+        },
+      }));
+
+      setLoadingStatus("success");
+    } catch (err: any) {
+      console.error(err);
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to calculate footprint");
+
+      toast({
+        title: "Error",
+        description: err.message || "Calculation failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [isLoadingToday, setIsLoadingToday] = useState(false);
+  const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchToday = async () => {
+      try {
+        setIsLoadingToday(true);
+        const res = await getTodaysTracking();
+        setTodayEntry(res?.data || null);
+      } catch (_e) {
+        setTodayEntry(null);
+      } finally {
+        setIsLoadingToday(false);
+      }
+    };
+
     const fetchHistory = async () => {
-        try {
-          setIsLoadingHistory(true);
-          const res = await getDailyTrackingHistory(31, 0);
-          setHistoryEntries(res?.data?.entries || []);
-        } catch (_e) {
-          setHistoryEntries([]);
-        } finally {
-          setIsLoadingHistory(false);
-        }
-      };
-  
-      fetchToday();
-      fetchHistory();
-    }, [isLoggedIn, user]);
+      try {
+        setIsLoadingHistory(true);
+        const res = await getDailyTrackingHistory(31, 0);
+        setHistoryEntries(res?.data?.entries || []);
+      } catch (_e) {
+        setHistoryEntries([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
 
-const handleGetRecommendations = async () => {
-  const id = footprintId || footprintData?.footprintId;
-  if (!id) {
-    toast({ title: "No footprint", description: "Calculate first.", variant: "destructive" });
-    return;
-  }
+    fetchToday();
+    fetchHistory();
+  }, [isLoggedIn, user]);
 
-  try {
-    setLoadingStatus("loading");
-    const rec = await fetchRecommendations(id);
+  const handleGetRecommendations = async () => {
+    const id = footprintId || footprintData?.footprintId;
+    if (!id) {
+      toast({
+        title: "No footprint",
+        description: "Calculate first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setRecommendations(rec.data.recommendations || []);
-    localStorage.setItem("current_recommendations", JSON.stringify(rec.data.recommendations));
+    try {
+      setLoadingStatus("loading");
+      const rec = await fetchRecommendations(id);
 
-    setLoadingStatus("success");
-    toast({
-      title: "Recommendations ready",
-      description: `Generated ${rec.data.recommendations.length} recommendations.`,
-    });
-  } catch (err: any) {
-    setLoadingStatus("error");
-    setErrorMessage(err.message || "Failed to fetch recommendations");
-    toast({
-      title: "Error",
-      description: err.message || "Failed to fetch recommendations",
-      variant: "destructive",
-    });
-  }
-};
+      setRecommendations(rec.data.recommendations || []);
+      localStorage.setItem(
+        "current_recommendations",
+        JSON.stringify(rec.data.recommendations),
+      );
 
-useEffect(() => {
-  const savedRecs = localStorage.getItem("current_recommendations");
-  const savedFootprint = localStorage.getItem("current_footprint_data");
+      setLoadingStatus("success");
+      toast({
+        title: "Recommendations ready",
+        description: `Generated ${rec.data.recommendations.length} recommendations.`,
+      });
+    } catch (err: any) {
+      setLoadingStatus("error");
+      setErrorMessage(err.message || "Failed to fetch recommendations");
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch recommendations",
+        variant: "destructive",
+      });
+    }
+  };
 
-  if (savedRecs) setRecommendations(JSON.parse(savedRecs));
-  if (savedFootprint) setFootprintData(JSON.parse(savedFootprint));
-}, []);
+  useEffect(() => {
+    const savedRecs = localStorage.getItem("current_recommendations");
+    const savedFootprint = localStorage.getItem("current_footprint_data");
 
+    if (savedRecs) setRecommendations(JSON.parse(savedRecs));
+    if (savedFootprint) setFootprintData(JSON.parse(savedFootprint));
+  }, []);
 
-const handleConfirmReset = async () => {
-  try {
-    await resetDailyData();
-    setFootprintData(null);
-    setFootprintId(null);
-    setTodayEntry(null)
-    setRecommendations([]);
-    setLoadingStatus("idle");
-    localStorage.removeItem("current_footprint_data");
-    localStorage.removeItem("current_recommendations");
-    toast({ title: "Reset", description: "Daily data reset. You can add new entries." });
-  } catch (err: any) {
-    toast({ title: "Reset failed", description: err.message || "Reset failed", variant: "destructive" });
-  }
-};
+  const handleConfirmReset = async () => {
+    try {
+      await resetDailyData();
+      setFootprintData(null);
+      setFootprintId(null);
+      setTodayEntry(null);
+      setRecommendations([]);
+      setLoadingStatus("idle");
+      localStorage.removeItem("current_footprint_data");
+      localStorage.removeItem("current_recommendations");
+      toast({
+        title: "Reset",
+        description: "Daily data reset. You can add new entries.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Reset failed",
+        description: err.message || "Reset failed",
+        variant: "destructive",
+      });
+    }
+  };
 
   const totals = useMemo(() => {
     if (footprintData) {
@@ -1077,16 +1198,30 @@ const handleConfirmReset = async () => {
       };
     }
 
-    const t = entries.reduce((s, e) => s + (e.category === "transport" ? (e as TransportEntry).contribution || 0 : 0), 0);
-    const h = entries.reduce((s, e) => s + (e.category === "home" ? (e as HomeEntry).contribution || 0 : 0), 0);
-    const f = entries.reduce((s, e) => s + (e.category === "food" ? (e as FoodEntry).contribution || 0 : 0), 0);
+    const t = entries.reduce(
+      (s, e) =>
+        s +
+        (e.category === "transport"
+          ? (e as TransportEntry).contribution || 0
+          : 0),
+      0,
+    );
+    const h = entries.reduce(
+      (s, e) =>
+        s + (e.category === "home" ? (e as HomeEntry).contribution || 0 : 0),
+      0,
+    );
+    const f = entries.reduce(
+      (s, e) =>
+        s + (e.category === "food" ? (e as FoodEntry).contribution || 0 : 0),
+      0,
+    );
     return { transport: t, homeEnergy: h, food: f, total: t + h + f };
   }, [footprintData, entries]);
 
-
   const hasHomeEntry = useMemo(
     () => entries.some((e) => e.category === "home"),
-    [entries]
+    [entries],
   );
 
   const submittedFoodSlots = useMemo(() => {
@@ -1099,7 +1234,7 @@ const handleConfirmReset = async () => {
 
   const allFoodSlotsTaken = useMemo(
     () => submittedFoodSlots.size >= 3,
-    [submittedFoodSlots]
+    [submittedFoodSlots],
   );
 
   if (isPending || isLoadingEntries) return <LoadingSpinner />;
@@ -1108,524 +1243,725 @@ const handleConfirmReset = async () => {
     <div className="min-h-screen bg-gradient-subtle">
       <Navbar isLoggedIn={!!user} onLogout={handleSignOut} />
 
-      {/* Sticky summary header */}
       {recommendations.length === 0 && (
-      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3">
-          <div className="flex flex-col-reverse sm:flex-row md:flex-row items-center justify-between gap-5">
-            <h1 className="flex items-center gap-2 text-xl font-bold text-foreground">
-              <Calculator className="w-6 h-6 text-primary" />
-              Track Your Daily Carbon
-            </h1>
-            <div className="flex gap-2">
-              <ConfirmDialog
-                trigger={
-                  <Button variant="outline">
-                    Reset Daily
-                  </Button>
-                }
-                title="Reset Daily?"
-                description="Are you sure you want to reset daily data? This action cannot be undone."
-                confirmText="Yes, Reset"
-                cancelText="Cancel"
-                variant="destructive"
-                onConfirm={handleConfirmReset}
-              />
+        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3">
+            <div className="flex flex-col-reverse sm:flex-row md:flex-row items-center justify-between gap-5">
+              <h1 className="flex items-center gap-2 text-xl font-bold text-foreground">
+                <Calculator className="w-6 h-6 text-primary" />
+                Track Your Daily Carbon
+              </h1>
+              <div className="flex gap-2">
+                <ConfirmDialog
+                  trigger={<Button variant="outline">Reset Daily</Button>}
+                  title="Reset Daily?"
+                  description="Are you sure you want to reset daily data? This action cannot be undone."
+                  confirmText="Yes, Reset"
+                  cancelText="Cancel"
+                  variant="destructive"
+                  onConfirm={handleConfirmReset}
+                />
 
-              <ConfirmDialog
-                trigger={
-                  <Button
-                    variant="eco"
-                    disabled={
-                      editingId === null && (submittedFoodSlots.size < 3 || loadingStatus === "loading")
-                    }
-                  >
-                    {loadingStatus === "loading" ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Getting Recommendations...
-                      </>
-                    ) : (
-                      "Get AI Recommendations"
-                    )}
-                  </Button>
-                }
-                title="Get AI Recommendations?"
-                description="Are you sure you want to generate AI recommendations?"
-                confirmText="Yes, Generate"
-                cancelText="Cancel"
-                onConfirm={handleGetRecommendations}
-              />
-            </div>
-          </div>
-
-          {/* === Sticky Summary Header === */}
-          <Card className="border border-border/40 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 backdrop-blur-sm shadow-sm">
-            <CardContent className="py-4 space-y-4">
-              {/* Top Row — Total Footprint */}
-              <div className="flex flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-6 h-6 text-indigo-500" />
-                  <span className="font-semibold text-lg text-foreground/80">Total Footprint</span>
-                </div>
-                <div className="text-3xl font-bold text-foreground flex items-baseline">
-                  <RollingNumber
-                    value={
-                      (todayEntry?.calculatedFootprint?.transport || 0) +
-                      (todayEntry?.calculatedFootprint?.homeEnergy || 0) +
-                      (todayEntry?.calculatedFootprint?.food || 0)
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-border/40" />
-
-              {/* Bottom Row — Add Entry & Tabs */}
-            <div className="flex flex-row items-start justify-between gap-4 px-2">
-
-              {/* === Left: Add Entry Dialog === */}
-              <div className="flex items-center gap-3">
-                <Dialog
-                  open={isAddOpen}
-                  onOpenChange={(v) => {
-                    setIsAddOpen(v);
-                    if (!v) setEditingId(null);
-                  }}
-                >
-                  <DialogTrigger asChild>
+                <ConfirmDialog
+                  trigger={
                     <Button
-                      size="lg"
-                      onClick={() => {
-                        if (recommendations.length > 0) {
-                          toast({
-                            title: "Action disabled",
-                            description: "You already have recommendations. Reset daily to add new entries.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                         setTransportForm({ transportGroup: "private", subtype: transportTypes.private[0], distanceKm: 0 });
-                        setEditingId(null);
-                        setActiveTab("transport");
-                      }}
-                      variant="default"
-                      disabled={recommendations.length > 0}
+                      variant="eco"
+                      disabled={
+                        editingId === null &&
+                        (submittedFoodSlots.size < 3 ||
+                          loadingStatus === "loading")
+                      }
                     >
-                      <Plus className="w-5 h-5 mr-2" /> 
-                      <span className="hidden sm:inline">
-                        {editingId ? "Edit Entry" : "Add Entry"}
-                      </span>
+                      {loadingStatus === "loading" ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Getting Recommendations...
+                        </>
+                      ) : (
+                        "Get AI Recommendations"
+                      )}
                     </Button>
-
-                  </DialogTrigger>
-
-                  {/* === Add Entry Modal === */}
-                  <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-semibold tracking-tight">
-                        {editingId ? "Edit Entry" : "Add New Entry"}
-                      </DialogTitle>
-                    </DialogHeader>
-
-                    {/* Tabs */}
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TopCategory)}>
-                      <TabsList className="grid w-full grid-cols-3 bg-muted/40 rounded-md mb-4">
-                        <TabsTrigger value="transport"> Transport</TabsTrigger>
-                        <TabsTrigger value="home"> Home</TabsTrigger>
-                        <TabsTrigger value="food"> Food</TabsTrigger>
-                      </TabsList>
-
-                      {/* === TRANSPORT FORM === */}
-                      <TabsContent value="transport">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                          <div>
-                            <Label className="required">Group</Label>
-                            <Select
-                              value={transportForm.transportGroup}
-                              onValueChange={(v) => {
-                                setTransportForm((prev) => ({
-                                  ...prev,
-                                  transportGroup: v as TransportGroup,
-                                  subtype: transportTypes[v as TransportGroup][0],
-                                }));
-                              }}
-                              disabled={!!editingId}
-                            >
-                              <SelectTrigger><SelectValue placeholder="Choose group" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="private">Private</SelectItem>
-                                <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="basic">Basic</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <Label className="required">Subtype</Label>
-                            <Select
-                              value={transportForm.subtype}
-                              onValueChange={(v) => setTransportForm(prev => ({ ...prev, subtype: v }))}
-                              disabled={!!editingId}
-                            >
-                              <SelectTrigger><SelectValue placeholder="Choose subtype" /></SelectTrigger>
-                              <SelectContent>
-                                {transportTypes[(transportForm.transportGroup || "private") as TransportGroup].map((st) => (
-                                  <SelectItem key={st} value={st}>{st}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <Label className="required">Distance (km)</Label>
-                            <NumInput
-                              type="number"
-                              placeholder="km"
-                              value={transportForm.distanceKm ?? ""}
-                              onChange={(e) =>
-                                setTransportForm(prev => ({
-                                  ...prev,
-                                  distanceKm: e.target.value === "" ? null : Number(e.target.value),
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-3">
-
-                          <Button
-                            onClick={() => setIsConfirmTransportOpen(true)}
-                            disabled={isSubmittingEntry}
-                          >
-                            {editingId ? "Save Transport" : "Add Transport"}
-                          </Button>
-
-                          {IsConfirmTransportOpen && (
-                              <Dialog open={IsConfirmTransportOpen} onOpenChange={setIsConfirmTransportOpen}>
-                                {/* Confirmation Dialog */}
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      {editingId ? "Confirm Save" : "Confirm Add"}
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                      Are you sure you want to {editingId ? "save changes" : "add this transport"}?
-                                      <p className="pt-2"><strong><span className="capitalize"> {transportForm.subtype ?? ""} :</span> {transportForm.distanceKm ?? ""} km</strong></p> 
-                                    </DialogDescription>
-                                  </DialogHeader>
-                          
-                                  <DialogFooter>
-                                    <DialogClose asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                    </DialogClose>
-                                    <Button
-                                      onClick={() => {
-                                        if (editingId) setIsSaveConfirmOpen(true);
-                                        else handleCreateTransport();
-                                        setIsConfirmTransportOpen(false);
-                                      }}
-                                    >
-                                      Yes
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                          )}
-
-                          <Button variant="ghost" onClick={() => setIsImportOpen(true)}>
-                            Import from Live Tracking
-                          </Button>
-                          <Button variant="ghost" onClick={() => setIsStravaImportOpen(true)}>
-                            Import from Strava
-                          </Button>
-                        </div>
-                      </TabsContent>
-
-                      {/* === HOME FORM === */}
-                      <TabsContent value="home">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                          <div>
-                            <Label className="required">Home Type</Label>
-                            <Select
-                              value={homeForm.homeType}
-                              onValueChange={(v) => setHomeForm(prev => ({ ...prev, homeType: v as any }))}
-                              disabled={hasHomeEntry && !editingId}
-                            >
-                              <SelectTrigger><SelectValue placeholder="Choose home" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="large_house">Large House</SelectItem>
-                                <SelectItem value="small_house">Small House</SelectItem>
-                                <SelectItem value="apartment">Apartment / Condo</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <Label className="required">Occupants</Label>
-                            <NumInput
-                              type="number"
-                              placeholder="Occupants (including yourself)"
-                              min={1}
-                              value={homeForm.occupants ?? ""}
-                              onChange={(e) =>
-                                setHomeForm(prev => ({
-                                  ...prev,
-                                  occupants: e.target.value === "" ? null : Number(e.target.value),
-                                }))
-                              }
-                              disabled={hasHomeEntry && !editingId}
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="required">Appliances</Label>
-                            <Select
-                              value={homeForm.appliances as any}
-                              onValueChange={(v) => setHomeForm(prev => ({ ...prev, appliances: v as any }))}
-                              disabled={hasHomeEntry && !editingId}
-                            >
-                              <SelectTrigger><SelectValue placeholder="Choose appliance" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="aircon">Aircon</SelectItem>
-                                <SelectItem value="laundry">Laundry</SelectItem>
-                                <SelectItem value="none">None</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-3">
-                          <Button
-                            onClick={() => setIsConfirmHomeOpen(true)}
-                            disabled={hasHomeEntry && !editingId}
-                          >
-                            {editingId ? "Save Home" : "Add Home"}
-                          </Button>
-
-                          {IsConfirmHomeOpen && (
-                              <Dialog open={IsConfirmHomeOpen} onOpenChange={setIsConfirmHomeOpen}>
-                                {/* Confirmation Dialog */}
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      {editingId ? "Confirm Save" : "Confirm Add"}
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                      Are you sure you want to {editingId ? "save changes" : "add this Home Entry"}?
-                                      <p className="pt-2"><strong><span className="capitalize"> {homeForm.homeType} :</span> {homeForm.occupants ?? ""} occupants</strong></p> 
-                                      <p><strong>Appliances: {homeForm.appliances}</strong></p>
-                                      
-                                    </DialogDescription>
-                                  </DialogHeader>
-                          
-                                  <DialogFooter>
-                                    <DialogClose asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                    </DialogClose>
-                                    <Button
-                                      onClick={() => {
-                                        if (editingId) setIsSaveConfirmOpen(true);
-                                        else handleCreateHome();
-                                        setIsConfirmHomeOpen(false);
-                                      }}
-                                    >
-                                      Yes
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                          )}
-
-                          {hasHomeEntry && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              You can only add one home entry per day. Delete the entry and add a new one.
-                            </p>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      {/* === FOOD FORM === */}
-                      <TabsContent value="food">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                          <div>
-                            <Label className="required">Meal Slot</Label>
-                            <Select
-                              value={foodForm.mealSlot}
-                              onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealSlot: v as any }))}
-                            >
-                              <SelectTrigger><SelectValue placeholder="Choose slot" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="breakfast" disabled={submittedFoodSlots.has("breakfast")} >Breakfast {submittedFoodSlots.has("breakfast") && !editingId ? "(Submitted)" : ""}</SelectItem>
-                                <SelectItem value="lunch" disabled={submittedFoodSlots.has("lunch")} >Lunch {submittedFoodSlots.has("lunch") && !editingId ? "(Submitted)" : ""}</SelectItem>
-                                <SelectItem value="dinner" disabled={submittedFoodSlots.has("dinner") }>Dinner {submittedFoodSlots.has("dinner") && !editingId ? "(Submitted)" : ""}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <Label className="required">Type</Label>
-                            <Select
-                              value={foodForm.mealType}
-                              onValueChange={(v) => setFoodForm(prev => ({ ...prev, mealType: v as any }))}
-                              disabled={allFoodSlotsTaken && !editingId} 
-                            >
-                              <SelectTrigger><SelectValue placeholder="Meal type" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="meat">Meat-based</SelectItem>
-                                <SelectItem value="fish">Fish-based</SelectItem>
-                                <SelectItem value="plant">Plant-based</SelectItem>
-                                <SelectItem value="dairy">Dairy</SelectItem>
-                                <SelectItem value="mixed">Mixed</SelectItem>
-                                <SelectItem value="skipped">Skipped</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div>
-                            <div className="flex flex-col">
-                            <Label>Description </Label>
-                            <span className="text-xs text-muted-foreground my-2">(Optional - For better Recommendations)</span>
-                            </div>
-                            <FoodAutocomplete
-                              category={foodForm.mealType as any}
-                              value={foodForm.description}
-                              disabled={allFoodSlotsTaken && !editingId}
-                              onChange={(v) => setFoodForm(prev => ({ ...prev, description: v }))}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="mt-5 flex flex-wrap gap-3">
-                          <Button
-                            onClick={() => setIsConfirmFoodOpen(true)}
-                            disabled={isSubmittingEntry || allFoodSlotsTaken && !editingId}
-                          >
-                            {editingId ? "Save Food" : "Add Food"}
-                          </Button>
-
-                          {IsConfirmFoodOpen && (
-                              <Dialog open={IsConfirmFoodOpen} onOpenChange={setIsConfirmFoodOpen}>
-                                {/* Confirmation Dialog */}
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      {editingId ? "Confirm Save" : "Confirm Add"}
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                      Are you sure you want to {editingId ? "save changes" : "add this Food Entry"}?
-                                      <p className="pt-2"><strong><span className="capitalize"> {foodForm.mealSlot ?? ""}: {foodForm.mealType?? ""} </span> {foodForm.description}</strong></p> 
-                                      <p><strong>Description: {foodForm.description}</strong></p>
-                                    </DialogDescription>
-                                  </DialogHeader>
-                          
-                                  <DialogFooter>
-                                    <DialogClose asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                    </DialogClose>
-                                    <Button
-                                      onClick={() => {
-                                        if (editingId) setIsSaveConfirmOpen(true);
-                                        else handleCreateFood();
-                                        setIsConfirmFoodOpen(false);
-                                      }}
-                                    >
-                                      Yes
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                          )}
-
-                          {allFoodSlotsTaken && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              You’ve already logged all three meals for today.
-                            </p>
-                          )}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </DialogContent>
-                </Dialog>
-
-                {/* === Save Confirm Dialog === */}
-                <Dialog open={isSaveConfirmOpen} onOpenChange={setIsSaveConfirmOpen}>
-                  <DialogContent className="sm:max-w-lg">
-                    <DialogHeader><DialogTitle>Save changes?</DialogTitle></DialogHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">Save edits to this entry?</p>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setIsSaveConfirmOpen(false)}>Cancel</Button>
-                        <Button onClick={async () => {
-                          setIsSaveConfirmOpen(false);
-                          await handleSaveEdit();
-                        }}>Save</Button>
-                      </div>
-                    </CardContent>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* === Right: Quick Actions === */}
-              <div className="flex flex-wrap gap-2 md:gap-3">
-                <Button onClick={handleCalculate} disabled={loadingStatus === "loading"} variant="hero">
-                  Calculate
-                  <span className="hidden sm:inline">
-                   Footprint
-                  </span>
-                </Button>
+                  }
+                  title="Get AI Recommendations?"
+                  description="Are you sure you want to generate AI recommendations?"
+                  confirmText="Yes, Generate"
+                  cancelText="Cancel"
+                  onConfirm={handleGetRecommendations}
+                />
               </div>
             </div>
 
+            {/* === Sticky Summary Header === */}
+            <Card className="border border-border/40 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 backdrop-blur-sm shadow-sm">
+              <CardContent className="py-4 space-y-4">
+                {/* Top Row — Total Footprint */}
+                <div className="flex flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-6 h-6 text-indigo-500" />
+                    <span className="font-semibold text-lg text-foreground/80">
+                      Total Footprint
+                    </span>
+                  </div>
+                  <div className="text-3xl font-bold text-foreground flex items-baseline">
+                    <RollingNumber
+                      value={
+                        (todayEntry?.calculatedFootprint?.transport || 0) +
+                        (todayEntry?.calculatedFootprint?.homeEnergy || 0) +
+                        (todayEntry?.calculatedFootprint?.food || 0)
+                      }
+                    />
+                  </div>
+                </div>
 
-            </CardContent>
-          </Card>
+                <div className="border-t border-border/40" />
 
+                <div className="flex flex-row items-start justify-between gap-4 px-2">
+                  <div className="flex items-center gap-3">
+                    <Dialog
+                      open={isAddOpen}
+                      onOpenChange={(v) => {
+                        setIsAddOpen(v);
+                        if (!v) setEditingId(null);
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          size="lg"
+                          onClick={() => {
+                            if (recommendations.length > 0) {
+                              toast({
+                                title: "Action disabled",
+                                description:
+                                  "You already have recommendations. Reset daily to add new entries.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setTransportForm({
+                              transportGroup: "private",
+                              subtype: transportTypes.private[0],
+                              distanceKm: 0,
+                            });
+                            setEditingId(null);
+                            setActiveTab("transport");
+                          }}
+                          variant="default"
+                          disabled={recommendations.length > 0}
+                        >
+                          <Plus className="w-5 h-5 mr-2" />
+                          <span className="hidden sm:inline">
+                            {editingId ? "Edit Entry" : "Add Entry"}
+                          </span>
+                        </Button>
+                      </DialogTrigger>
+
+                      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-xl font-semibold tracking-tight">
+                            {editingId ? "Edit Entry" : "Add New Entry"}
+                          </DialogTitle>
+                        </DialogHeader>
+
+                        <Tabs
+                          value={activeTab}
+                          onValueChange={(v) => setActiveTab(v as TopCategory)}
+                        >
+                          <TabsList className="grid w-full grid-cols-3 bg-muted/40 rounded-md mb-4">
+                            <TabsTrigger value="transport">
+                              {" "}
+                              Transport
+                            </TabsTrigger>
+                            <TabsTrigger value="home"> Home</TabsTrigger>
+                            <TabsTrigger value="food"> Food</TabsTrigger>
+                          </TabsList>
+
+                          <TabsContent value="transport">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                              <div>
+                                <Label className="required">Group</Label>
+                                <Select
+                                  value={transportForm.transportGroup}
+                                  onValueChange={(v) => {
+                                    setTransportForm((prev) => ({
+                                      ...prev,
+                                      transportGroup: v as TransportGroup,
+                                      subtype:
+                                        transportTypes[v as TransportGroup][0],
+                                    }));
+                                  }}
+                                  disabled={!!editingId}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose group" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="private">
+                                      Private
+                                    </SelectItem>
+                                    <SelectItem value="public">
+                                      Public
+                                    </SelectItem>
+                                    <SelectItem value="basic">Basic</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label className="required">Subtype</Label>
+                                <Select
+                                  value={transportForm.subtype}
+                                  onValueChange={(v) =>
+                                    setTransportForm((prev) => ({
+                                      ...prev,
+                                      subtype: v,
+                                    }))
+                                  }
+                                  disabled={!!editingId}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose subtype" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {transportTypes[
+                                      (transportForm.transportGroup ||
+                                        "private") as TransportGroup
+                                    ].map((st) => (
+                                      <SelectItem key={st} value={st}>
+                                        {st}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label className="required">
+                                  Distance (km)
+                                </Label>
+                                <NumInput
+                                  type="number"
+                                  placeholder="km"
+                                  value={transportForm.distanceKm ?? ""}
+                                  onChange={(e) =>
+                                    setTransportForm((prev) => ({
+                                      ...prev,
+                                      distanceKm:
+                                        e.target.value === ""
+                                          ? null
+                                          : Number(e.target.value),
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-3">
+                              <Button
+                                onClick={() => setIsConfirmTransportOpen(true)}
+                                disabled={isSubmittingEntry}
+                              >
+                                {editingId ? "Save Transport" : "Add Transport"}
+                              </Button>
+
+                              {IsConfirmTransportOpen && (
+                                <Dialog
+                                  open={IsConfirmTransportOpen}
+                                  onOpenChange={setIsConfirmTransportOpen}
+                                >
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        {editingId
+                                          ? "Confirm Save"
+                                          : "Confirm Add"}
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Are you sure you want to{" "}
+                                        {editingId
+                                          ? "save changes"
+                                          : "add this transport"}
+                                        ?
+                                        <p className="pt-2">
+                                          <strong>
+                                            <span className="capitalize">
+                                              {" "}
+                                              {transportForm.subtype ?? ""} :
+                                            </span>{" "}
+                                            {transportForm.distanceKm ?? ""} km
+                                          </strong>
+                                        </p>
+                                      </DialogDescription>
+                                    </DialogHeader>
+
+                                    <DialogFooter>
+                                      <DialogClose asChild>
+                                        <Button variant="outline">
+                                          Cancel
+                                        </Button>
+                                      </DialogClose>
+                                      <Button
+                                        onClick={() => {
+                                          if (editingId)
+                                            setIsSaveConfirmOpen(true);
+                                          else handleCreateTransport();
+                                          setIsConfirmTransportOpen(false);
+                                        }}
+                                      >
+                                        Yes
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+
+                              <Button
+                                variant="ghost"
+                                onClick={() => setIsImportOpen(true)}
+                              >
+                                Import from Live Tracking
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                onClick={() => setIsStravaImportOpen(true)}
+                              >
+                                Import from Strava
+                              </Button>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="home">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                              <div>
+                                <Label className="required">Home Type</Label>
+                                <Select
+                                  value={homeForm.homeType}
+                                  onValueChange={(v) =>
+                                    setHomeForm((prev) => ({
+                                      ...prev,
+                                      homeType: v as any,
+                                    }))
+                                  }
+                                  disabled={hasHomeEntry && !editingId}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose home" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="large_house">
+                                      Large House
+                                    </SelectItem>
+                                    <SelectItem value="small_house">
+                                      Small House
+                                    </SelectItem>
+                                    <SelectItem value="apartment">
+                                      Apartment / Condo
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label className="required">Occupants</Label>
+                                <NumInput
+                                  type="number"
+                                  placeholder="Occupants (including yourself)"
+                                  min={1}
+                                  value={homeForm.occupants ?? ""}
+                                  onChange={(e) =>
+                                    setHomeForm((prev) => ({
+                                      ...prev,
+                                      occupants:
+                                        e.target.value === ""
+                                          ? null
+                                          : Number(e.target.value),
+                                    }))
+                                  }
+                                  disabled={hasHomeEntry && !editingId}
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="required">Appliances</Label>
+                                <Select
+                                  value={homeForm.appliances as any}
+                                  onValueChange={(v) =>
+                                    setHomeForm((prev) => ({
+                                      ...prev,
+                                      appliances: v as any,
+                                    }))
+                                  }
+                                  disabled={hasHomeEntry && !editingId}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose appliance" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="aircon">
+                                      Aircon
+                                    </SelectItem>
+                                    <SelectItem value="laundry">
+                                      Laundry
+                                    </SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-3">
+                              <Button
+                                onClick={() => setIsConfirmHomeOpen(true)}
+                                disabled={hasHomeEntry && !editingId}
+                              >
+                                {editingId ? "Save Home" : "Add Home"}
+                              </Button>
+
+                              {IsConfirmHomeOpen && (
+                                <Dialog
+                                  open={IsConfirmHomeOpen}
+                                  onOpenChange={setIsConfirmHomeOpen}
+                                >
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        {editingId
+                                          ? "Confirm Save"
+                                          : "Confirm Add"}
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Are you sure you want to{" "}
+                                        {editingId
+                                          ? "save changes"
+                                          : "add this Home Entry"}
+                                        ?
+                                        <p className="pt-2">
+                                          <strong>
+                                            <span className="capitalize">
+                                              {" "}
+                                              {homeForm.homeType} :
+                                            </span>{" "}
+                                            {homeForm.occupants ?? ""} occupants
+                                          </strong>
+                                        </p>
+                                        <p>
+                                          <strong>
+                                            Appliances: {homeForm.appliances}
+                                          </strong>
+                                        </p>
+                                      </DialogDescription>
+                                    </DialogHeader>
+
+                                    <DialogFooter>
+                                      <DialogClose asChild>
+                                        <Button variant="outline">
+                                          Cancel
+                                        </Button>
+                                      </DialogClose>
+                                      <Button
+                                        onClick={() => {
+                                          if (editingId)
+                                            setIsSaveConfirmOpen(true);
+                                          else handleCreateHome();
+                                          setIsConfirmHomeOpen(false);
+                                        }}
+                                      >
+                                        Yes
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+
+                              {hasHomeEntry && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  You can only add one home entry per day.
+                                  Delete the entry and add a new one.
+                                </p>
+                              )}
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="food">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                              <div>
+                                <Label className="required">Meal Slot</Label>
+                                <Select
+                                  value={foodForm.mealSlot}
+                                  onValueChange={(v) =>
+                                    setFoodForm((prev) => ({
+                                      ...prev,
+                                      mealSlot: v as any,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose slot" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem
+                                      value="breakfast"
+                                      disabled={submittedFoodSlots.has(
+                                        "breakfast",
+                                      )}
+                                    >
+                                      Breakfast{" "}
+                                      {submittedFoodSlots.has("breakfast") &&
+                                      !editingId
+                                        ? "(Submitted)"
+                                        : ""}
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="lunch"
+                                      disabled={submittedFoodSlots.has("lunch")}
+                                    >
+                                      Lunch{" "}
+                                      {submittedFoodSlots.has("lunch") &&
+                                      !editingId
+                                        ? "(Submitted)"
+                                        : ""}
+                                    </SelectItem>
+                                    <SelectItem
+                                      value="dinner"
+                                      disabled={submittedFoodSlots.has(
+                                        "dinner",
+                                      )}
+                                    >
+                                      Dinner{" "}
+                                      {submittedFoodSlots.has("dinner") &&
+                                      !editingId
+                                        ? "(Submitted)"
+                                        : ""}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <Label className="required">Type</Label>
+                                <Select
+                                  value={foodForm.mealType}
+                                  onValueChange={(v) =>
+                                    setFoodForm((prev) => ({
+                                      ...prev,
+                                      mealType: v as any,
+                                    }))
+                                  }
+                                  disabled={allFoodSlotsTaken && !editingId}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Meal type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="meat">
+                                      Meat-based
+                                    </SelectItem>
+                                    <SelectItem value="fish">
+                                      Fish-based
+                                    </SelectItem>
+                                    <SelectItem value="plant">
+                                      Plant-based
+                                    </SelectItem>
+                                    <SelectItem value="dairy">Dairy</SelectItem>
+                                    <SelectItem value="mixed">Mixed</SelectItem>
+                                    <SelectItem value="skipped">
+                                      Skipped
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div>
+                                <div className="flex flex-col">
+                                  <Label>Description </Label>
+                                  <span className="text-xs text-muted-foreground my-2">
+                                    (Optional - For better Recommendations)
+                                  </span>
+                                </div>
+                                <FoodAutocomplete
+                                  category={foodForm.mealType as any}
+                                  value={foodForm.description}
+                                  disabled={allFoodSlotsTaken && !editingId}
+                                  onChange={(v) =>
+                                    setFoodForm((prev) => ({
+                                      ...prev,
+                                      description: v,
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-3">
+                              <Button
+                                onClick={() => setIsConfirmFoodOpen(true)}
+                                disabled={
+                                  isSubmittingEntry ||
+                                  (allFoodSlotsTaken && !editingId)
+                                }
+                              >
+                                {editingId ? "Save Food" : "Add Food"}
+                              </Button>
+
+                              {IsConfirmFoodOpen && (
+                                <Dialog
+                                  open={IsConfirmFoodOpen}
+                                  onOpenChange={setIsConfirmFoodOpen}
+                                >
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        {editingId
+                                          ? "Confirm Save"
+                                          : "Confirm Add"}
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Are you sure you want to{" "}
+                                        {editingId
+                                          ? "save changes"
+                                          : "add this Food Entry"}
+                                        ?
+                                        <p className="pt-2">
+                                          <strong>
+                                            <span className="capitalize">
+                                              {" "}
+                                              {foodForm.mealSlot ?? ""}:{" "}
+                                              {foodForm.mealType ?? ""}{" "}
+                                            </span>{" "}
+                                            {foodForm.description}
+                                          </strong>
+                                        </p>
+                                        <p>
+                                          <strong>
+                                            Description: {foodForm.description}
+                                          </strong>
+                                        </p>
+                                      </DialogDescription>
+                                    </DialogHeader>
+
+                                    <DialogFooter>
+                                      <DialogClose asChild>
+                                        <Button variant="outline">
+                                          Cancel
+                                        </Button>
+                                      </DialogClose>
+                                      <Button
+                                        onClick={() => {
+                                          if (editingId)
+                                            setIsSaveConfirmOpen(true);
+                                          else handleCreateFood();
+                                          setIsConfirmFoodOpen(false);
+                                        }}
+                                      >
+                                        Yes
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+
+                              {allFoodSlotsTaken && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  You’ve already logged all three meals for
+                                  today.
+                                </p>
+                              )}
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog
+                      open={isSaveConfirmOpen}
+                      onOpenChange={setIsSaveConfirmOpen}
+                    >
+                      <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>Save changes?</DialogTitle>
+                        </DialogHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Save edits to this entry?
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsSaveConfirmOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={async () => {
+                                setIsSaveConfirmOpen(false);
+                                await handleSaveEdit();
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 md:gap-3">
+                    <Button
+                      onClick={handleCalculate}
+                      disabled={loadingStatus === "loading"}
+                      variant="hero"
+                    >
+                      Calculate
+                      <span className="hidden sm:inline">Footprint</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
       )}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Recommendations inline */}
         {recommendations && recommendations.length > 0 ? (
-          <RecommendationView recommendations={recommendations} footprintData={footprintData} onRetry={async () => {
-            const id = footprintId || (footprintData as any)?.footprintId;
-            if (!id) return;
-            try {
-              setLoadingStatus("loading");
-              const rec = await fetchRecommendations(id);
-              setRecommendations(rec.data.recommendations || []);
-              setLoadingStatus("success");
-            } catch (err:any) {
-              setLoadingStatus("error");
-            }
-          }} />
+          <RecommendationView
+            recommendations={recommendations}
+            footprintData={footprintData}
+            onRetry={async () => {
+              const id = footprintId || (footprintData as any)?.footprintId;
+              if (!id) return;
+              try {
+                setLoadingStatus("loading");
+                const rec = await fetchRecommendations(id);
+                setRecommendations(rec.data.recommendations || []);
+                setLoadingStatus("success");
+              } catch (err: any) {
+                setLoadingStatus("error");
+              }
+            }}
+          />
         ) : (
           <>
-
-            {/* Category Totals */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
                 {
                   title: "Transport",
                   icon: <Car className="h-5 w-5 text-blue-500" />,
                   value: todayEntry?.calculatedFootprint?.transport || 0,
-                  count: entries.filter(e => e.category === "transport").length,
+                  count: entries.filter((e) => e.category === "transport")
+                    .length,
                   gradient: "from-blue-500/10 to-blue-500/5",
                 },
                 {
                   title: "Home",
                   icon: <Home className="h-5 w-5 text-emerald-500" />,
                   value: todayEntry?.calculatedFootprint?.homeEnergy || 0,
-                  count: entries.filter(e => e.category === "home").length,
+                  count: entries.filter((e) => e.category === "home").length,
                   gradient: "from-emerald-500/10 to-emerald-500/5",
                 },
                 {
                   title: "Food",
                   icon: <Utensils className="h-5 w-5 text-amber-500" />,
                   value: todayEntry?.calculatedFootprint?.food || 0,
-                  count: entries.filter(e => e.category === "food").length,
+                  count: entries.filter((e) => e.category === "food").length,
                   extra: `${submittedFoodSlots.has("breakfast") ? "Breakfast ✓" : "Breakfast •"} 
                           ${submittedFoodSlots.has("lunch") ? "Lunch ✓" : "Lunch •"} 
                           ${submittedFoodSlots.has("dinner") ? "Dinner ✓" : "Dinner •"}`,
@@ -1650,7 +1986,9 @@ const handleConfirmReset = async () => {
                     <CardDescription className="mt-3 text-sm text-muted-foreground flex flex-col gap-1">
                       <span>{card.count} items</span>
                       {card.extra && (
-                        <span className="text-xs text-muted-foreground/80">{card.extra}</span>
+                        <span className="text-xs text-muted-foreground/80">
+                          {card.extra}
+                        </span>
                       )}
                     </CardDescription>
                   </CardContent>
@@ -1664,30 +2002,25 @@ const handleConfirmReset = async () => {
                   Show Weekly Carbon Offset
                 </Button>
               </DialogTrigger>
-            
+
               <DialogContent className="w-[90vw] max-w-5xl h-[90vh] rounded-xl shadow-xl overflow-y-auto p-0">
                 <div className="mt-6 flex flex-col gap-6 h-[calc(100%-120px)]">
                   <div className="flex-1 flex flex-col justify-center">
                     <CarbonOffset
                       dailyCarbon={historyEntries
-                        .map(e => e.footprint?.total || 0) 
-                        .reduce((sum, total) => sum + total, 0)
-                      }
+                        .map((e) => e.footprint?.total || 0)
+                        .reduce((sum, total) => sum + total, 0)}
                     />
                   </div>
 
-                  {/* Mangrove Map */}
                   <div className="flex-1 rounded-lg">
                     <MangroveMap />
                   </div>
                 </div>
-
               </DialogContent>
             </Dialog>
 
-            {/* Entries grouped by category */}
             <div className="space-y-10">
-              {/* Section Builder */}
               {[
                 {
                   key: "transport",
@@ -1697,9 +2030,24 @@ const handleConfirmReset = async () => {
                   color: "blue",
                   renderDetails: (e: TransportEntry) => (
                     <>
-                      <div><span className="font-medium text-muted-foreground/70">Group:</span> {e.transportGroup}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Subtype:</span> {e.subtype}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Distance:</span> {e.distanceKm ?? 0} km</div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Group:
+                        </span>{" "}
+                        {e.transportGroup}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Subtype:
+                        </span>{" "}
+                        {e.subtype}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Distance:
+                        </span>{" "}
+                        {e.distanceKm ?? 0} km
+                      </div>
                     </>
                   ),
                 },
@@ -1711,9 +2059,24 @@ const handleConfirmReset = async () => {
                   color: "emerald",
                   renderDetails: (e: HomeEntry) => (
                     <>
-                      <div><span className="font-medium text-muted-foreground/70">Type:</span> {e.homeType}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Occupants:</span> {e.occupants}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Appliances:</span> {e.appliances}</div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Type:
+                        </span>{" "}
+                        {e.homeType}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Occupants:
+                        </span>{" "}
+                        {e.occupants}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Appliances:
+                        </span>{" "}
+                        {e.appliances}
+                      </div>
                     </>
                   ),
                 },
@@ -1725,27 +2088,45 @@ const handleConfirmReset = async () => {
                   color: "amber",
                   renderDetails: (e: FoodEntry) => (
                     <>
-                      <div><span className="font-medium text-muted-foreground/70">Slot:</span> {e.mealSlot}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Type:</span> {e.mealType}</div>
-                      <div><span className="font-medium text-muted-foreground/70">Description:</span> {e.description || "-"}</div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Slot:
+                        </span>{" "}
+                        {e.mealSlot}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Type:
+                        </span>{" "}
+                        {e.mealType}
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground/70">
+                          Description:
+                        </span>{" "}
+                        {e.description || "-"}
+                      </div>
                     </>
                   ),
                 },
               ].map((section) => {
-                const filtered = entries.filter(e => e.category === section.key);
-              
+                const filtered = entries.filter(
+                  (e) => e.category === section.key,
+                );
+
                 return (
                   <div key={section.key}>
-                    {/* Section Header */}
                     <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
                       {section.icon}
-                      <span className="text-foreground/90">{section.title}</span>
+                      <span className="text-foreground/90">
+                        {section.title}
+                      </span>
                       <span className="ml-auto text-sm text-muted-foreground">
-                        {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
+                        {filtered.length}{" "}
+                        {filtered.length === 1 ? "entry" : "entries"}
                       </span>
                     </h3>
 
-                    {/* Empty State */}
                     {filtered.length === 0 ? (
                       <Card className="border border-dashed border-border/40 bg-muted/20">
                         <CardContent>
@@ -1756,26 +2137,34 @@ const handleConfirmReset = async () => {
                       </Card>
                     ) : (
                       filtered.map((e) => (
-                        <motion.div key={e.id} initial="initial" animate="enter" variants={ANIM}>
+                        <motion.div
+                          key={e.id}
+                          initial="initial"
+                          animate="enter"
+                          variants={ANIM}
+                        >
                           <Card
                             className={`relative overflow-hidden mb-3 border border-border/50 
                                        rounded-xl bg-gradient-to-br from-${section.color}-500/10 to-${section.color}-500/5 
                                        shadow-sm hover:shadow-md transition-all duration-300
                                        ${e.isTemp ? "opacity-80 animate-pulse" : ""}`}
                           >
-                            {/* Header */}
                             <CardHeader className="flex flex-row justify-between items-start pb-3">
                               <div>
                                 <CardTitle className="font-medium text-foreground/90 flex flex-wrap items-center gap-2">
                                   {section.key === "food" ? (
                                     <>
-                                      <span className="capitalize">{(e as FoodEntry).mealSlot}</span> — {(e as FoodEntry).mealType}
+                                      <span className="capitalize">
+                                        {(e as FoodEntry).mealSlot}
+                                      </span>{" "}
+                                      — {(e as FoodEntry).mealType}
                                     </>
                                   ) : section.key === "home" ? (
                                     <>{(e as HomeEntry).homeType}</>
                                   ) : (
                                     <>
-                                      {(e as TransportEntry).transportGroup} — {(e as TransportEntry).subtype}
+                                      {(e as TransportEntry).transportGroup} —{" "}
+                                      {(e as TransportEntry).subtype}
                                     </>
                                   )}
                                 </CardTitle>
@@ -1786,18 +2175,33 @@ const handleConfirmReset = async () => {
 
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="hover:bg-muted/50">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-muted/50"
+                                  >
                                     <MoreHorizontal />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEditEntry((e as Entry).id)}>Edit</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => confirmDelete((e as Entry).id)}>Delete</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleEditEntry((e as Entry).id)
+                                    }
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      confirmDelete((e as Entry).id)
+                                    }
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </CardHeader>
 
-                            {/* Content */}
                             <CardContent>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-foreground/80">
                                 {section.renderDetails(e as any)}
@@ -1812,156 +2216,226 @@ const handleConfirmReset = async () => {
               })}
             </div>
 
-
-            {/* Import modal (grouped & collapsible) */}
             <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
               <DialogContent className="sm:max-w-2xl">
-                <DialogHeader><DialogTitle>Import from Live Tracking</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Import from Live Tracking</DialogTitle>
+                </DialogHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">Select activities to import (1:1). Each item preserves subtype & distance.</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select activities to import (1:1). Each item preserves
+                    subtype & distance.
+                  </p>
                   {importCandidates.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">No live activities found.</div>
+                    <div className="text-sm text-muted-foreground">
+                      No live activities found.
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <Accordion type="single" collapsible>
-                        {(Object.keys(transportTypes) as TransportGroup[]).map((group) => {
-                          // ✅ Filter for both transport type and today's date
-                          const items = importCandidates
-                            .filter((c) => transportTypes[group].includes(c.subtype))
-                            .filter((c) => {
-                              const createdDate = new Date(c.createdAt).toLocaleDateString('en-CA', {
-                                timeZone: 'Asia/Manila',
+                        {(Object.keys(transportTypes) as TransportGroup[]).map(
+                          (group) => {
+                            const items = importCandidates
+                              .filter((c) =>
+                                transportTypes[group].includes(c.subtype),
+                              )
+                              .filter((c) => {
+                                const createdDate = new Date(
+                                  c.createdAt,
+                                ).toLocaleDateString("en-CA", {
+                                  timeZone: "Asia/Manila",
+                                });
+
+                                const todayDate = new Date().toLocaleDateString(
+                                  "en-CA",
+                                  {
+                                    timeZone: "Asia/Manila",
+                                  },
+                                );
+
+                                return createdDate === todayDate;
                               });
-                              
-                              const todayDate = new Date().toLocaleDateString('en-CA', {
-                                timeZone: 'Asia/Manila',
-                              });
-                              
-                              return createdDate === todayDate;
-                            });
-                          
-                          return (
-                            <AccordionItem key={group} value={group}>
-                              <AccordionTrigger className="capitalize font-medium">
-                                {group} transport ({items.length})
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                {items.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground p-3">No items in this group.</div>
-                                ) : (
-                                  <div className="space-y-2 p-2">
-                                    {items.map((c) => (
-                                      <label
-                                        key={c.key}
-                                        className="flex items-center gap-3 p-2 rounded hover:bg-muted"
-                                      >
-                                        <Checkbox
-                                          checked={!!importSelection[c.key]}
-                                          onCheckedChange={() => toggleImportSelection(c.key)}
-                                        />
-                                        <div className="flex-1">
-                                          <div className="font-medium capitalize">{c.subtype}</div>
-                                          <div className="text-xs text-muted-foreground">
-                                            distance: {c.distanceKm} km
+
+                            return (
+                              <AccordionItem key={group} value={group}>
+                                <AccordionTrigger className="capitalize font-medium">
+                                  {group} transport ({items.length})
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  {items.length === 0 ? (
+                                    <div className="text-sm text-muted-foreground p-3">
+                                      No items in this group.
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2 p-2">
+                                      {items.map((c) => (
+                                        <label
+                                          key={c.key}
+                                          className="flex items-center gap-3 p-2 rounded hover:bg-muted"
+                                        >
+                                          <Checkbox
+                                            checked={!!importSelection[c.key]}
+                                            onCheckedChange={() =>
+                                              toggleImportSelection(c.key)
+                                            }
+                                          />
+                                          <div className="flex-1">
+                                            <div className="font-medium capitalize">
+                                              {c.subtype}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                              distance: {c.distanceKm} km
+                                            </div>
                                           </div>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                          {new Date(c.createdAt).toLocaleDateString()}
-                                        </div>
-                                      </label>
-                                    ))}
-                                  </div>
-                                )}
-                              </AccordionContent>
-                            </AccordionItem>
-                          );
-                        })}
+                                          <div className="text-sm text-muted-foreground">
+                                            {new Date(
+                                              c.createdAt,
+                                            ).toLocaleDateString()}
+                                          </div>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          },
+                        )}
                       </Accordion>
                     </div>
                   )}
-
                 </CardContent>
 
                 <CardFooter className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsImportOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAddSelectedImports} disabled={isSubmittingEntry}>
-                    {isSubmittingEntry ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importing...</> : "Add Selected"}
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsImportOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddSelectedImports}
+                    disabled={isSubmittingEntry}
+                  >
+                    {isSubmittingEntry ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      "Add Selected"
+                    )}
                   </Button>
                 </CardFooter>
               </DialogContent>
             </Dialog>
 
-            {/* Strava Import Modal */}
-            <Dialog open={isStravaImportOpen} onOpenChange={setIsStravaImportOpen}>
+            <Dialog
+              open={isStravaImportOpen}
+              onOpenChange={setIsStravaImportOpen}
+            >
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Import from Strava</DialogTitle>
                 </DialogHeader>
-                  <CardContent className="space-y-4">
-                    {!isConnected ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          You are not linked to Strava yet.
-                        </p>
-                        <Button
-                          variant="eco"
-                          onClick={() => window.open(`${API_BASE}/api/strava/auth`, "_blank")}
-                        >
-                          Link Strava Account
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 text-green-600 font-medium">
-                          ✅ Linked to Strava
+                <CardContent className="space-y-4">
+                  {!isConnected ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        You are not linked to Strava yet.
+                      </p>
+                      <Button
+                        variant="eco"
+                        onClick={() =>
+                          window.open(`${API_BASE}/api/strava/auth`, "_blank")
+                        }
+                      >
+                        Link Strava Account
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-green-600 font-medium">
+                        ✅ Linked to Strava
+                      </div>
+
+                      {isStravaLoading ? (
+                        <div className="text-sm text-muted-foreground">
+                          Loading activities...
                         </div>
-                    
-                        {isStravaLoading ? (
-                          <div className="text-sm text-muted-foreground">Loading activities...</div>
-                        ) : stravaCandidates.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">No recent Strava activities found.</div>
-                        ) : (
-                          <div className="space-y-2 p-2">
-                            {stravaCandidates.map((c) => (
-                              <label key={c.key} className="flex items-center gap-3 p-2 rounded hover:bg-muted">
-                                <Checkbox
-                                  checked={!!stravaSelection[c.key]}
-                                  onCheckedChange={() => toggleStravaSelection(c.key)}
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium capitalize">{c.label}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {new Date(c.createdAt).toLocaleDateString()}
-                                  </div>
+                      ) : stravaCandidates.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">
+                          No recent Strava activities found.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 p-2">
+                          {stravaCandidates.map((c) => (
+                            <label
+                              key={c.key}
+                              className="flex items-center gap-3 p-2 rounded hover:bg-muted"
+                            >
+                              <Checkbox
+                                checked={!!stravaSelection[c.key]}
+                                onCheckedChange={() =>
+                                  toggleStravaSelection(c.key)
+                                }
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium capitalize">
+                                  {c.label}
                                 </div>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                  
-                  
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(c.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+
                 <CardFooter className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsStravaImportOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAddStravaImports} disabled={isSubmittingEntry}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsStravaImportOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddStravaImports}
+                    disabled={isSubmittingEntry}
+                  >
                     {isSubmittingEntry ? "Importing..." : "Add Selected"}
                   </Button>
                 </CardFooter>
               </DialogContent>
             </Dialog>
 
-
-            {/* Delete confirm */}
-            <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+            <Dialog
+              open={isDeleteConfirmOpen}
+              onOpenChange={setIsDeleteConfirmOpen}
+            >
               <DialogContent className="sm:max-w-lg">
-                <DialogHeader><DialogTitle>Delete Entry?</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Delete Entry?</DialogTitle>
+                </DialogHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">Are you sure you want to delete this entry? This cannot be undone.</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Are you sure you want to delete this entry? This cannot be
+                    undone.
+                  </p>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
-                    <Button variant="destructive" onClick={executeDelete}>Delete</Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsDeleteConfirmOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={executeDelete}>
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </DialogContent>
@@ -1986,9 +2460,8 @@ const handleConfirmReset = async () => {
                   : `Entries: ${historyEntries.length}`}
               </CardDescription>
             </CardHeader>
-                
+
             <CardContent>
-              {/* Empty State */}
               {historyEntries.length === 0 && !isLoadingHistory ? (
                 <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border/40 rounded-md bg-muted/20">
                   No recent entries
@@ -2014,12 +2487,16 @@ const handleConfirmReset = async () => {
                           )}
                         </span>
                         {e.label && (
-                          <span className="text-xs text-muted-foreground">{e.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {e.label}
+                          </span>
                         )}
                       </div>
                       <div className="text-right font-semibold text-foreground/80">
-                        {(e.footprint?.total ?? e.footprint ?? "-")}{" "}
-                        <span className="text-xs text-muted-foreground">kg CO₂e</span>
+                        {e.footprint?.total ?? e.footprint ?? "-"}{" "}
+                        <span className="text-xs text-muted-foreground">
+                          kg CO₂e
+                        </span>
                       </div>
                     </motion.div>
                   ))}
@@ -2028,10 +2505,7 @@ const handleConfirmReset = async () => {
             </CardContent>
           </Card>
         </div>
-            
       </main>
     </div>
   );
 }
-
-

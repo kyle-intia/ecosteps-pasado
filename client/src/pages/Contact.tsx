@@ -1,14 +1,41 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Leaf, Send, MessageCircle, Mail, Phone, Clock, HelpCircle, Bug, Lightbulb, Trees, Sprout, Wind, ArrowRight, ArrowLeft } from "lucide-react";
-import { contactSupportEmail } from "../lib/api"
+import {
+  Leaf,
+  Send,
+  MessageCircle,
+  Mail,
+  Phone,
+  Clock,
+  HelpCircle,
+  Bug,
+  Lightbulb,
+  Trees,
+  Sprout,
+  Wind,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
+import { contactSupportEmail } from "../lib/api";
 import { Link, useNavigate } from "react-router-dom";
 
 const supportCategories = [
@@ -20,29 +47,44 @@ const supportCategories = [
 
 const contactInfo = [
   { icon: Mail, label: "Email", value: "ecosteps.online@gmail.com" },
-  { icon: Phone, label: "Phone", value: "+63 945 865 6557" },
+  { icon: Phone, label: "Phone", value: "+63 9-- --- ----" },
   { icon: Clock, label: "Hours", value: "Mon-Fri, 9:00 AM - 5:00 PM" },
 ];
 
 const faqs = [
-  { question: "How do I track my carbon footprint?", answer: "Navigate to the Track page and log your daily activities including transportation, energy usage, and consumption." },
-  { question: "How are eco-points calculated?", answer: "Points are earned based on Eco-challenge, Community Posts, and your Daily Activities" },
+  {
+    question: "How do I track my carbon footprint?",
+    answer:
+      "Navigate to the Track page and log your daily activities including transportation, energy usage, and consumption.",
+  },
+  {
+    question: "How are eco-points calculated?",
+    answer:
+      "Points are earned based on Eco-challenge, Community Posts, and your Daily Activities",
+  },
 ];
 
-
-const FloatingLeaf = ({ delay, x, duration }: { delay: number; x: number; duration: number }) => (
+const FloatingLeaf = ({
+  delay,
+  x,
+  duration,
+}: {
+  delay: number;
+  x: number;
+  duration: number;
+}) => (
   <motion.div
     initial={{ y: -20, x, opacity: 0, rotate: 0 }}
-    animate={{ 
-      y: [0, 30, 0], 
+    animate={{
+      y: [0, 30, 0],
       opacity: [0.3, 0.6, 0.3],
-      rotate: [0, 15, -15, 0]
+      rotate: [0, 15, -15, 0],
     }}
-    transition={{ 
-      duration, 
-      delay, 
-      repeat: Infinity, 
-      ease: "easeInOut" 
+    transition={{
+      duration,
+      delay,
+      repeat: Infinity,
+      ease: "easeInOut",
     }}
     className="absolute text-eco/30"
   >
@@ -61,13 +103,12 @@ const ContactSupport = () => {
     message: "",
   });
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  try {
-
-    const ticketNumber = "ECO-" + Math.floor(100000 + Math.random() * 900000);
+    try {
+      const ticketNumber = "ECO-" + Math.floor(100000 + Math.random() * 900000);
 
       const formattedMessage = `
 <!DOCTYPE html>
@@ -190,44 +231,42 @@ const handleSubmit = async (e: React.FormEvent) => {
 </html>
 
       `;
-        
-    const response = await contactSupportEmail({
-      email: formData.email,
-      subject: formData.category,
-      message: formattedMessage,
-    });
 
-    // Axios throws on 4xx/5xx, so if we're here → it's success!
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 48 hours. Thank you for reaching out!",
-    });
+      const response = await contactSupportEmail({
+        email: formData.email,
+        subject: formData.category,
+        message: formattedMessage,
+      });
 
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      category: "",
-      message: "",
-    });
+      toast({
+        title: "Message Sent!",
+        description:
+          "We'll get back to you within 48 hours. Thank you for reaching out!",
+      });
 
-  } catch (error: any) {
-    toast({
-      title: "Error",
-      description: error.response?.data?.error || error.message || "Failed to send message",
-      variant: "destructive",
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+      setFormData({
+        name: "",
+        email: "",
+        category: "",
+        message: "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.error ||
+          error.message ||
+          "Failed to send message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Eco Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-eco/10 via-eco/5 to-background border-b border-eco/20">
-        {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <FloatingLeaf delay={0} x={50} duration={4} />
           <FloatingLeaf delay={1} x={150} duration={5} />
@@ -240,7 +279,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
         <div className="relative px-6 py-16 md:py-20">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Logo badge */}
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -258,7 +296,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                   className="absolute -top-2 -right-2"
                 >
                   <Sprout className="w-8 h-8 text-eco" />
@@ -266,19 +308,21 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
             </motion.div>
 
-            {/* Brand name */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="flex items-center justify-center gap-2 mb-4"
             >
-              <span className="text-sm font-medium text-eco uppercase tracking-widest">EcoSteps</span>
+              <span className="text-sm font-medium text-eco uppercase tracking-widest">
+                EcoSteps
+              </span>
               <Wind className="w-4 h-4 text-eco/60" />
-              <span className="text-sm text-muted-foreground">Support Center</span>
+              <span className="text-sm text-muted-foreground">
+                Support Center
+              </span>
             </motion.div>
 
-            {/* Main heading */}
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -288,8 +332,18 @@ const handleSubmit = async (e: React.FormEvent) => {
               How Can We{" "}
               <span className="text-eco relative">
                 Help
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 8" preserveAspectRatio="none">
-                  <path d="M0,5 Q25,0 50,5 T100,5" fill="none" stroke="currentColor" strokeWidth="2" className="text-eco/40" />
+                <svg
+                  className="absolute -bottom-2 left-0 w-full"
+                  viewBox="0 0 100 8"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M0,5 Q25,0 50,5 T100,5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-eco/40"
+                  />
                 </svg>
               </span>
               ?
@@ -301,18 +355,16 @@ const handleSubmit = async (e: React.FormEvent) => {
               transition={{ delay: 0.4 }}
               className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
             >
-              Our eco-support team is dedicated to helping you on your sustainability journey. 
-              Every question matters—let's make a greener impact together.
+              Our eco-support team is dedicated to helping you on your
+              sustainability journey. Every question matters—let's make a
+              greener impact together.
             </motion.p>
-
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="p-6 md:p-8">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
-          {/* Contact Form */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -326,8 +378,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <Send className="w-6 h-6 text-eco-foreground" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl">Send us a Message</CardTitle>
-                    <CardDescription className="text-base">We'll get back to you within 48 hours</CardDescription>
+                    <CardTitle className="text-2xl">
+                      Send us a Message
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      We'll get back to you within 48 hours
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -335,24 +391,32 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                      <Label htmlFor="name" className="text-sm font-medium">
+                        Full Name
+                      </Label>
                       <Input
                         id="name"
                         placeholder="John Doe"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         required
                         className="h-12 border-2 border-border focus:border-eco transition-colors"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                      <Label htmlFor="email" className="text-sm font-medium">
+                        Email Address
+                      </Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="john@example.com"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         required
                         className="h-12 border-2 border-border focus:border-eco transition-colors"
                       />
@@ -364,7 +428,9 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <Label className="text-sm font-medium">Subject</Label>
                       <Select
                         value={formData.category}
-                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, category: value })
+                        }
                       >
                         <SelectTrigger className="h-12 border-2 border-border">
                           <SelectValue placeholder="Select a subject" />
@@ -384,12 +450,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="message" className="text-sm font-medium">Your Message</Label>
+                    <Label htmlFor="message" className="text-sm font-medium">
+                      Your Message
+                    </Label>
                     <Textarea
                       id="message"
                       placeholder="Please describe your question or issue in detail..."
                       value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, message: e.target.value })
+                      }
                       required
                       rows={6}
                       className="border-2 border-border focus:border-eco transition-colors resize-none"
@@ -404,7 +474,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                     {isSubmitting ? (
                       <motion.div
                         animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
                       >
                         <Leaf className="w-6 h-6" />
                       </motion.div>
@@ -420,14 +494,12 @@ const handleSubmit = async (e: React.FormEvent) => {
             </Card>
           </motion.div>
 
-          {/* Sidebar */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
             className="space-y-6"
           >
-            {/* Contact Info Card */}
             <Card className="border-eco/20 shadow-lg overflow-hidden">
               <CardHeader className="pb-4 bg-gradient-to-r from-eco/5 to-transparent">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -450,15 +522,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <info.icon className="w-4 h-4 text-eco" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{info.label}</p>
-                      <p className="text-sm text-muted-foreground">{info.value}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {info.label}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {info.value}
+                      </p>
                     </div>
                   </motion.div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Quick FAQs */}
             <Card className="border-eco/20 shadow-lg">
               <CardHeader className="pb-4 bg-gradient-to-r from-eco/5 to-transparent">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -480,13 +555,14 @@ const handleSubmit = async (e: React.FormEvent) => {
                     <p className="text-sm font-semibold text-foreground mb-2 group-hover:text-eco transition-colors">
                       {faq.question}
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{faq.answer}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {faq.answer}
+                    </p>
                   </motion.div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Eco Impact Card */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -495,19 +571,27 @@ const handleSubmit = async (e: React.FormEvent) => {
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-eco-foreground/10 rounded-full blur-2xl" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-eco-foreground/10 rounded-full blur-xl" />
-              
+
               <div className="relative">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-eco-foreground/20 rounded-lg">
                     <Sprout className="w-6 h-6" />
                   </div>
-                  <span className="font-bold text-lg">Ready to Make a Difference?</span>
+                  <span className="font-bold text-lg">
+                    Ready to Make a Difference?
+                  </span>
                 </div>
                 <p className="text-sm opacity-90 mb-4">
-                  Start your journey towards a more sustainable future today. Every small step counts towards a greener planet.
+                  Start your journey towards a more sustainable future today.
+                  Every small step counts towards a greener planet.
                 </p>
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <Button variant="outline" size="sm" asChild className="transition-all duration-300 ease-out">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="transition-all duration-300 ease-out"
+                  >
                     <Link to="/register">
                       Join EcoSteps Today
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -520,19 +604,19 @@ const handleSubmit = async (e: React.FormEvent) => {
         </div>
       </div>
 
-        <div className="sticky bottom-0 left-0 right-0 backdrop-blur-sm border-t border-[hsl(240,6%,90%)] p-4 shadow-lg z-50">
-          <div className="container mx-auto max-w-7xl">
-            <Button
-              onClick={() => navigate(-1)}
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto group border-[hsl(240,6%,90%)] text-[hsl(240,10%,10%)] hover:bg-[hsl(240,5%,96%)]"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              Go Back
-            </Button>
-          </div>
+      <div className="sticky bottom-0 left-0 right-0 backdrop-blur-sm border-t border-[hsl(240,6%,90%)] p-4 shadow-lg z-50">
+        <div className="container mx-auto max-w-7xl">
+          <Button
+            onClick={() => navigate(-1)}
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto group border-[hsl(240,6%,90%)] text-[hsl(240,10%,10%)] hover:bg-[hsl(240,5%,96%)]"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Go Back
+          </Button>
         </div>
+      </div>
     </div>
   );
 };

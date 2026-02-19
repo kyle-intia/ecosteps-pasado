@@ -1,88 +1,83 @@
-// server/routes/challengeRoutes.js
-// Updated API routes with daily tracking validation
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const ChallengeService = require('../services/challengeService');
-const authenticate = require('../middleware/authenticate');
-const EmissionFactorService = require('../services/emissionFactorService');
-const DailyTrackingService = require('../services/dailyTrackingService');
+const ChallengeService = require("../services/challengeService");
+const authenticate = require("../middleware/authenticate");
+const EmissionFactorService = require("../services/emissionFactorService");
+const DailyTrackingService = require("../services/dailyTrackingService");
 const LeaderboardService = require("../services/leaderboardService");
 const CertificateRewardService = require("../services/certificateRewardService");
 const AchievementService = require("../services/achievementService");
 
-
-// All routes require authentication
 router.use(authenticate);
 
-/**
- * GET /api/challenges/today
- * Get today's three challenges for the authenticated user with tracking status
- */
-router.get('/today', async (req, res) => {
+router.get("/today", async (req, res) => {
   try {
     const userId = req.userId;
     const challengeDoc = await ChallengeService.getTodaysChallenges(userId);
-    
+
     const responseData = {
       date: challengeDoc.dateString,
-      challenges: challengeDoc.dailyChallenges.map(challenge => ({
+      challenges: challengeDoc.dailyChallenges.map((challenge) => ({
         id: challenge.id,
         title: challenge.title,
         description: challenge.description,
         category: challenge.category,
         savingsValue: challenge.savingsValue,
         completed: challenge.completed,
-        completedAt: challenge.completedAt
+        completedAt: challenge.completedAt,
       })),
       completedCount: challengeDoc.getCompletedCount(),
       allCompleted: challengeDoc.areAllCompleted(),
       isRecalculated: challengeDoc.isRecalculated,
       hasCompletedTracking: challengeDoc.hasCompletedTracking,
-      trackingRequired: challengeDoc.trackingRequired
+      trackingRequired: challengeDoc.trackingRequired,
     };
-    
+
     res.json({
       success: true,
-      data: responseData
+      data: responseData,
     });
-    
   } catch (error) {
-    console.error('Error fetching today\'s challenges:', error);
+    console.error("Error fetching today's challenges:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * POST /api/challenges/complete
- * Complete a specific challenge with daily tracking validation
- */
-router.post('/complete', async (req, res) => {
+router.post("/complete", async (req, res) => {
   try {
-
     const co2Factors = await EmissionFactorService.getFormattedFactors();
     DailyTrackingService.init(co2Factors);
 
     const userId = req.userId;
     const { challengeId } = req.body;
-    
+
     if (!challengeId) {
       return res.status(400).json({
-        error: 'Challenge ID is required'
+        error: "Challenge ID is required",
       });
     }
-    
-    const result = await ChallengeService.completeChallenge(userId, challengeId);
 
-    await LeaderboardService.addPoints(userId, 100, 'Completed a daily challenge');
+    const result = await ChallengeService.completeChallenge(
+      userId,
+      challengeId,
+    );
+
+    await LeaderboardService.addPoints(
+      userId,
+      100,
+      "Completed a daily challenge",
+    );
 
     await CertificateRewardService.checkCertificatesForUser(userId);
     await CertificateRewardService.checkRewardsForUser(userId);
-    await AchievementService.checkAchievements(userId, 'daily_tracking_completed');
-    
+    await AchievementService.checkAchievements(
+      userId,
+      "daily_tracking_completed",
+    );
+
     res.json({
       success: true,
       data: {
@@ -93,211 +88,190 @@ router.post('/complete', async (req, res) => {
         recalculation: result.recalculationResult,
         newAchievements: result.newAchievements || [],
         message: result.allCompleted
-          ? '🎉 Congratulations! You completed all three challenges today!'
-          : `✅ Challenge complete! You earned 100 points. Great job! ${result.completedCount}/3 challenges completed.`
-      }
+          ? "Congratulations! You completed all three challenges today!"
+          : `Challenge complete! You earned 100 points. Great job! ${result.completedCount}/3 challenges completed.`,
+      },
     });
-    
   } catch (error) {
-    console.error('Error completing challenge:', error);
-    
-    if (error.message === 'Challenge not found') {
-      return res.status(404).json({ error: 'Challenge not found' });
+    console.error("Error completing challenge:", error);
+
+    if (error.message === "Challenge not found") {
+      return res.status(404).json({ error: "Challenge not found" });
     }
-    
-    if (error.message === 'Challenge already completed') {
-      return res.status(400).json({ error: 'Challenge already completed' });
+
+    if (error.message === "Challenge already completed") {
+      return res.status(400).json({ error: "Challenge already completed" });
     }
-    
-    // Handle daily tracking validation error
-    if (error.message.includes('daily tracking')) {
-      return res.status(400).json({ 
-        error: 'Daily tracking required',
+
+    if (error.message.includes("daily tracking")) {
+      return res.status(400).json({
+        error: "Daily tracking required",
         message: error.message,
-        code: 'TRACKING_REQUIRED'
+        code: "TRACKING_REQUIRED",
       });
     }
-    
+
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * GET /api/challenges/history
- * Get challenge completion history
- */
-router.get('/history', async (req, res) => {
+router.get("/history", async (req, res) => {
   try {
     const userId = req.userId;
     const { limit = 30, offset = 0 } = req.query;
-    
-    const Challenge = require('../models/Challenge');
-    
+
+    const Challenge = require("../models/Challenge");
+
     const challengeDocs = await Challenge.find({ userId })
       .sort({ date: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(offset))
-      .select('date dailyChallenges isRecalculated createdAt');
-    
-    const history = challengeDocs.map(doc => ({
+      .select("date dailyChallenges isRecalculated createdAt");
+
+    const history = challengeDocs.map((doc) => ({
       id: doc._id,
       date: doc.dateString,
-      challenges: doc.dailyChallenges.map(c => ({
+      challenges: doc.dailyChallenges.map((c) => ({
         id: c.id,
         title: c.title,
         category: c.category,
         completed: c.completed,
-        completedAt: c.completedAt
+        completedAt: c.completedAt,
       })),
       completedCount: doc.getCompletedCount(),
       allCompleted: doc.areAllCompleted(),
       isRecalculated: doc.isRecalculated,
-      createdAt: doc.createdAt
+      createdAt: doc.createdAt,
     }));
-    
+
     res.json({
       success: true,
       data: {
         count: history.length,
-        history: history
-      }
+        history: history,
+      },
     });
-    
   } catch (error) {
-    console.error('Error fetching challenge history:', error);
+    console.error("Error fetching challenge history:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * GET /api/challenges/stats
- * Get challenge statistics for the user
- */
-router.get('/stats', async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
     const userId = req.userId;
     const { days = 7 } = req.query;
-    
-    const stats = await ChallengeService.getChallengeStats(userId, parseInt(days));
-    
+
+    const stats = await ChallengeService.getChallengeStats(
+      userId,
+      parseInt(days),
+    );
+
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
-    
   } catch (error) {
-    console.error('Error fetching challenge stats:', error);
+    console.error("Error fetching challenge stats:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * GET /api/challenges/library
- * Get the complete challenge library (for reference/testing)
- */
-router.get('/library', async (req, res) => {
+router.get("/library", async (req, res) => {
   try {
-    const ChallengeService = require('../services/challengeService');
-    
-    // Access the challenge library through reflection
-    // Note: This is mainly for debugging/reference purposes
-    const challenges = Object.values(ChallengeService.constructor.CHALLENGE_LIBRARY || {});
-    
+    const ChallengeService = require("../services/challengeService");
+
+    const challenges = Object.values(
+      ChallengeService.constructor.CHALLENGE_LIBRARY || {},
+    );
+
     res.json({
       success: true,
       data: {
         totalChallenges: challenges.length,
         categories: {
-          transport: challenges.filter(c => c.category === 'transport').length,
-          home: challenges.filter(c => c.category === 'home').length,
-          food: challenges.filter(c => c.category === 'food').length
+          transport: challenges.filter((c) => c.category === "transport")
+            .length,
+          home: challenges.filter((c) => c.category === "home").length,
+          food: challenges.filter((c) => c.category === "food").length,
         },
-        challenges: challenges
-      }
+        challenges: challenges,
+      },
     });
-    
   } catch (error) {
-    console.error('Error fetching challenge library:', error);
+    console.error("Error fetching challenge library:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * POST /api/challenges/regenerate
- * Regenerate today's challenges (for testing/development)
- */
-router.post('/regenerate', async (req, res) => {
+router.post("/regenerate", async (req, res) => {
   try {
     const userId = req.userId;
-    const challengeDoc = await ChallengeService.regenerateTodaysChallenges(userId);
+    const challengeDoc =
+      await ChallengeService.regenerateTodaysChallenges(userId);
 
     const responseData = {
       date: challengeDoc.dateString,
-      challenges: challengeDoc.dailyChallenges.map(challenge => ({
+      challenges: challengeDoc.dailyChallenges.map((challenge) => ({
         id: challenge.id,
         title: challenge.title,
         description: challenge.description,
         category: challenge.category,
         savingsValue: challenge.savingsValue,
         completed: challenge.completed,
-        completedAt: challenge.completedAt
+        completedAt: challenge.completedAt,
       })),
       completedCount: challengeDoc.getCompletedCount(),
       allCompleted: challengeDoc.areAllCompleted(),
       isRecalculated: challengeDoc.isRecalculated,
       hasCompletedTracking: challengeDoc.hasCompletedTracking,
-      trackingRequired: challengeDoc.trackingRequired
+      trackingRequired: challengeDoc.trackingRequired,
     };
 
     res.json({
       success: true,
       data: responseData,
-      message: 'Challenges regenerated successfully'
+      message: "Challenges regenerated successfully",
     });
-
   } catch (error) {
-    console.error('Error regenerating challenges:', error);
+    console.error("Error regenerating challenges:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });
 
-/**
- * POST /api/challenges/check-tracking-status
- * Check if user has completed daily tracking (utility endpoint)
- */
-router.post('/check-tracking-status', async (req, res) => {
+router.post("/check-tracking-status", async (req, res) => {
   try {
     const userId = req.userId;
-    const hasTracking = await ChallengeService.hasCompletedDailyTracking(userId);
+    const hasTracking =
+      await ChallengeService.hasCompletedDailyTracking(userId);
 
     res.json({
       success: true,
       data: {
         hasCompletedTracking: hasTracking,
-        canCompleteChallenges: hasTracking
-      }
+        canCompleteChallenges: hasTracking,
+      },
     });
-
   } catch (error) {
-    console.error('Error checking tracking status:', error);
+    console.error("Error checking tracking status:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
+      error: "Internal server error",
+      message: error.message,
     });
   }
 });

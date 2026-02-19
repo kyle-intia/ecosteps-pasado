@@ -1,6 +1,5 @@
 const Assessment = require("../models/AssessmentModel");
 
-// ---------- helpers ----------
 function average(arr) {
   return arr.reduce((sum, val) => sum + val, 0) / arr.length;
 }
@@ -12,7 +11,6 @@ function classifyChange(change) {
   return "Decline";
 }
 
-// ---------- core service ----------
 async function saveAssessment(data) {
   return await Assessment.create(data);
 }
@@ -20,24 +18,21 @@ async function saveAssessment(data) {
 async function getImprovementResult(userId) {
   const assessments = await Assessment.find({ userId }).sort({ createdAt: 1 });
 
-  const pre = assessments.find(a => a.type === "pre");
-  const post = assessments.find(a => a.type === "post");
+  const pre = assessments.find((a) => a.type === "pre");
+  const post = assessments.find((a) => a.type === "post");
 
   if (!pre || !post) {
     throw new Error("Both pre and post assessments are required");
   }
 
-  // Awareness
   const preAwareness = average(pre.awarenessAnswers);
   const postAwareness = average(post.awarenessAnswers);
   const awarenessChange = postAwareness - preAwareness;
 
-  // Behavior
   const preBehavior = average(pre.behaviorAnswers);
   const postBehavior = average(post.behaviorAnswers);
   const behaviorChange = postBehavior - preBehavior;
 
-  // Emissions
   const emissionChange = pre.monthlyEmissions - post.monthlyEmissions;
   const emissionReductionPercent =
     (emissionChange / pre.monthlyEmissions) * 100;

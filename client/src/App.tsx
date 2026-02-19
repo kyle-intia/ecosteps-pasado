@@ -1,4 +1,3 @@
-// App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -57,60 +56,67 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster  />
+        <Toaster />
         <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email-prompt" element={<VerifyEmailPrompt />} />
-            <Route path="/email/verify/:code" element={<VerifyEmail />} />
-            <Route path="/password/forgot" element={<ForgotPassword />} />
-            <Route path="/password/reset" element={<ResetPassword />} />
-            <Route path="/community/:userId/post/:postId" element={<CommunityPreview />} />
-            <Route path="/post/:id" element={<PostDetail />} />
-            <Route path="/contact-us" element={<Contact />} />
-            
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-email-prompt" element={<VerifyEmailPrompt />} />
+          <Route path="/email/verify/:code" element={<VerifyEmail />} />
+          <Route path="/password/forgot" element={<ForgotPassword />} />
+          <Route path="/password/reset" element={<ResetPassword />} />
+          <Route
+            path="/community/:userId/post/:postId"
+            element={<CommunityPreview />}
+          />
+          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/contact-us" element={<Contact />} />
 
-            <Route element={<RoleBasedRoute allowedRoles={['user']} />}>
-              <Route path="/pre-assessment" element={<PreAssessment />} />
-              <Route path="/userprofile" element={<ProfilePage />}/>
+          <Route element={<RoleBasedRoute allowedRoles={["user"]} />}>
+            <Route path="/pre-assessment" element={<PreAssessment />} />
+            <Route path="/userprofile" element={<ProfilePage />} />
 
-              <Route element={<PreAssessmentRoute />}>
-                <Route element={<UserProfileRoute/>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/track" element={<TrackCarbon />} />
-                  <Route path="/track-distance" element={<UserTrackDistance />} />
-                  <Route path="/track-history" element={<UserTrackHistory />} />
-                  <Route path="/community" element={<Community />} />
-                  
-                  <Route path="/leaderboards" element={<Leaderboards />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:userId" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/sessions" element={<UserSession />} />
-                  <Route path="/achievements" element={<Achievements />} />
-                  <Route path="/certificates-rewards" element={<CertificateRewards />} />
-                </Route>
+            <Route element={<PreAssessmentRoute />}>
+              <Route element={<UserProfileRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/track" element={<TrackCarbon />} />
+                <Route path="/track-distance" element={<UserTrackDistance />} />
+                <Route path="/track-history" element={<UserTrackHistory />} />
+                <Route path="/community" element={<Community />} />
+
+                <Route path="/leaderboards" element={<Leaderboards />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/sessions" element={<UserSession />} />
+                <Route path="/achievements" element={<Achievements />} />
+                <Route
+                  path="/certificates-rewards"
+                  element={<CertificateRewards />}
+                />
               </Route>
+            </Route>
           </Route>
 
-          <Route element={<RoleBasedRoute allowedRoles={['admin']} />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<Users />} />
-            <Route path="/admin/logs" element={<ActivityLogs />} />
-            <Route path="/admin/email" element={< EmailManagement/>} />
-            <Route path="/admin/badges" element={<BadgeAchievements />} />
-            <Route path="/admin/eco-challenges" element={<EcoChallenges />} />
-            <Route path="/admin/certificates-rewards" element={<AdminCertificatesRewards />} />
-            <Route path="/admin/footprint" element={<FootprintSummary />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+          <Route element={<RoleBasedRoute allowedRoles={["admin"]} />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/logs" element={<ActivityLogs />} />
+              <Route path="/admin/email" element={<EmailManagement />} />
+              <Route path="/admin/badges" element={<BadgeAchievements />} />
+              <Route path="/admin/eco-challenges" element={<EcoChallenges />} />
+              <Route
+                path="/admin/certificates-rewards"
+                element={<AdminCertificatesRewards />}
+              />
+              <Route path="/admin/footprint" element={<FootprintSummary />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Route>
 
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

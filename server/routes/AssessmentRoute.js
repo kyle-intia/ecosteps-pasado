@@ -6,7 +6,6 @@ const {
   getImprovementResult,
 } = require("../services/AssessmentService");
 
-// Save pre or post assessment
 router.post("/", async (req, res) => {
   try {
     const assessment = await saveAssessment(req.body);
@@ -27,10 +26,10 @@ router.get("/result/:userId", async (req, res) => {
 
 router.get("/user/:userId", async (req, res) => {
   try {
-    const assessments = await AssessmentModel.find({ 
-      userId: req.params.userId 
+    const assessments = await AssessmentModel.find({
+      userId: req.params.userId,
     }).sort({ createdAt: -1 });
-    
+
     res.json({ success: true, assessments });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

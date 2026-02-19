@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
-import { assessmentDone } from "../lib/api";  // Import the API function
+import { assessmentDone } from "../lib/api";
 
 const PreAssessmentRoute = () => {
   const [loading, setLoading] = useState(true);
@@ -10,7 +10,7 @@ const PreAssessmentRoute = () => {
   useEffect(() => {
     const checkAssessmentStatus = async () => {
       try {
-        const response = await assessmentDone(); 
+        const response = await assessmentDone();
         if (response?.assessmentDone) {
           setIsAllowed(true);
         }
@@ -24,8 +24,7 @@ const PreAssessmentRoute = () => {
     checkAssessmentStatus();
   }, []);
 
-  if (loading) 
-    return <Spinner />; 
+  if (loading) return <Spinner />;
 
   return isAllowed ? <Outlet /> : <Navigate to="/pre-assessment" replace />;
 };

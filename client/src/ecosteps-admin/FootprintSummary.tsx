@@ -1,14 +1,29 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts"
-import { Trophy,} from "lucide-react"
-import { getDailyFootprintByCategory, getLeaderboard } from "../lib/api"
-import { useEffect, useRef, useState } from "react"
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { Trophy } from "lucide-react";
+import { getDailyFootprintByCategory, getLeaderboard } from "../lib/api";
+import { useEffect, useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { Button } from "@/components/ui/button";
 
 const months = [
   { value: 1, label: "January" },
@@ -27,53 +42,58 @@ const months = [
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-
 const FootprintSummary = () => {
-
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth() + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
   const [dailyTrends, setDailyTrends] = useState<any[]>([]);
-  const [filter, setFilter] = useState<  'average' | 'all' | 'user' | 'compare'>('average');
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);  // For comparing two users
+  const [filter, setFilter] = useState<"average" | "all" | "user" | "compare">(
+    "average",
+  );
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]); // For comparing two users
 
   // Function to get all the days in the current month
   const getDaysInMonth = (year: number, month: number) => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const dates = [];
 
-    // Generate an array of dates (e.g., 01, 02, ..., 31)
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       dates.push(date);
     }
 
     return dates;
   };
 
-  // Fetch data for each day of the current month
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const allDays = getDaysInMonth(selectedYear, selectedMonth);
-      const allDailyData = [];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const allDays = getDaysInMonth(selectedYear, selectedMonth);
+        const allDailyData = [];
 
-      for (const date of allDays) {
-        const data = await getDailyFootprintByCategory(date);
-        allDailyData.push({ date, ...(Array.isArray(data) && data.length > 0 ? data[0] : {}) });
+        for (const date of allDays) {
+          const data = await getDailyFootprintByCategory(date);
+          allDailyData.push({
+            date,
+            ...(Array.isArray(data) && data.length > 0 ? data[0] : {}),
+          });
+        }
+
+        setDailyTrends(allDailyData);
+      } catch (error) {
+        console.error("Error fetching daily footprint data:", error);
       }
+    };
 
-      setDailyTrends(allDailyData);
-    } catch (error) {
-      console.error("Error fetching daily footprint data:", error);
-    }
-  };
-
-  fetchData();
-}, [selectedMonth, selectedYear]);
+    fetchData();
+  }, [selectedMonth, selectedYear]);
 
   const transformData = (dailyData) => {
     return dailyData.map((entry) => {
@@ -89,12 +109,12 @@ useEffect(() => {
         }
       });
 
-      const avg = entry.totalAvg || 0; 
+      const avg = entry.totalAvg || 0;
 
       return {
         date: entry.date,
         avg,
-        ...userFootprints, 
+        ...userFootprints,
       };
     });
   };
@@ -104,97 +124,86 @@ useEffect(() => {
   const userEmails = transformedData.reduce((emails, entry) => {
     Object.keys(entry).forEach((key) => {
       if (key !== "date" && key !== "avg") {
-        if (!emails.includes(key)) emails.push(key); // Add email if not already in list
+        if (!emails.includes(key)) emails.push(key);
       }
     });
     return emails;
   }, []);
 
-
   const chartRef = useRef();
   const leaderboardRef = useRef();
 
   const handleExportImage = () => {
-    html2canvas(chartRef.current).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
+    html2canvas(chartRef.current).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
       link.href = imgData;
-      link.download = 'chart.png';
+      link.download = "chart.png";
       link.click();
     });
 
-
-    html2canvas(leaderboardRef.current).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
+    html2canvas(leaderboardRef.current).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
       link.href = imgData;
-      link.download = 'leaderboard.png';
+      link.download = "leaderboard.png";
       link.click();
     });
-    
   };
 
   const handleExportPDF = () => {
-    const currentDate = new Date().toLocaleDateString(); // Get the current date in the format "MM/DD/YYYY"
+    const currentDate = new Date().toLocaleDateString();
 
     html2canvas(chartRef.current, {
-      scale: 2, // Increase scale for better image quality
-    }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation, A4 size
+      scale: 2,
+    }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
 
-      // Add title and date text
       pdf.setFontSize(16);
-      pdf.text('Daily Footprint Trends', 10, 10); // Add title at the top-left
-      pdf.text(`Downloaded on Date: ${currentDate}`, 10, 20); // Add current date below the title
+      pdf.text("Daily Footprint Trends", 10, 10);
+      pdf.text(`Downloaded on Date: ${currentDate}`, 10, 20);
 
-      // Add the image below the title (adjusting position and size)
-      const imageWidth = 180; // Image width for the PDF (adjust as needed)
-      const imageHeight = (canvas.height * imageWidth) / canvas.width; // Maintain aspect ratio
-      pdf.addImage(imgData, 'PNG', 10, 30, imageWidth, imageHeight);
+      const imageWidth = 180;
+      const imageHeight = (canvas.height * imageWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 10, 30, imageWidth, imageHeight);
 
-      // Save the PDF
-      pdf.save(`Footprint_Trends_${currentDate.replace(/\//g, '-')}.pdf`); // Replace slashes in date for filename
+      pdf.save(`Footprint_Trends_${currentDate.replace(/\//g, "-")}.pdf`);
     });
 
-
     html2canvas(leaderboardRef.current, {
-      scale: 2, // Increase scale for better image quality
-    }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation, A4 size
-    
-      // Add title and date text
+      scale: 2,
+    }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
       pdf.setFontSize(16);
-      pdf.text('Ecosteps Leaderboard', 10, 10); // Add title at the top-left
-      pdf.text(`Downloaded on Date: ${currentDate}`, 10, 20); // Add current date below the title
-      // Add the image below the title (adjusting position and size)
-      const imageWidth = 180; // Image width for the PDF (adjust as needed)
+      pdf.text("Ecosteps Leaderboard", 10, 10);
+      pdf.text(`Downloaded on Date: ${currentDate}`, 10, 20);
+
+      const imageWidth = 180;
       const imageHeight = (canvas.height * imageWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 10, 30, imageWidth, imageHeight);
+      pdf.addImage(imgData, "PNG", 10, 30, imageWidth, imageHeight);
 
-      // Save the PDF
-      pdf.save(`Footprint_Leaderboard_${currentDate.replace(/\//g, '-')}.pdf`); // Replace slashes in date for filename
-    }
-    );
-
+      pdf.save(`Footprint_Leaderboard_${currentDate.replace(/\//g, "-")}.pdf`);
+    });
   };
 
   const CustomLegend = (props) => {
     const { payload } = props;
 
     return (
-      <ul style={{ paddingLeft: '0px', display: 'flex', flexDirection: 'row' }}>
+      <ul style={{ paddingLeft: "0px", display: "flex", flexDirection: "row" }}>
         {payload.map((entry, index) => (
           <li key={index} style={{ marginRight: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
               <span
                 style={{
-                  width: '12px',
-                  height: '12px',
+                  width: "12px",
+                  height: "12px",
                   backgroundColor: entry.color,
-                  borderRadius: '50%',
-                  marginRight: '8px',
+                  borderRadius: "50%",
+                  marginRight: "8px",
                 }}
               />
               <span>{entry.value}</span>
@@ -205,11 +214,11 @@ useEffect(() => {
     );
   };
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
         const response = await getLeaderboard();
-    
+
         const leaderboardData = response?.data || [];
         if (leaderboardData.length > 0) {
           setLeaderboard(leaderboardData);
@@ -227,8 +236,6 @@ useEffect(() => {
     fetchLeaderboard();
   }, []);
 
-
-
   if (loading) return <p>Loading leaderboard...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
@@ -237,75 +244,98 @@ useEffect(() => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Footprint Summary</h1>
-          <p className="text-muted-foreground">Analyze carbon footprint trends and patterns</p>
+          <p className="text-muted-foreground">
+            Analyze carbon footprint trends and patterns
+          </p>
         </div>
         <div className="flex gap-2">
-
-            
-          <Select defaultValue="average" onValueChange={(value) => setFilter(value as 'average' | 'all' | 'user' | 'compare')}>
+          <Select
+            defaultValue="average"
+            onValueChange={(value) =>
+              setFilter(value as "average" | "all" | "user" | "compare")
+            }
+          >
             <SelectTrigger className="w-72">
-              <SelectValue>{filter === 'average' ? 'Carbon Emission Average "(kg C02)' : filter === 'all' ? 'All' : filter === 'user' ? 'Single User' : 'Compare Users'}</SelectValue>
+              <SelectValue>
+                {filter === "average"
+                  ? 'Carbon Emission Average "(kg C02)'
+                  : filter === "all"
+                    ? "All"
+                    : filter === "user"
+                      ? "Single User"
+                      : "Compare Users"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="average">Carbon Emission Average "(kg C02)"</SelectItem>
+              <SelectItem value="average">
+                Carbon Emission Average "(kg C02)"
+              </SelectItem>
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="user">Single User</SelectItem>
               <SelectItem value="compare">Compare Users</SelectItem>
             </SelectContent>
           </Select>
-              {filter === 'compare' && (
-                <div className="flex gap-2">
-                  <Select
-                    value={selectedUsers[0] || ''}
-                    onValueChange={(value) => setSelectedUsers([value, selectedUsers[1]])}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue>{selectedUsers[0] || 'Select User 1'}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userEmails.map((email) => (
-                        <SelectItem key={email} value={email}>
-                          {email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                    
-                  <Select
-                    value={selectedUsers[1] || ''}
-                    onValueChange={(value) => setSelectedUsers([selectedUsers[0], value])}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue>{selectedUsers[1] || 'Select User 2'}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userEmails.map((email) => (
-                        <SelectItem key={email} value={email}>
-                          {email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          {filter === "compare" && (
+            <div className="flex gap-2">
+              <Select
+                value={selectedUsers[0] || ""}
+                onValueChange={(value) =>
+                  setSelectedUsers([value, selectedUsers[1]])
+                }
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue>
+                    {selectedUsers[0] || "Select User 1"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmails.map((email) => (
+                    <SelectItem key={email} value={email}>
+                      {email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {filter === 'user' && (
-                <Select
-                  value={selectedUsers[0] || ''}
-                  onValueChange={(value) => setSelectedUsers([value])}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue>{selectedUsers[0] || 'Select User'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userEmails.map((email) => (
-                      <SelectItem key={email} value={email}>
-                        {email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={selectedUsers[1] || ""}
+                onValueChange={(value) =>
+                  setSelectedUsers([selectedUsers[0], value])
+                }
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue>
+                    {selectedUsers[1] || "Select User 2"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmails.map((email) => (
+                    <SelectItem key={email} value={email}>
+                      {email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {filter === "user" && (
+            <Select
+              value={selectedUsers[0] || ""}
+              onValueChange={(value) => setSelectedUsers([value])}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue>{selectedUsers[0] || "Select User"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {userEmails.map((email) => (
+                  <SelectItem key={email} value={email}>
+                    {email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -317,30 +347,39 @@ useEffect(() => {
       <Tabs defaultValue="trends" className="space-y-4">
         <div className="flex items-center justify-between">
           <TabsList>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-        </TabsList>
-        <div className="flex justify-end gap-2">
-          <Button onClick={handleExportImage} variant="outline">
-            Export as Image
-          </Button>
-          <Button onClick={handleExportPDF} variant="outline">
-            Export as PDF
-          </Button>
-        </div>
+            <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+          </TabsList>
+          <div className="flex justify-end gap-2">
+            <Button onClick={handleExportImage} variant="outline">
+              Export as Image
+            </Button>
+            <Button onClick={handleExportPDF} variant="outline">
+              Export as PDF
+            </Button>
+          </div>
         </div>
         {/* Trends Tab Content */}
         <TabsContent value="trends" className="space-y-4">
           <Card className="shadow-sm border-admin-border" ref={chartRef}>
             <CardHeader className="flex flex-row justify-between">
               <div>
-                <CardTitle className="text-lg">Daily Footprint Trends</CardTitle>
-                <p className="text-sm text-muted-foreground">Compare individual users and platform average</p>
+                <CardTitle className="text-lg">
+                  Daily Footprint Trends
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Compare individual users and platform average
+                </p>
               </div>
               <div className="flex flex-row gap-3">
-                <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
+                <Select
+                  value={String(selectedMonth)}
+                  onValueChange={(val) => setSelectedMonth(Number(val))}
+                >
                   <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Select Month">{months.find(m => m.value === selectedMonth)?.label}</SelectValue>
+                    <SelectValue placeholder="Select Month">
+                      {months.find((m) => m.value === selectedMonth)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {months.map((m) => (
@@ -350,10 +389,15 @@ useEffect(() => {
                     ))}
                   </SelectContent>
                 </Select>
-                  
-                <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
+
+                <Select
+                  value={String(selectedYear)}
+                  onValueChange={(val) => setSelectedYear(Number(val))}
+                >
                   <SelectTrigger className="w-28">
-                    <SelectValue placeholder="Select Year">{selectedYear}</SelectValue>
+                    <SelectValue placeholder="Select Year">
+                      {selectedYear}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {years.map((y) => (
@@ -364,32 +408,32 @@ useEffect(() => {
                   </SelectContent>
                 </Select>
               </div>
-
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350} >
-                  <LineChart data={transformedData}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px hsl(0 0% 0% / 0.1)',
-                      }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value, name) => {
-                        if (typeof value === "number") {
-                          return [`${value.toFixed(2)} kg CO₂`, name];
-                        }
-                        return [`0 kg CO₂`, name];
-                      }}
-                    />
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={transformedData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px hsl(0 0% 0% / 0.1)",
+                    }}
+                    labelStyle={{ color: "hsl(var(--foreground))" }}
+                    formatter={(value, name) => {
+                      if (typeof value === "number") {
+                        return [`${value.toFixed(2)} kg CO₂`, name];
+                      }
+                      return [`0 kg CO₂`, name];
+                    }}
+                  />
 
-                    {/* All */}
-                    {filter === 'all' && userEmails.map((email, index) => (
+                  {/* All */}
+                  {filter === "all" &&
+                    userEmails.map((email, index) => (
                       <Line
                         key={email}
                         type="monotone"
@@ -402,99 +446,117 @@ useEffect(() => {
                       />
                     ))}
 
-                    {/* Render platform average line if the filter is 'platform' */}
-                    {filter === 'average' && (
+                  {/* Render platform average line if the filter is 'platform' */}
+                  {filter === "average" && (
+                    <Line
+                      type="monotone"
+                      dataKey="avg"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      name="Carbon Emission Average (kg C02)"
+                      connectNulls={true}
+                    />
+                  )}
+
+                  {/* Render a single user's line if the filter is 'user' */}
+                  {filter === "user" && selectedUsers.length === 1 && (
+                    <Line
+                      type="monotone"
+                      dataKey={selectedUsers[0]}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      name={selectedUsers[0]}
+                      connectNulls={true}
+                    />
+                  )}
+
+                  {/* Render two users' lines if the filter is 'compare' */}
+                  {filter === "compare" &&
+                    selectedUsers.length === 2 &&
+                    selectedUsers.map((email, index) => (
                       <Line
+                        key={email}
                         type="monotone"
-                        dataKey="avg"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={3}
-                        name="Carbon Emission Average (kg C02)"
+                        dataKey={email}
+                        stroke={`hsl(var(--chart-${index + 1}))`}
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        name={email}
                         connectNulls={true}
                       />
-                    )}
+                    ))}
 
-                    {/* Render a single user's line if the filter is 'user' */}
-                    {filter === 'user' && selectedUsers.length === 1 && (
-                      <Line
-                        type="monotone"
-                        dataKey={selectedUsers[0]}
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={3}
-                        name={selectedUsers[0]}
-                        connectNulls={true}
-                      />
-                    )}
-
-                    {/* Render two users' lines if the filter is 'compare' */}
-                    {filter === 'compare' && selectedUsers.length === 2 && (
-                      selectedUsers.map((email, index) => (
-                        <Line
-                          key={email}
-                          type="monotone"
-                          dataKey={email}
-                          stroke={`hsl(var(--chart-${index + 1}))`}
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          name={email}
-                          connectNulls={true}
-                        />
-                      ))
-                    )}
-
-                    <Legend content={<CustomLegend />} />
-                  </LineChart>
+                  <Legend content={<CustomLegend />} />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
 
-    <TabsContent value="leaderboard" className="space-y-4">
-      <Card className="shadow-sm border-admin-border" ref={leaderboardRef}>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-chart-3" />
-            Carbon Footprint Leaderboard
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Active EcoSteps users (best performers)</p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {leaderboard.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-admin-hover transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                    user.rank === 1 ? 'bg-chart-3 text-chart-3-foreground' :
-                    user.rank === 2 ? 'bg-muted text-muted-foreground' :
-                    user.rank === 3 ? 'bg-warning/20 text-warning' :
-                    'bg-admin-hover text-foreground'
-                  }`}>
-                    {user.rank}
+        <TabsContent value="leaderboard" className="space-y-4">
+          <Card className="shadow-sm border-admin-border" ref={leaderboardRef}>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-chart-3" />
+                Carbon Footprint Leaderboard
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Active EcoSteps users (best performers)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {leaderboard.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-admin-hover transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          user.rank === 1
+                            ? "bg-chart-3 text-chart-3-foreground"
+                            : user.rank === 2
+                              ? "bg-muted text-muted-foreground"
+                              : user.rank === 3
+                                ? "bg-warning/20 text-warning"
+                                : "bg-admin-hover text-foreground"
+                        }`}
+                      >
+                        {user.rank}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {user.user.firstName} {user.user.lastName} (
+                          {user.user.username})
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Total Eco Score: {user.totalScore}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="default" className="text-xs">
+                        Tier: {user.tier}
+                      </Badge>
+                      <div className="flex flex-row gap-5">
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Activity: {user.Activity}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Post: {user.Posts}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{user.user.firstName} {user.user.lastName} ({user.user.username})</p>
-                    <p className="text-xs text-muted-foreground">
-                      Total Eco Score: {user.totalScore}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge variant="default" className="text-xs">Tier: {user.tier}</Badge>
-                  <div className="flex flex-row gap-5">
-                    <p className="text-xs text-muted-foreground mt-1">Activity: {user.Activity}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Post: {user.Posts}</p>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-
-          </div>
-        </CardContent>
-      </Card>
-    </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
-  )
-}
+  );
+};
 
-export default FootprintSummary
+export default FootprintSummary;

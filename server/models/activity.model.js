@@ -2,9 +2,17 @@ const mongoose = require("mongoose");
 
 const activitySchema = new mongoose.Schema(
   {
-    id: { type: String, unique: true, default: () => new mongoose.Types.ObjectId().toString() },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // not required if you’ll fill it server-side
-    category: { type: String, enum: ["transport", "home", "food"], required: true },
+    id: {
+      type: String,
+      unique: true,
+      default: () => new mongoose.Types.ObjectId().toString(),
+    },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    category: {
+      type: String,
+      enum: ["transport", "home", "food"],
+      required: true,
+    },
 
     transportGroup: String,
     subtype: String,
@@ -20,8 +28,7 @@ const activitySchema = new mongoose.Schema(
 
     createdAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
 
 module.exports = mongoose.model("ActivityLogs", activitySchema);

@@ -21,7 +21,8 @@ export default function VerifyEmailPrompt() {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Verify Your Email Address</h3>
           <p className="text-sm text-muted-foreground">
-            We've sent a verification link to your email address. Please check your inbox and click the link to verify your account.
+            We've sent a verification link to your email address. Please check
+            your inbox and click the link to verify your account.
           </p>
         </div>
 
@@ -31,7 +32,8 @@ export default function VerifyEmailPrompt() {
             <span className="text-sm font-medium">What happens next?</span>
           </div>
           <p className="text-sm text-blue-700 mt-2">
-            Once you verify your email, you'll be able to sign in and start your carbon footprint assessment.
+            Once you verify your email, you'll be able to sign in and start your
+            carbon footprint assessment.
           </p>
         </div>
 

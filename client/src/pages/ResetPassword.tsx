@@ -18,7 +18,9 @@ const ResetPassword = () => {
             <div className="alert alert-error text-red-500 border border-red-300 p-4 rounded-md">
               Invalid Link
             </div>
-            <p className="text-gray-500">The link is either invalid or expired.</p>
+            <p className="text-gray-500">
+              The link is either invalid or expired.
+            </p>
             <Link
               to="/password/forgot"
               className="text-blue-600 hover:underline"

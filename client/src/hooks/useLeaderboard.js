@@ -39,7 +39,7 @@ export function useLeaderboard() {
         setError(err);
         setUserLeaderboard(null);
       } finally {
-        setPending(false); // ✅ Fix this
+        setPending(false);
       }
     };
 

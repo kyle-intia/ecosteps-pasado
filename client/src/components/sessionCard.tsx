@@ -1,7 +1,6 @@
 import React from "react";
 import useDeleteSession from "../hooks/useDeleteSession";
 
-// Define the type for the session prop
 interface Session {
   _id: string;
   createdAt: string;
@@ -42,7 +41,6 @@ const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
 
 export default SessionCard;
 
-// Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   card: {
     display: "flex",

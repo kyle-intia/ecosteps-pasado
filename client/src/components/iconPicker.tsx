@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useMemo } from "react";
 import * as LucideIcons from "lucide-react";
 import {
@@ -22,20 +20,21 @@ const IconPicker = ({ value, onChange }: IconPickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  // ✅ Filter: only real React components, no "...Icon" duplicates
   const allIcons = useMemo(() => {
     return Object.keys(LucideIcons).filter(
-      (name) => /^[A-Z]/.test(name) && !name.endsWith("Icon")
+      (name) => /^[A-Z]/.test(name) && !name.endsWith("Icon"),
     );
   }, []);
 
   const filteredIcons = allIcons.filter((iconName) =>
-    iconName.toLowerCase().includes(search.toLowerCase())
+    iconName.toLowerCase().includes(search.toLowerCase()),
   );
 
   const SelectedIcon =
     value && LucideIcons[value as keyof typeof LucideIcons]
-      ? (LucideIcons[value as keyof typeof LucideIcons] as React.ComponentType<any>)
+      ? (LucideIcons[
+          value as keyof typeof LucideIcons
+        ] as React.ComponentType<any>)
       : null;
 
   return (
@@ -71,8 +70,9 @@ const IconPicker = ({ value, onChange }: IconPickerProps) => {
         <div className="grid grid-cols-5 gap-4">
           {filteredIcons.length > 0 ? (
             filteredIcons.map((iconName) => {
-              const IconComp =
-                LucideIcons[iconName as keyof typeof LucideIcons] as React.ComponentType<any>;
+              const IconComp = LucideIcons[
+                iconName as keyof typeof LucideIcons
+              ] as React.ComponentType<any>;
               return (
                 <button
                   key={iconName}

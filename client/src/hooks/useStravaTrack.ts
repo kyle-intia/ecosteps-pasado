@@ -44,5 +44,11 @@ export default function useStravaTrack() {
     })();
   }, []);
 
-  return { activities, isLoading, error, isConnected, refetch: fetchStravaActivities };
+  return {
+    activities,
+    isLoading,
+    error,
+    isConnected,
+    refetch: fetchStravaActivities,
+  };
 }

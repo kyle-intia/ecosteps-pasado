@@ -19,7 +19,9 @@ const ResetPasswordForm = ({ code }: { code: string }) => {
 
   return (
     <div className="max-w-md w-full mx-auto py-12 px-6">
-      <h2 className="text-3xl font-semibold text-center mb-8">Change your password</h2>
+      <h2 className="text-3xl font-semibold text-center mb-8">
+        Change your password
+      </h2>
 
       <div className="bg-white shadow-lg rounded-lg p-8">
         {isError && (
@@ -40,7 +42,10 @@ const ResetPasswordForm = ({ code }: { code: string }) => {
         ) : (
           <div>
             <div className="mb-4">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 New Password
               </label>
               <input
@@ -51,7 +56,8 @@ const ResetPasswordForm = ({ code }: { code: string }) => {
                 className="mt-2 p-3 w-full border border-gray-300 rounded-md"
                 autoFocus
                 onKeyDown={(e) =>
-                  e.key === "Enter" && resetUserPassword({ password, verificationCode: code })
+                  e.key === "Enter" &&
+                  resetUserPassword({ password, verificationCode: code })
                 }
               />
             </div>
@@ -66,7 +72,11 @@ const ResetPasswordForm = ({ code }: { code: string }) => {
                 })
               }
             >
-              {isPending ? <Spinner size="8" color="border-white" loading={isPending} /> : "Reset Password"}
+              {isPending ? (
+                <Spinner size="8" color="border-white" loading={isPending} />
+              ) : (
+                "Reset Password"
+              )}
             </button>
           </div>
         )}

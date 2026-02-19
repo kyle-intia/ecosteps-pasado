@@ -14,10 +14,18 @@ import {
   CheckCircle,
   Plus,
   X,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
-import { getUserAchievements, equipAchievement, unequipAchievement } from "../lib/api";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  getUserAchievements,
+  equipAchievement,
+  unequipAchievement,
+} from "../lib/api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Achievement {
   achievementId: string;
@@ -51,14 +59,14 @@ const categoryColors = {
   carbon: "bg-green-500/10 text-green-700 border-green-200",
   transport: "bg-orange-500/10 text-orange-700 border-orange-200",
   home: "bg-yellow-500/10 text-yellow-700 border-yellow-200",
-  food: "bg-red-500/10 text-red-700 border-red-200"
+  food: "bg-red-500/10 text-red-700 border-red-200",
 };
 
 const tierColors = {
   bronze: "text-amber-600",
   silver: "text-gray-600",
   gold: "text-yellow-500",
-  platinum: "text-purple-600"
+  platinum: "text-purple-600",
 };
 
 const Achievements = () => {
@@ -68,29 +76,53 @@ const Achievements = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: achievementData, isLoading, error } = useQuery<AchievementResponse, Error>({
-    queryKey: ['achievements'],
+  const {
+    data: achievementData,
+    isLoading,
+    error,
+  } = useQuery<AchievementResponse, Error>({
+    queryKey: ["achievements"],
     queryFn: getUserAchievements,
-    staleTime: 1000 * 60 * 5 // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const { achievements = [], equipped = [], stats = {} } = achievementData || {};
+  const {
+    achievements = [],
+    equipped = [],
+    stats = {},
+  } = achievementData || {};
 
-  const achievementsWithEquipped = useMemo(() => achievements.map(a => ({ ...a, isEquipped: equipped.some(e => e.achievementId === a.achievementId) })), [achievements, equipped]);
+  const achievementsWithEquipped = useMemo(
+    () =>
+      achievements.map((a) => ({
+        ...a,
+        isEquipped: equipped.some((e) => e.achievementId === a.achievementId),
+      })),
+    [achievements, equipped],
+  );
 
-  const categories = ["All", ...new Set(achievements.map(a => a.category))];
+  const categories = ["All", ...new Set(achievements.map((a) => a.category))];
 
-  const filteredAchievements = useMemo(() => achievementsWithEquipped.filter(achievement => {
-    const matchesSearch = achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         achievement.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || achievement.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  }), [achievementsWithEquipped, searchQuery, selectedCategory]);
+  const filteredAchievements = useMemo(
+    () =>
+      achievementsWithEquipped.filter((achievement) => {
+        const matchesSearch =
+          achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          achievement.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        const matchesCategory =
+          selectedCategory === "All" ||
+          achievement.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      }),
+    [achievementsWithEquipped, searchQuery, selectedCategory],
+  );
 
   const equipMutation = useMutation({
     mutationFn: (achievementId: string) => equipAchievement(achievementId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['achievements'] });
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
       toast({
         title: "Achievement Equipped!",
         description: "This achievement is now displayed on your profile.",
@@ -100,15 +132,15 @@ const Achievements = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to equip achievement",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const unequipMutation = useMutation({
     mutationFn: (achievementId: string) => unequipAchievement(achievementId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['achievements'] });
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
       toast({
         title: "Achievement Unequipped",
         description: "This achievement is no longer displayed on your profile.",
@@ -118,12 +150,11 @@ const Achievements = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to unequip achievement",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
-  // Real-time notification effect
   useEffect(() => {
     const handleAchievementUnlock = (event: any) => {
       const { achievement } = event.detail as { achievement: Achievement };
@@ -132,12 +163,15 @@ const Achievements = () => {
         description: `You earned "${achievement.name}"!`,
         duration: 5000,
       });
-      queryClient.invalidateQueries({ queryKey: ['achievements'] });
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
     };
 
-    window.addEventListener('achievement-unlocked', handleAchievementUnlock);
+    window.addEventListener("achievement-unlocked", handleAchievementUnlock);
     return () => {
-      window.removeEventListener('achievement-unlocked', handleAchievementUnlock);
+      window.removeEventListener(
+        "achievement-unlocked",
+        handleAchievementUnlock,
+      );
     };
   }, [toast, queryClient]);
 
@@ -153,15 +187,17 @@ const Achievements = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Error Loading Achievements</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Error Loading Achievements
+          </h2>
           <p className="text-muted-foreground">Please try again later.</p>
         </div>
       </div>
     );
   }
 
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
-  const totalPoints = achievements.filter(a => a.unlocked).length * 100; // Mock points calculation
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const totalPoints = achievements.filter((a) => a.unlocked).length * 100; // Mock points calculation
   const challengeStats = stats.totalChallengesCompleted || 0;
 
   const handleEquipToggle = (achievement: Achievement) => {
@@ -171,8 +207,9 @@ const Achievements = () => {
       if (equipped.length >= 3) {
         toast({
           title: "Maximum Equipped",
-          description: "You can only equip 3 achievements at a time. Unequip one first.",
-          variant: "destructive"
+          description:
+            "You can only equip 3 achievements at a time. Unequip one first.",
+          variant: "destructive",
         });
         return;
       }
@@ -182,16 +219,19 @@ const Achievements = () => {
 
   const getProgressPercentage = (achievement: Achievement) => {
     if (achievement.unlocked) return 100;
-    return Math.min(100, (achievement.progress / achievement.targetValue) * 100);
+    return Math.min(
+      100,
+      (achievement.progress / achievement.targetValue) * 100,
+    );
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -205,9 +245,10 @@ const Achievements = () => {
             Achievements
           </h1>
           <p className="text-lg text-muted-foreground mb-6">
-            Earn achievements by taking eco-friendly actions and making a positive impact
+            Earn achievements by taking eco-friendly actions and making a
+            positive impact
           </p>
-          
+
           {/* Stats */}
           <div className="flex justify-center gap-8 mb-8">
             <div className="text-center">
@@ -215,7 +256,9 @@ const Achievements = () => {
               <p className="text-sm text-muted-foreground">Unlocked</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{achievements.length}</p>
+              <p className="text-3xl font-bold text-primary">
+                {achievements.length}
+              </p>
               <p className="text-sm text-muted-foreground">Total</p>
             </div>
             <div className="text-center">
@@ -223,7 +266,9 @@ const Achievements = () => {
               <p className="text-sm text-muted-foreground">Points Earned</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-purple-600">{equipped.length}/3</p>
+              <p className="text-3xl font-bold text-purple-600">
+                {equipped.length}/3
+              </p>
               <p className="text-sm text-muted-foreground">Equipped</p>
             </div>
           </div>
@@ -236,13 +281,15 @@ const Achievements = () => {
             <Input
               placeholder="Search achievements..."
               value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setSearchQuery(e.target.value)
+              }
               className="pl-10"
             />
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
-            {categories.map(category => (
+            {categories.map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
@@ -254,8 +301,6 @@ const Achievements = () => {
               </Button>
             ))}
           </div>
-          
-
         </div>
 
         {/* Achievements Grid */}
@@ -269,13 +314,17 @@ const Achievements = () => {
               <Card
                 key={achievement.achievementId}
                 className={`relative hover:shadow-lg transition-all duration-200 ${
-                  achievement.unlocked ? 'border-primary/20 bg-gradient-to-br from-background to-primary/5' : 'border-muted opacity-75'
-                } ${achievement.isEquipped ? 'ring-2 ring-primary/50' : ''}`}
+                  achievement.unlocked
+                    ? "border-primary/20 bg-gradient-to-br from-background to-primary/5"
+                    : "border-muted opacity-75"
+                } ${achievement.isEquipped ? "ring-2 ring-primary/50" : ""}`}
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3 flex-1">
-                      <div className={`p-3 rounded-lg ${achievement.unlocked ? 'bg-primary/10' : 'bg-muted'} relative`}>
+                      <div
+                        className={`p-3 rounded-lg ${achievement.unlocked ? "bg-primary/10" : "bg-muted"} relative`}
+                      >
                         {achievement.unlocked ? (
                           <>
                             <span className="text-2xl">{achievement.icon}</span>
@@ -288,41 +337,50 @@ const Achievements = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <CardTitle className={`text-lg flex items-center gap-2 ${achievement.unlocked ? 'w-[130px]' : ''}`}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="truncate">
-                                  {achievement.name}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
+                        <CardTitle
+                          className={`text-lg flex items-center gap-2 ${achievement.unlocked ? "w-[130px]" : ""}`}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate">
                                 {achievement.name}
-                              </TooltipContent>
-                            </Tooltip>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              {achievement.name}
+                            </TooltipContent>
+                          </Tooltip>
                           <span className={`text-sm ${tierColor}`}>
-                            {achievement.tier === 'bronze' && '🥉'}
-                            {achievement.tier === 'silver' && '🥈'}
-                            {achievement.tier === 'gold' && '🥇'}
-                            {achievement.tier === 'platinum' && '💎'}
+                            {achievement.tier === "bronze" && "🥉"}
+                            {achievement.tier === "silver" && "🥈"}
+                            {achievement.tier === "gold" && "🥇"}
+                            {achievement.tier === "platinum" && "💎"}
                           </span>
                         </CardTitle>
-                        <Badge variant="outline" className={`mt-1 ${categoryColor} text-xs`}>
+                        <Badge
+                          variant="outline"
+                          className={`mt-1 ${categoryColor} text-xs`}
+                        >
                           {achievement.category}
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col items-end gap-2">
                       {achievement.unlocked && (
                         <Trophy className="h-5 w-5 text-yellow-500" />
                       )}
-                      
+
                       {achievement.unlocked && (
                         <Button
                           size="sm"
-                          variant={achievement.isEquipped ? "default" : "outline"}
+                          variant={
+                            achievement.isEquipped ? "default" : "outline"
+                          }
                           onClick={() => handleEquipToggle(achievement)}
-                          disabled={equipMutation.isPending || unequipMutation.isPending}
+                          disabled={
+                            equipMutation.isPending || unequipMutation.isPending
+                          }
                           className="text-xs transition-all duration-300 ease-out"
                         >
                           {achievement.isEquipped ? (
@@ -341,39 +399,47 @@ const Achievements = () => {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent>
-                  <p className="text-muted-foreground mb-4 text-sm">{achievement.description}</p>
-                  
+                  <p className="text-muted-foreground mb-4 text-sm">
+                    {achievement.description}
+                  </p>
+
                   {/* Progress Bar */}
                   <div className="mb-4">
                     <div className="flex justify-between text-xs text-muted-foreground mb-1">
                       <span>Progress</span>
-                      <span>{achievement.progress}/{achievement.targetValue}</span>
+                      <span>
+                        {achievement.progress}/{achievement.targetValue}
+                      </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
-                      <div 
+                      <div
                         className={`h-2 rounded-full transition-all duration-300 ${
-                          achievement.unlocked 
-                            ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                            : 'bg-gradient-to-r from-primary/70 to-primary'
+                          achievement.unlocked
+                            ? "bg-gradient-to-r from-green-500 to-green-600"
+                            : "bg-gradient-to-r from-primary/70 to-primary"
                         }`}
                         style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Target:</span>
-                      <span className="font-medium">{achievement.targetValue}</span>
+                      <span className="font-medium">
+                        {achievement.targetValue}
+                      </span>
                     </div>
-                    
+
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Priority:</span>
-                      <span className="font-medium">{achievement.profilePriority}/10</span>
+                      <span className="font-medium">
+                        {achievement.profilePriority}/10
+                      </span>
                     </div>
-                    
+
                     {achievement.unlocked && achievement.unlockedAt && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Earned:</span>
@@ -392,8 +458,12 @@ const Achievements = () => {
         {filteredAchievements.length === 0 && (
           <div className="text-center py-12">
             <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">No achievements found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              No achievements found
+            </h3>
+            <p className="text-muted-foreground">
+              Try adjusting your search or filter criteria
+            </p>
           </div>
         )}
 
@@ -409,9 +479,11 @@ const Achievements = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {equipped.map((equippedItem) => {
-                  const achievement = achievements.find(a => a.achievementId === equippedItem.achievementId);
+                  const achievement = achievements.find(
+                    (a) => a.achievementId === equippedItem.achievementId,
+                  );
                   if (!achievement) return null;
-                  
+
                   return (
                     <div
                       key={equippedItem.achievementId}
@@ -421,8 +493,12 @@ const Achievements = () => {
                         <span className="text-2xl">{achievement.icon}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{achievement.name}</h4>
-                        <p className="text-xs text-muted-foreground truncate">{achievement.description}</p>
+                        <h4 className="font-medium text-sm truncate">
+                          {achievement.name}
+                        </h4>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {achievement.description}
+                        </p>
                         <p className="text-xs text-success font-medium">
                           Equipped {formatDate(equippedItem.equippedAt)}
                         </p>

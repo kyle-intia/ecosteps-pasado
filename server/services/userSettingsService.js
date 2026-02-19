@@ -1,4 +1,4 @@
-const UserSettings = require('../models/userSettingsModel');
+const UserSettings = require("../models/userSettingsModel");
 
 class UserSettingsService {
   static async getSettingsByUserId(userId) {
@@ -13,7 +13,7 @@ class UserSettingsService {
     const updatedSettings = await UserSettings.findOneAndUpdate(
       { userId },
       { $set: updates },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
     return updatedSettings;
   }

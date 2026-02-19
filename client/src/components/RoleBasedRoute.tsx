@@ -1,4 +1,3 @@
-// RoleBasedRoute.tsx
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Spinner } from "./ui/spinner";
@@ -9,14 +8,17 @@ interface RoleBasedRouteProps {
   redirectTo?: string;
 }
 
-const RoleBasedRoute = ({ allowedRoles, redirectTo = "/notfound" }: RoleBasedRouteProps) => {
+const RoleBasedRoute = ({
+  allowedRoles,
+  redirectTo = "/notfound",
+}: RoleBasedRouteProps) => {
   const [loading, setLoading] = useState(true);
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const data = await getUserRole(); 
+        const data = await getUserRole();
         if (allowedRoles.includes(data?.role)) {
           setIsAllowed(true);
         }

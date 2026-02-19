@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.use(authenticate);
 
-// fetch rewards with claim status
 router.get("/", async (req, res) => {
   try {
     const data = await RewardService.getAllRewards(req.userId);
@@ -16,7 +15,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// claim reward
 router.post("/:id/claim", async (req, res) => {
   try {
     const claim = await RewardService.claimReward(req.userId, req.params.id);

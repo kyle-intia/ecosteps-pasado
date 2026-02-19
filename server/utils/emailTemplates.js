@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getVerifyEmailTemplate = exports.getPasswordResetTemplate = void 0;
+
 const getPasswordResetTemplate = (url) => ({
   subject: "Password Reset Request",
   text: `You requested a password reset. Click on the link to reset your password: ${url}`,
@@ -107,7 +108,7 @@ const getPasswordResetTemplate = (url) => ({
 </body>
 </html>
 
-  `
+  `,
 });
 exports.getPasswordResetTemplate = getPasswordResetTemplate;
 
@@ -215,6 +216,6 @@ const getVerifyEmailTemplate = (url) => ({
     </table>
 </body>
 </html>
-  `
+  `,
 });
 exports.getVerifyEmailTemplate = getVerifyEmailTemplate;

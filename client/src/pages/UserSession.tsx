@@ -9,14 +9,13 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-  if (!loggedIn) {
-    navigate("/");
-    return;
-  }
-  setIsLoggedIn(true);
-}, []);
-
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!loggedIn) {
+      navigate("/");
+      return;
+    }
+    setIsLoggedIn(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -45,7 +44,6 @@ const Settings: React.FC = () => {
 
 export default Settings;
 
-// Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     maxWidth: "800px",

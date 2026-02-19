@@ -1,6 +1,11 @@
-// client/src/components/ErrorBoundary.tsx
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -15,7 +20,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -23,7 +28,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Dashboard error:', error, errorInfo);
+    console.error("Dashboard error:", error, errorInfo);
   }
 
   public render() {
@@ -37,12 +42,13 @@ class ErrorBoundary extends Component<Props, State> {
                 <CardTitle>Something went wrong</CardTitle>
               </div>
               <CardDescription>
-                The dashboard encountered an unexpected error. Please try refreshing the page.
+                The dashboard encountered an unexpected error. Please try
+                refreshing the page.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => window.location.reload()} 
+              <Button
+                onClick={() => window.location.reload()}
                 className="w-full"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />

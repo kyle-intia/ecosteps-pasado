@@ -1,9 +1,9 @@
-const webpush = require('web-push');
+const webpush = require("web-push");
 
 webpush.setVapidDetails(
-  'mailto:ecosteps@ecosteps.online',
+  "mailto:ecosteps@ecosteps.online",
   process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
+  process.env.VAPID_PRIVATE_KEY,
 );
 
 const sendPushNotification = async (subscription, payload) => {

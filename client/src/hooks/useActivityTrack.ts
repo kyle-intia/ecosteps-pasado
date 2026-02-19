@@ -28,15 +28,17 @@ const useActivityTrack = (opts: { enabled?: boolean } = {}) => {
 
   const queryKey = [ACTIVITY_TRACK, { isImported: false }];
 
-  const queryFn = () => getActivityTrack({ params: {} }); // fetch all (filter client-side)
+  const queryFn = () => getActivityTrack({ params: {} });
 
-  const { data, error, isLoading, isError, refetch } = useQuery<ActivityData[]>({
-    queryKey,
-    queryFn,
-    select: (activities) => activities.filter((a) => !a.isImported),
-    staleTime: 1000 * 60 * 5,
-    enabled,
-  });
+  const { data, error, isLoading, isError, refetch } = useQuery<ActivityData[]>(
+    {
+      queryKey,
+      queryFn,
+      select: (activities) => activities.filter((a) => !a.isImported),
+      staleTime: 1000 * 60 * 5,
+      enabled,
+    },
+  );
 
   return {
     activities: data || [],

@@ -1,5 +1,4 @@
 "use strict";
-
 const express = require("express");
 const router = express.Router();
 const { sendSupportMail } = require("../services/supportEmailService");
@@ -16,7 +15,7 @@ router.post("/", async (req, res) => {
     }
 
     await sendSupportMail({
-      from: email,           // user’s email goes to reply_to
+      from: email,
       subject,
       text: message,
       html: `<p>${message}</p>`,

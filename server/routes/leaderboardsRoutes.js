@@ -3,15 +3,13 @@ const router = express.Router();
 const LeaderboardService = require("../services/leaderboardService");
 const authenticate = require("../middleware/authenticate");
 
-// All routes require authentication
 router.use(authenticate);
 
-// GET top leaderboard users
 router.get("/", async (req, res) => {
   try {
     const { limit = 20 } = req.query;
     const leaderboard = await LeaderboardService.getLeaderboard(
-      parseInt(limit)
+      parseInt(limit),
     );
 
     res.status(200).json({
@@ -27,7 +25,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET current user’s rank and points
 router.get("/user", async (req, res) => {
   try {
     const userId = req.userId;
@@ -46,7 +43,6 @@ router.get("/user", async (req, res) => {
   }
 });
 
-// POST manually trigger leaderboard rank recalculation
 router.post("/recalculate", async (req, res) => {
   try {
     await LeaderboardService.updateRanks();

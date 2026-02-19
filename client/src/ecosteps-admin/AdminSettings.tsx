@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,17 +20,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useToast } from "@/hooks/use-toast"
-import { 
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import {
   Settings as SettingsIcon,
   Database,
   Brain,
@@ -40,20 +40,37 @@ import {
   RotateCcw,
   Plus,
   Trash2,
-  Edit
-} from "lucide-react"
-import { listUsers, createEmissionFactor, getAllEmissionFactors, getEmissionFactorById, updateEmissionFactor, deleteEmissionFactor, getMaintenanceMode, toggleMaintenance, getPushNotificationMode, togglePushNotification} from "../lib/api"
+  Edit,
+} from "lucide-react";
+import {
+  listUsers,
+  createEmissionFactor,
+  getAllEmissionFactors,
+  getEmissionFactorById,
+  updateEmissionFactor,
+  deleteEmissionFactor,
+  getMaintenanceMode,
+  toggleMaintenance,
+  getPushNotificationMode,
+  togglePushNotification,
+} from "../lib/api";
 
 const AdminSettings = () => {
-  const [emissionFactors, setEmissionFactors] = useState([])
-  const [aiModel, setAiModel] = useState("gpt-4")
-  const [enableFlightLogging, setEnableFlightLogging] = useState(false)
-  const [pushNotificationMode, setPushNotificationMode] = useState(true)
-  const [maintenanceMode, setMaintenanceMode] = useState(false)
-  const [editingFactor, setEditingFactor] = useState<any>(null)
-  const [isAddingFactor, setIsAddingFactor] = useState(false)
-  const [newFactor, setNewFactor] = useState({ category: "", type: "", unit: "", value: "", source: "" })
-  const { toast } = useToast()
+  const [emissionFactors, setEmissionFactors] = useState([]);
+  const [aiModel, setAiModel] = useState("gpt-4");
+  const [enableFlightLogging, setEnableFlightLogging] = useState(false);
+  const [pushNotificationMode, setPushNotificationMode] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [editingFactor, setEditingFactor] = useState<any>(null);
+  const [isAddingFactor, setIsAddingFactor] = useState(false);
+  const [newFactor, setNewFactor] = useState({
+    category: "",
+    type: "",
+    unit: "",
+    value: "",
+    source: "",
+  });
+  const { toast } = useToast();
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,74 +82,84 @@ const AdminSettings = () => {
   useEffect(() => {
     const fetchFactors = async () => {
       try {
-        const factors = await getAllEmissionFactors()
-        setEmissionFactors(factors)
+        const factors = await getAllEmissionFactors();
+        setEmissionFactors(factors);
       } catch (error) {
-        console.error("Failed to fetch emission factors", error)
+        console.error("Failed to fetch emission factors", error);
         toast({
           title: "Error",
           description: "Failed to fetch emission factors",
           variant: "destructive",
-        })
+        });
       }
-    }
-    fetchFactors()
-  }, [])
+    };
+    fetchFactors();
+  }, []);
 
   const handleEditFactor = async (factor, index) => {
     try {
-      const detailedFactor = await getEmissionFactorById(factor._id)
-      setEditingFactor(detailedFactor)
+      const detailedFactor = await getEmissionFactorById(factor._id);
+      setEditingFactor(detailedFactor);
     } catch (error) {
-      console.error("Failed to fetch factor details", error)
+      console.error("Failed to fetch factor details", error);
       toast({
         title: "Error",
         description: "Failed to fetch factor details",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleSaveFactor = async () => {
     if (!editingFactor) return;
     try {
-      const updated = await updateEmissionFactor(editingFactor._id, editingFactor)
-      setEmissionFactors((prev) => prev.map((f) => f._id === updated._id ? updated : f))
-      setEditingFactor(null)
+      const updated = await updateEmissionFactor(
+        editingFactor._id,
+        editingFactor,
+      );
+      setEmissionFactors((prev) =>
+        prev.map((f) => (f._id === updated._id ? updated : f)),
+      );
+      setEditingFactor(null);
       toast({
         title: "Success",
         description: "Emission factor updated successfully",
         variant: "default",
-      })
+      });
     } catch (error) {
-      console.error("Failed to update factor", error)
+      console.error("Failed to update factor", error);
       toast({
         title: "Error",
         description: "Failed to update factor",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleDeleteFactor = async (factor) => {
-    if (!confirm(`Are you sure you want to delete the factor for ${factor.category}?`)) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete the factor for ${factor.category}?`,
+      )
+    )
+      return;
     try {
-      await deleteEmissionFactor(factor._id)
-      setEmissionFactors((prev) => prev.filter((f) => f._id !== factor._id))
+      await deleteEmissionFactor(factor._id);
+      setEmissionFactors((prev) => prev.filter((f) => f._id !== factor._id));
       toast({
         title: "Deleted",
         description: "Emission factor deleted successfully",
         variant: "default",
-      })
+      });
     } catch (error) {
-      console.error("Failed to delete factor", error)
+      console.error("Failed to delete factor", error);
       toast({
         title: "Error",
         description: "Failed to delete factor",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleAddFactor = async () => {
     if (!newFactor.category || !newFactor.unit || !newFactor.value) {
@@ -140,40 +167,41 @@ const AdminSettings = () => {
         title: "Error",
         description: "Please fill in all required fields",
         variant: "destructive",
-      })
+      });
       return;
     }
     try {
-      const created = await createEmissionFactor(newFactor)
-      setEmissionFactors((prev) => [...prev, created])
-      setNewFactor({ category: "", type: "", unit: "", value: "", source: "" })
-      setIsAddingFactor(false)
+      const created = await createEmissionFactor(newFactor);
+      setEmissionFactors((prev) => [...prev, created]);
+      setNewFactor({ category: "", type: "", unit: "", value: "", source: "" });
+      setIsAddingFactor(false);
       toast({
         title: "Success",
         description: "New emission factor added successfully",
         variant: "default",
-      })
+      });
     } catch (error) {
-      console.error("Failed to add new factor", error)
+      console.error("Failed to add new factor", error);
       toast({
         title: "Error",
         description: "Failed to add new factor",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const fetchUsers = async (page = 1) => {
     setIsLoading(true);
     try {
-      const response = await listUsers({ page, limit: 10});
+      const response = await listUsers({ page, limit: 10 });
 
       const usersArray = response.users || response.data?.users || [];
       const total = response.total || response.data?.total || 0;
-      const totalPagesCount = response.totalPages || response.data?.totalPages || 1;
-      const adminUsers = usersArray.filter(user => user.role === 'admin');
+      const totalPagesCount =
+        response.totalPages || response.data?.totalPages || 1;
+      const adminUsers = usersArray.filter((user) => user.role === "admin");
 
-      setUsers(adminUsers );
+      setUsers(adminUsers);
       setCurrentPage(page);
       setTotalUsers(total);
       setTotalPages(totalPagesCount);
@@ -199,7 +227,7 @@ const AdminSettings = () => {
         const response = await getMaintenanceMode();
         setMaintenanceMode(response.maintenanceMode);
       } catch (error) {
-        console.error('Failed to fetch maintenance status:', error);
+        console.error("Failed to fetch maintenance status:", error);
       } finally {
         setLoading(false);
       }
@@ -214,7 +242,7 @@ const AdminSettings = () => {
         const response = await getPushNotificationMode();
         setPushNotificationMode(response.pushNotificationMode);
       } catch (error) {
-        console.error('Failed to fetch push notification status:', error);
+        console.error("Failed to fetch push notification status:", error);
       } finally {
         setLoading(false);
       }
@@ -228,7 +256,7 @@ const AdminSettings = () => {
     try {
       await toggleMaintenance({ maintenanceMode: checked });
     } catch (error) {
-      console.error('Failed to toggle maintenance mode:', error);
+      console.error("Failed to toggle maintenance mode:", error);
     }
   };
 
@@ -237,13 +265,11 @@ const AdminSettings = () => {
     try {
       await togglePushNotification({ pushNotificationMode: checked });
     } catch (error) {
-      console.error('Failed to toggle maintenance mode:', error);
+      console.error("Failed to toggle maintenance mode:", error);
     }
   };
 
-  if (loading) 
-    return <p>Loading maintenance status...</p>;
-
+  if (loading) return <p>Loading maintenance status...</p>;
 
   const getDaysAgo = (dateString) => {
     if (!dateString) return "N/A";
@@ -275,7 +301,9 @@ const AdminSettings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure platform settings and administrative options</p>
+          <p className="text-muted-foreground">
+            Configure platform settings and administrative options
+          </p>
         </div>
       </div>
 
@@ -299,7 +327,9 @@ const AdminSettings = () => {
           <Card className="shadow-sm border-admin-border">
             <CardHeader>
               <CardTitle className="text-lg">Emission Factors</CardTitle>
-              <p className="text-sm text-muted-foreground">Configure CO₂ emission calculation factors</p>
+              <p className="text-sm text-muted-foreground">
+                Configure CO₂ emission calculation factors
+              </p>
             </CardHeader>
             <CardContent>
               <Table>
@@ -315,8 +345,13 @@ const AdminSettings = () => {
                 </TableHeader>
                 <TableBody>
                   {emissionFactors.map((factor, index) => (
-                    <TableRow key={factor._id || index} className="hover:bg-admin-hover">
-                      <TableCell className="font-medium">{factor.category}</TableCell>
+                    <TableRow
+                      key={factor._id || index}
+                      className="hover:bg-admin-hover"
+                    >
+                      <TableCell className="font-medium">
+                        {factor.category}
+                      </TableCell>
                       <TableCell>{factor.type}</TableCell>
                       <TableCell>{factor.unit}</TableCell>
                       <TableCell>{factor.value}</TableCell>
@@ -325,17 +360,17 @@ const AdminSettings = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-7 w-7 p-0"
                             onClick={() => handleEditFactor(factor, index)}
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                             onClick={() => handleDeleteFactor(factor)}
                           >
@@ -348,7 +383,11 @@ const AdminSettings = () => {
                 </TableBody>
               </Table>
               <div className="mt-4 flex justify-end">
-                <Button variant="default" className="gap-2" onClick={() => setIsAddingFactor(true)}>
+                <Button
+                  variant="default"
+                  className="gap-2"
+                  onClick={() => setIsAddingFactor(true)}
+                >
                   <Plus className="h-4 w-4" />
                   Add Factor
                 </Button>
@@ -359,17 +398,23 @@ const AdminSettings = () => {
           <Card className="shadow-sm border-admin-border">
             <CardHeader>
               <CardTitle className="text-lg">System Settings</CardTitle>
-              <p className="text-sm text-muted-foreground">General platform configuration</p>
+              <p className="text-sm text-muted-foreground">
+                General platform configuration
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="support-email">Support Email</Label>
-                    <Input id="support-email" type="email" defaultValue="support@ecosteps.online" />
+                    <Input
+                      id="support-email"
+                      type="email"
+                      defaultValue="support@ecosteps.online"
+                    />
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -378,7 +423,7 @@ const AdminSettings = () => {
                         Temporarily disable user access
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={maintenanceMode}
                       onCheckedChange={handleMaintenanceToggle}
                     />
@@ -390,7 +435,7 @@ const AdminSettings = () => {
                         Send notifications to users
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={pushNotificationMode}
                       onCheckedChange={handlePushToggle}
                     />
@@ -403,12 +448,16 @@ const AdminSettings = () => {
 
         <TabsContent value="ai" className="space-y-4">
           <Card className="shadow-sm border-admin-border opacity-60">
-             <CardHeader>
+            <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 AI Model Configuration
-                <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Coming Soon
+                </Badge>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Configure AI recommendation settings</p>
+              <p className="text-sm text-muted-foreground">
+                Configure AI recommendation settings
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -420,7 +469,9 @@ const AdminSettings = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-4">GPT-4 (Recommended)</SelectItem>
+                        <SelectItem value="gpt-4">
+                          GPT-4 (Recommended)
+                        </SelectItem>
                         <SelectItem value="gpt-3.5">GPT-3.5 Turbo</SelectItem>
                         <SelectItem value="claude">Claude 3</SelectItem>
                       </SelectContent>
@@ -428,21 +479,34 @@ const AdminSettings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="temperature">Temperature</Label>
-                    <Input id="temperature" type="number" step="0.1" min="0" max="1" defaultValue="0.7" disabled />
+                    <Input
+                      id="temperature"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="1"
+                      defaultValue="0.7"
+                      disabled
+                    />
                     <p className="text-xs text-muted-foreground">
                       Lower = more focused, Higher = more creative
                     </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="max-tokens">Max Tokens</Label>
-                    <Input id="max-tokens" type="number" defaultValue="150" disabled />
+                    <Input
+                      id="max-tokens"
+                      type="number"
+                      defaultValue="150"
+                      disabled
+                    />
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="system-prompt">System Prompt</Label>
-                    <Textarea 
+                    <Textarea
                       id="system-prompt"
                       className="min-h-[120px]"
                       defaultValue="You are a helpful AI assistant specialized in providing carbon footprint reduction recommendations. Focus on practical, actionable advice that users can easily implement in their daily lives."
@@ -450,8 +514,10 @@ const AdminSettings = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="recommendation-frequency">Recommendation Frequency</Label>
-                    <Select defaultValue="weekly" disabled >
+                    <Label htmlFor="recommendation-frequency">
+                      Recommendation Frequency
+                    </Label>
+                    <Select defaultValue="weekly" disabled>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -474,7 +540,9 @@ const AdminSettings = () => {
               <CardTitle className="text-lg flex items-center justify-between">
                 Admin Users
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Manage administrative access and permissions</p>
+              <p className="text-sm text-muted-foreground">
+                Manage administrative access and permissions
+              </p>
             </CardHeader>
             <CardContent>
               <Table>
@@ -490,15 +558,27 @@ const AdminSettings = () => {
                 <TableBody>
                   {users.map((admin) => (
                     <TableRow key={admin._id} className="hover:bg-admin-hover">
-                      <TableCell className="font-medium">{admin._id?.slice(-6) || 'N/A'}</TableCell>
+                      <TableCell className="font-medium">
+                        {admin._id?.slice(-6) || "N/A"}
+                      </TableCell>
                       <TableCell>{admin.email}</TableCell>
                       <TableCell>
-                        <Badge variant={admin.role === 'admin' ? 'destructive' : 'default'}>
+                        <Badge
+                          variant={
+                            admin.role === "admin" ? "destructive" : "default"
+                          }
+                        >
                           {admin.role}
                         </Badge>
                       </TableCell>
                       <TableCell>{getDaysAgo(admin.lastActive)}</TableCell>
-                      <TableCell>{admin.createdAt ? new Date(admin.createdAt).toISOString().split('T')[0] : 'N/A'}</TableCell>
+                      <TableCell>
+                        {admin.createdAt
+                          ? new Date(admin.createdAt)
+                              .toISOString()
+                              .split("T")[0]
+                          : "N/A"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -509,7 +589,10 @@ const AdminSettings = () => {
       </Tabs>
 
       {/* Edit Factor Dialog */}
-      <Dialog open={!!editingFactor} onOpenChange={(open) => !open && setEditingFactor(null)}>
+      <Dialog
+        open={!!editingFactor}
+        onOpenChange={(open) => !open && setEditingFactor(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -520,56 +603,93 @@ const AdminSettings = () => {
               Modify the CO₂ emission factor for {editingFactor?.category}
             </DialogDescription>
           </DialogHeader>
-          
+
           {editingFactor && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Input value={editingFactor.category} readOnly className="bg-muted" />
+                <Input
+                  value={editingFactor.category}
+                  readOnly
+                  className="bg-muted"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Input 
+                <Input
                   value={editingFactor.type}
-                  onChange={(e) => setEditingFactor({...editingFactor, type: e.target.value})}
+                  onChange={(e) =>
+                    setEditingFactor({ ...editingFactor, type: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Unit</Label>
-                <Select value={editingFactor.unit} onValueChange={(value) => setEditingFactor({...editingFactor, unit: value})}>
+                <Select
+                  value={editingFactor.unit}
+                  onValueChange={(value) =>
+                    setEditingFactor({ ...editingFactor, unit: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="kg CO₂e per km">kg CO₂e per km</SelectItem>
-                    <SelectItem value="annual kg CO₂e">annual kg CO₂e</SelectItem>
-                    <SelectItem value="percentage increase">percentage increase</SelectItem>
-                    <SelectItem value="kg CO₂e per meal">kg CO₂e per meal</SelectItem>
+                    <SelectItem value="kg CO₂e per km">
+                      kg CO₂e per km
+                    </SelectItem>
+                    <SelectItem value="annual kg CO₂e">
+                      annual kg CO₂e
+                    </SelectItem>
+                    <SelectItem value="percentage increase">
+                      percentage increase
+                    </SelectItem>
+                    <SelectItem value="kg CO₂e per meal">
+                      kg CO₂e per meal
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>CO₂ Factor (kg)</Label>
-                <Input 
+                <Input
                   type="number"
                   step="0.01"
                   value={editingFactor.value}
-                  onChange={(e) => setEditingFactor({...editingFactor, value: e.target.value})}
+                  onChange={(e) =>
+                    setEditingFactor({
+                      ...editingFactor,
+                      value: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>Source</Label>
-                <Input 
+                <Input
                   value={editingFactor.source}
-                  onChange={(e) => setEditingFactor({...editingFactor, source: e.target.value})}
+                  onChange={(e) =>
+                    setEditingFactor({
+                      ...editingFactor,
+                      source: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleSaveFactor} className="flex-1">Save Changes</Button>
-                <Button variant="outline" onClick={() => setEditingFactor(null)} className="flex-1">Cancel</Button>
+                <Button onClick={handleSaveFactor} className="flex-1">
+                  Save Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingFactor(null)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           )}
@@ -588,65 +708,92 @@ const AdminSettings = () => {
               Create a new CO₂ emission calculation factor
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Category *</Label>
-              <Input 
+              <Input
                 value={newFactor.category}
-                onChange={(e) => setNewFactor({...newFactor, category: e.target.value})}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, category: e.target.value })
+                }
                 placeholder="e.g., transport, flights, electricity"
               />
             </div>
             <div className="space-y-2">
               <Label>Type *</Label>
-              <Input 
+              <Input
                 value={newFactor.type}
-                onChange={(e) => setNewFactor({...newFactor, type: e.target.value})}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, type: e.target.value })
+                }
                 placeholder="e.g., Motorcycle, Fish, Solar"
               />
             </div>
             <div className="space-y-2">
               <Label>Unit *</Label>
-              <Select value={newFactor.unit} onValueChange={(value) => setNewFactor({...newFactor, unit: value})}>
+              <Select
+                value={newFactor.unit}
+                onValueChange={(value) =>
+                  setNewFactor({ ...newFactor, unit: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="kg CO₂e per km">kg CO₂e per km</SelectItem>
-                  <SelectItem value="annual kg CO₂e<">annual kg CO₂e</SelectItem>
-                  <SelectItem value="percentage increase">percentage increase</SelectItem>
-                  <SelectItem value="kg CO₂e per meal">kg CO₂e per meal</SelectItem>
+                  <SelectItem value="annual kg CO₂e<">
+                    annual kg CO₂e
+                  </SelectItem>
+                  <SelectItem value="percentage increase">
+                    percentage increase
+                  </SelectItem>
+                  <SelectItem value="kg CO₂e per meal">
+                    kg CO₂e per meal
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>CO₂ Factor (kg) *</Label>
-              <Input 
+              <Input
                 type="number"
                 step="0.01"
                 value={newFactor.value}
-                onChange={(e) => setNewFactor({...newFactor, value: e.target.value})}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, value: e.target.value })
+                }
                 placeholder="0.00"
               />
             </div>
             <div className="space-y-2">
               <Label>Source</Label>
-              <Input 
+              <Input
                 value={newFactor.source}
-                onChange={(e) => setNewFactor({...newFactor, source: e.target.value})}
+                onChange={(e) =>
+                  setNewFactor({ ...newFactor, source: e.target.value })
+                }
                 placeholder="e.g., DEFRA 2024, EPA 2024"
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleAddFactor} className="flex-1">Add Factor</Button>
-              <Button variant="outline" onClick={() => setIsAddingFactor(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleAddFactor} className="flex-1">
+                Add Factor
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddingFactor(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default AdminSettings
+export default AdminSettings;
