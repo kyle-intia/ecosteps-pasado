@@ -79,7 +79,7 @@ export default function MangroveMap() {
                 bearing: 0,
               }}
               mapStyle="mapbox://styles/mapbox/streets-v12"
-              mapboxAccessToken="pk.eyJ1IjoiaGlqaWFuZ3RhbyIsImEiOiJjampxcjFnb3E2NTB5M3BvM253ZHV5YjhjIn0.WneUon5qFigfJRJ3oaZ3Ow"
+              mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
               style={{ width: "100%", height: "100%" }}
               terrain={{ source: "mapbox-dem", exaggeration: 5 }}
               attributionControl={false}
